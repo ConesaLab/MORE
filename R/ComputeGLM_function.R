@@ -1,4 +1,4 @@
-#' @import igraph MASS
+#' @import igraph MASS glmnet
 NULL
 
 ##################################
@@ -48,6 +48,7 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
   y = matrix.temp[,1]
   x = matrix.temp[,-1, drop = FALSE]
 
+  
   ## NOT ENOUGH DF: VARIABLE SELECTION
 
   if (df.total< dim.reg){
@@ -67,6 +68,7 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
     ## ENOUGH DF: Apply the stepwise procedure choosen by the user if it is necessary
 
   } else {
+    
     glm1 = glm(y ~ ., data = x, family = family, epsilon=epsilon)
     resTemp=summary(glm1)
 
@@ -85,7 +87,7 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
     }
   }
 
-
+  
   SummaryStepwise = ResultsTable(glm=glmPlot, family=family, epsilon=epsilon)
 
 
@@ -128,6 +130,7 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
 #'
 #' @examples
 PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.adjust = "fdr", iter.max = 100) {
+  
   pval <- NULL
   noms = NULL
   design <- NULL
@@ -157,8 +160,8 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
 
   if(stepwise=="backward"){
 
-    glm2=stepback.gdl(y = y, d.ini = d.ini, d.res = d.res, alfa = alfa, family = family, epsilon = epsilon,
-                      gdl.max = gdl.max, tmax = tmax, MT.adjust = MT.adjust)
+      glm2=stepback.gdl(y = y, d.ini = d.ini, d.res = d.res, alfa = alfa, family = family, epsilon = epsilon,
+                        gdl.max = gdl.max, tmax = tmax, MT.adjust = MT.adjust)
 
   }
 
@@ -211,8 +214,6 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
 #' @examples
 stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, MT.adjust = "fdr"){
 
-  d.orig = cbind(d.ini, d.res)
-
   t=1 ## We introduce the var one per one, lesser p-value
 
   d.ini=as.data.frame(d.ini, check.names = FALSE)  # variables with significant p-value in individual GLMs
@@ -234,8 +235,9 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
     while (t < tmax) {
       d.ini=cbind(d.ini, d.res[,t, drop=FALSE])
       t=t+1
-      # lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
-      lm1 <- try(glm(y ~ ., data = d.ini, family=family, epsilon=epsilon), silent = TRUE)
+
+      lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
+
       result <- summary(lm1)$coefficients[,4]  ## p-valores
       result = p.adjust(result, method = MT.adjust)   ## multiple testing method
       names(result)=gsub("\`","",names(result))
@@ -341,7 +343,9 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
     }
 
     pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
-    min <- min(pval, na.rm = TRUE)
+    if (all(is.na(pval))){
+      min = Inf
+    }  else { min <- min(pval, na.rm = TRUE) } 
 
     while ((min <= alfa) && (ncol(d.ini) < gdl.max)) {
 
@@ -378,7 +382,10 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
       }
 
       pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
-      min <- min(pval, na.rm = TRUE)
+      if (all(is.na(pval))){
+        min = Inf
+      }  else { min <- min(pval, na.rm = TRUE) } 
+      
       if (ncol(OUT) == 1) {
         if (min <= alfa) {
           d.ini <- cbind(d.ini, OUT[, 1])
@@ -551,7 +558,9 @@ stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
       }
 
       pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
-      min <- min(pval, na.rm = TRUE)
+      if (all(is.na(pval))){
+        min = Inf
+      }  else { min <- min(pval, na.rm = TRUE) } 
     }
     else min <- 1 ## Asi paro el bucle
   }
@@ -611,7 +620,7 @@ stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
     d <- d[, -pos]
     if (length(result[-1]) == 2) {
       min <- min(result[-1], na.rm = TRUE)
-      lastname <- names(result[-1])[result[-1] == min]
+      lastname <- names(result[-1])[result[-1] == min][1]
     }
     if (is.null(dim(d))) {
       d <- as.data.frame(d, check.names = FALSE)
@@ -716,7 +725,9 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
     ## multiple testing method!!!
     pval = p.adjust(pval, method = MT.adjust)
 
-    min <- min(pval, na.rm = TRUE)  # lowest p-value
+    if (all(is.na(pval))){
+      min = Inf
+    }  else { min <- min(pval, na.rm = TRUE) }   # lowest p-value
 
     while (min <= alfa) {  ## Possible variables to re-enter the model
       pos <- which(pval == min)
@@ -747,7 +758,10 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
           ## multiple testing method!!!
           pval = p.adjust(pval, method = MT.adjust)
 
-          min <- min(pval, na.rm = TRUE)
+          if (all(is.na(pval))){
+            min = Inf
+          }  else { min <- min(pval, na.rm = TRUE) } 
+          
           if (ncol(OUT) == 1) {
             if (min <= alfa) {
               d <- cbind(d, OUT[, 1])
@@ -835,7 +849,9 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
   }
 
   pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
-  min <- min(pval, na.rm = TRUE)  ## Aquí está mi punto de partida
+  if (all(is.na(pval))){
+    min = Inf
+  }  else { min <- min(pval, na.rm = TRUE) } 
 
   num.iter = 1
 
@@ -866,7 +882,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
       colnames(d)[x] <- colnames(design)[pos]
       if (ncol(design) == 2) {
         min <- min(result2[-1], na.rm = TRUE)
-        lastname <- names(result2)[result2 == min]
+        lastname <- names(result2)[result2 == min][1]
       }
       design <- design[, -pos]
       if (is.null(dim(design))) {
@@ -889,7 +905,10 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
     }
     ## multiple testing method!!!
     pval = p.adjust(pval, method = MT.adjust)
-    min <- min(pval, na.rm = TRUE)
+    if (all(is.na(pval))){
+      min = Inf
+    }  else { min <- min(pval, na.rm = TRUE) } 
+    
     if (ncol(d) == 1) {
       if (min <= alfa) {
         design <- cbind(design, d[, 1])
