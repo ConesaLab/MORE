@@ -152,7 +152,7 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
   pval=sort(pval,decreasing=FALSE) ## with sorting NAs are lost --> at this step pval has not the same variables than d
   pval.ini=pval[1:gdl.max] ## p-values of variables to initially enter the model
   d.ini=d[,names(pval.ini)]  ## Initial data
-  d.res=d[,names(pval[(gdl.max+1):length(pval)])] ## The rest of the var. We want to maintain the order
+  d.res=d[,names(pval[(gdl.max+1):length(pval)]), drop = FALSE] ## The rest of the var. We want to maintain the order
   varNA = setdiff(colnames(d), c(colnames(d.ini), colnames(d.res))) # variables with pvalue=NA (singularities in the GLM)
   if (length(varNA) > 0) d.res = cbind(d.res, d[,varNA])
 

@@ -233,7 +233,7 @@ LowVariatFilter=function(data, method, percVar){
 
 
 
-# Adding interations with regulatores -------------------------------------
+# Adding interations with regulators -------------------------------------
 
 RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.var, GeneExpression, gene) {
  
@@ -265,7 +265,7 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
                          collapse = "+"))
   
       fff = as.formula(fff)
-      des.mat2 = cbind(des.mat2, model.matrix(fff, des.mat2)[,-1])
+      des.mat2 = cbind(des.mat2, model.matrix(fff, des.mat2)[,-1, drop = FALSE])
   
       des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
       colnames(des.mat2)[1] = "response"

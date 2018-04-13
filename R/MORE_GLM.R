@@ -231,6 +231,8 @@ GetGLM = function(GeneExpression,
 
   ### Computing model for each gene
   cat("Checking multicollinearity, selecting predictors and fitting model...\n")
+  
+  #pap = c(1, 1:round(nGenes/100) * 100, nGenes)
 
   ## Specific results for each gene
   ResultsPerGene <- pbapply::pblapply(1:nGenes, FUN = function(i) {
@@ -407,7 +409,6 @@ GetGLM = function(GeneExpression,
                 contando = table(contando[,"omic"])
                 contando = as.numeric(contando[names(data.omics)])
                 contando[is.na(contando)] = 0
-                browser()
 
                 ResultsPerGene.i$ReguPerGene[gene, grep("-Mod", colnames(ResultsPerGene.i$ReguPerGene))] = contando
 
@@ -538,10 +539,10 @@ GetGLM = function(GeneExpression,
 
   names(ResultsPerGene) = Allgenes
 
-  myarguments = list(edesign = edesign, degree = degree, Res.df = Res.df, alfa = alfa, family = family,
-                     stepwise = stepwise, interactions.exp = interactions.exp, interactions.reg = interactions.reg,
+  myarguments = list(edesign = edesign, finaldesign = des.mat, Res.df = Res.df, alfa = alfa, family = family,
+                     stepwise = stepwise, center = center, scale = scale, elasticnet = elasticnet,
                      min.variation = min.variation, correlation = correlation, action = action,
-                     MT.adjust = MT.adjust, min.obs = min.obs, cont.var = cont.var, epsilon = epsilon,
+                     MT.adjust = MT.adjust, min.obs = min.obs, epsilon = epsilon,
                      dataOmics = data.omics)
 
   return(list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments))
