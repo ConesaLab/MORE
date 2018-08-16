@@ -9,7 +9,7 @@ NULL
 
 ## By Sonia & Monica
 ## 07-July-2016
-
+## Last modified: July 2018
 
 # Generalized Lineal Model  -----------------------------------------------
 # DETAILS
@@ -17,7 +17,8 @@ NULL
 # design variables are kept.
 #
 # VALUE
-# A list with 2 objects:
+# A list with 3 objects:
+# - Arguments
 # - SummaryTable: A data.frame with one row for each gene supplied for the user. The data.frame has 4 columns:
 #   - gene: gene IDs
 #   - RP: A tag with 3 possibles values. If the gene is classified corretly in a regulatory program, the RP name,
@@ -79,18 +80,22 @@ NULL
 #' selection procedure. By default, "none". See the different options in ?\code{p.adjust}.
 #' @param family Error distribution and link function to be used in the model (see ?\code{glm}
 #' for more information). By default, negative.binomial(theta=10).
-#' @param stepwise Stepwise variable selection method to be applied. It can be one of: "backward"
+#' @param stepwise Stepwise variable selection method to be applied. It can be one of: "none", "backward"
 #' (default), "forward", "two.ways.backward" or "two.ways.forward".
 #' @param interactions.exp If TRUE (default), interactions among the experimental variables
 #' are included in the model.
 #' @param interactions.reg If TRUE (default), interactions between regulators and experimental
 #' variables are included in the model.
-#' @param min.variation     ### if NULL, it computes "sd"
+#' @param min.variation  For numerical regulators, the minimum change that a regulator must present across conditions
+#' to keep it in the regression models. For binary regulators, if the proportion of the most repeated value equals or exceeds this value,
+#' the regulator will be considered to have low variation and removed from the regression models.
 #' @param correlation
-#' @param action
 #' @param min.obs
-#' @param elasticnet  0 = No ElasticNet variable selection; 1 = ElasticNet with ad-hoc penalization; 2 = ElasticNet with optimum penalization
-#'
+#' @param elasticnet  ElasticNet mixing parameter. NULL = No ElasticNet variable selection. A number between 0 and 1 = ElasticNet is applied
+#' with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso
+#' penalty). The default is 0.5, which gives equal weight to ridge and lasso.
+#' @param omic.type 0 = numerical variable (default), 1 = binary (categorical) variable. It should be a vector with length the number of omic types or a number (0 or 1) if all the omics are of the same type.
+#' 
 #' @return
 #' @export
 #'
@@ -105,18 +110,48 @@ GetGLM = function(GeneExpression,
                   Res.df = 5, epsilon = 0.00001,
                   alfa = 0.05, MT.adjust = "none",
                   family = negative.binomial(theta=10),
-                  elasticnet = 2,
+                  elasticnet = 0.5,
                   stepwise = "backward",
                   interactions.exp = TRUE, interactions.reg = 1,
                   min.variation = 0,
-                  correlation = 0.9, action = "mean",
+                  correlation = 0.9,
                   min.obs = 10,
+                  omic.type = 0,
                   mc.cores = 1){
 
 
     # Converting matrix to data.frame
-    GeneExpression = as.data.frame(GeneExpression)
-    data.omics = lapply(data.omics, as.data.frame)
+    GeneExpression = as.data.frame(GeneExpression, stringsAsFactors = FALSE)
+    data.omics = lapply(data.omics, as.data.frame, stringsAsFactors = FALSE)
+    
+    # Checking that Res.df is coherent with the number of samples
+    if (Res.df >= (ncol(GeneExpression)-1)) stop("ERROR: You must decrease the Res.df so that a model can be computed.")
+    
+    
+    # Checking that the number of samples per omic is equal to number of samples for gene expression
+    for (i in 1:length(names(data.omics))){
+      if(!length(colnames(data.omics[[i]])) == length(colnames(GeneExpression)) ) {
+        stop("ERROR: Samples in data.omics must be the same as in GeneExpression")
+      }
+    }
+    
+    ### Checking if there are regulators with "_R", "_P" or "_N"
+    message = FALSE
+    for (i in 1:length(names(data.omics))){
+      
+      problemas = c(rownames(data.omics[[i]])[grep("_R", rownames(data.omics[[i]]))],
+                    rownames(data.omics[[i]])[grep("_P", rownames(data.omics[[i]]))],
+                    rownames(data.omics[[i]])[grep("_N", rownames(data.omics[[i]]))])
+      
+      if(length(problemas) > 0) {
+        cat(names(data.omics)[i], "\n")
+        cat("Some regulators in this omic have names that may conflict with the algorithm by ending in _R, _P or _N.", "\n")
+        cat("Please change the following", names(data.omics)[i],  "identifiers: ", problemas, "\n")
+        message = TRUE
+      }
+    }
+    
+    if(message) stop("ERROR: Please, change the identifiers indicated above.")
 
 
     # Preparing family for ElasticNet variable selection
@@ -141,40 +176,40 @@ GetGLM = function(GeneExpression,
 
       return(as.numeric(cvar))
   })
-
-
-  # Checking that Res.df is coherent with the number of samples
-  if (Res.df >= (ncol(GeneExpression)-1)) stop("ERROR: You must decrease the Res.df so that a model can be computed.")
-
-
-  # Checking that the number of samples per omic is equal to number of samples for gene expression
-  for (i in 1:length(names(data.omics))){
-    if(!length(colnames(data.omics[[i]])) == length(colnames(GeneExpression)) ) {
-      stop("ERROR: Samples in data.omics must be the same as in GeneExpression")
-    }
-  }
-
   
   ## Removing genes with too many NAs and keeping track
   genesNotNA = apply(GeneExpression, 1, function (x) sum(!is.na(x)))
   genesNotNA = names(which(genesNotNA >= min.obs))
   genesNA = setdiff(rownames(GeneExpression), genesNotNA)
   GeneExpression = GeneExpression[genesNotNA,]
+  
+  ## Removing constant genes
+  constantGenes = apply(GeneExpression, 1, sd, na.rm = TRUE)
+  notConstant = names(constantGenes)[constantGenes > 0]
+  constantGenes = names(constantGenes)[constantGenes == 0]
+  GeneExpression = GeneExpression[notConstant,]
+  
   Allgenes=rownames(GeneExpression)
   nGenes = length(Allgenes)
 
   # Experimental groups
   if (is.null(edesign)) {
     cat("No experimental covariates were provided.\n")
-    ExpGroups = 1:ncol(GeneExpression)
-    names(ExpGroups) = colnames(GeneExpression)
+    Group = 1:ncol(GeneExpression)
+    names(Group) = colnames(GeneExpression)
     des.mat = NULL
   } else {
-    ExpGroups = apply(edesign, 1, paste, collapse = "_")
-  
+    Group = apply(edesign, 1, paste, collapse = "_")
     ## Experimental design matrix (with polynomial terms for cont.var, dummies for factors and interactions)
-    des.mat = GenerateDesignMatrix(interactions.exp, degree, edesign, cont.var)
+    # des.mat = GenerateDesignMatrix(interactions.exp, degree, edesign, cont.var)
+    des.mat = model.matrix(~Group)[, -1, drop = FALSE]
+    rownames(des.mat) = colnames(GeneExpression)
   }
+  
+  ## Omic types
+  if (length(omic.type) == 1) omic.type = rep(omic.type, length(data.omics))
+  names(omic.type) = names(data.omics)
+  
 
   ## Remove regulators with NA
   cat("Removing regulators with missing values...\n")
@@ -192,15 +227,19 @@ GetGLM = function(GeneExpression,
   ## Remove regulators with Low Variability
   cat("Removing regulators with low variation...\n")
 
-  tmp = LowVariationRegu(min.variation, data.omics, ExpGroups, associations, Allgenes)
+  tmp = LowVariationRegu(min.variation, data.omics, Group, associations, Allgenes, omic.type)
   data.omics = tmp[["data.omics"]]
   associations = tmp[["associations"]]
   myregLV = tmp[["myregLV"]]
   rm("tmp"); gc()
   
   
-  ## Centering/Scaling predictors
-  data.omics = lapply(data.omics, function (x) t(scale(t(x), center = center, scale = scale)))
+  ## Centering/Scaling quantitative predictors
+  for (i in 1:length(omic.type)){
+    if (omic.type[[i]] == 0){
+      data.omics[[i]] = t(scale(t(data.omics[[i]]), center = center, scale = scale))
+    }
+  }
 
   
   ### Results objects
@@ -210,9 +249,16 @@ GetGLM = function(GeneExpression,
   names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel")
 
   if (length(genesNA) > 0) {
-      GlobalSummary$GenesNOmodel = data.frame("gene" = genesNA, "problem" = rep("Too many missing values", length(genesNA)))
+      GlobalSummary$GenesNOmodel = data.frame("gene" = genesNA, "problem" = rep("Too many missing values", length(genesNA)), stringsAsFactors = FALSE)
   } else {
       GlobalSummary$GenesNOmodel = NULL
+  }
+  
+  if (length(constantGenes) > 0) {
+    GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
+                                       data.frame("gene" = constantGenes, 
+                                                  "problem" = rep("Response values are constant", length(constantGenes)), 
+                                                  stringsAsFactors = FALSE))
   }
 
   GlobalSummary$GoodnessOfFit = matrix(NA, ncol = 5, nrow = nGenes)
@@ -279,7 +325,7 @@ GetGLM = function(GeneExpression,
         sdNo0 = names(sdNo0)[sdNo0 > 0]
         des.mat2 = des.mat2[,sdNo0]
   
-        myGLM = ComputeGLM(matrix.temp = data.frame(des.mat2, check.names = FALSE),
+        myGLM = ComputeGLM(matrix.temp = data.frame(des.mat2, check.names = FALSE, stringsAsFactors = FALSE),
                            alfa = alfa, stepwise = stepwise, Res.df = Res.df,
                            family = family, epsilon = epsilon, MT.adjust = MT.adjust)
   
@@ -323,7 +369,7 @@ GetGLM = function(GeneExpression,
           sdNo0 = names(sdNo0)[sdNo0 > 0]
           des.mat2 = des.mat2[,sdNo0]
   
-          myGLM = ComputeGLM(matrix.temp = data.frame(des.mat2, check.names = FALSE),
+          myGLM = ComputeGLM(matrix.temp = data.frame(des.mat2, check.names = FALSE, stringsAsFactors = FALSE),
                              alfa = alfa, stepwise = stepwise, Res.df = Res.df,
                              family = family, epsilon = epsilon, MT.adjust = MT.adjust)
   
@@ -337,7 +383,7 @@ GetGLM = function(GeneExpression,
 
         ## Multicollinearity
         res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
-                                 correlation = correlation, action = action)
+                                 correlation = correlation, action = action, omic.type = omic.type)
 
         ResultsPerGene.i$allRegulators = res$SummaryPerGene
 
@@ -348,7 +394,7 @@ GetGLM = function(GeneExpression,
                                           des.mat, cont.var, GeneExpression,
                                           gene)
         ## Scaling predictors for ElasticNet
-        if (elasticnet > 0) {
+        if (!is.null(elasticnet)) {
           if (scale) {
             des.mat2EN = des.mat2
           } else {
@@ -371,7 +417,7 @@ GetGLM = function(GeneExpression,
         removedCoefs = intersect(tmp[["removedCoefs"]], rownames(ResultsPerGene.i$allRegulators))
         if (length(removedCoefs) > 0)  ResultsPerGene.i$allRegulators[removedCoefs,"filter"] = "ElasticNet"
 
-        des.mat2 = as.data.frame(des.mat2[,colnames(tmp[["des.mat2"]])])
+        des.mat2 = as.data.frame(des.mat2[,colnames(tmp[["des.mat2"]])], stringsAsFactors = FALSE)
         ResultsPerGene.i$X = des.mat2[, -1, drop = FALSE]
 
         rm(tmp); rm(removedCoefs); rm(des.mat2EN); gc()
@@ -390,7 +436,7 @@ GetGLM = function(GeneExpression,
             ## Computing GLM model
             myGLM = try(ComputeGLM(matrix.temp = des.mat2,
                                    alfa = alfa, stepwise = stepwise, Res.df = Res.df,
-                                   family = family, epsilon = epsilon, MT.adjust = MT.adjust), silent = TRUE)
+                                   family = family, epsilon = epsilon, MT.adjust = MT.adjust), silent = FALSE)
 
             if (class(myGLM) == "try-error") {
 
@@ -398,9 +444,9 @@ GetGLM = function(GeneExpression,
 
                 # GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
                 #                                    data.frame("gene" = gene, "problem" = "GLM error"))
-                ResultsPerGene.i$GenesNOmodel = data.frame("gene" = gene, "problem" = "GLM error")
+                ResultsPerGene.i$GenesNOmodel = data.frame("gene" = gene, "problem" = "GLM error", stringsAsFactors = FALSE)
 
-                ## Extracting significant regulators and recovering correlated regulators
+                ## Extracting significant regulators
                 ResultsPerGene.i$significantRegulators = NULL
                 ResultsPerGene.i$allRegulators = data.frame(ResultsPerGene.i$allRegulators, "Sig" = NA, stringsAsFactors = FALSE)
 
@@ -420,17 +466,30 @@ GetGLM = function(GeneExpression,
                 ## Extracting significant regulators and recovering correlated regulators
                 myvariables = unlist(strsplit(myGLM$SummaryStepwise$variables, ":", fixed = TRUE))
                 myvariables = intersect(myvariables, rownames(ResultsPerGene.i$allRegulators))
-                ResultsPerGene.i$significantRegulators = myvariables # significant regulators including "new" correlated regulators
+                
+                # ResultsPerGene.i$significantRegulators = myvariables # significant regulators including "new" correlated regulators
                 ResultsPerGene.i$allRegulators = data.frame(ResultsPerGene.i$allRegulators, "Sig" = 0, stringsAsFactors = FALSE)
                 ResultsPerGene.i$allRegulators[myvariables, "Sig"] = 1
-                collin.regulators = intersect(ResultsPerGene.i$significantRegulators, ResultsPerGene.i$allRegulators[,"filter"]) # "new" regulators
+                
+                ## A las variables significativas le quito "_R", solo quedara omica_mc"num". Luego creo un objeto que contenga a mi tabla de "allRegulators"
+                ## para poder modificar los nombres de la misma forma.
+                myvariables = sub("_R", "", myvariables)
+                ResultsPerGene.i$significantRegulators = myvariables # significant regulators including "new" correlated regulators without _R
+                
+                mytable = ResultsPerGene.i$allRegulators
+                mytable[,"filter"] = sub("_P", "", mytable[,"filter"])
+                mytable[,"filter"] = sub("_N", "", mytable[,"filter"])
+                mytable[,"filter"] = sub("_R", "", mytable[,"filter"])
+                
+                collin.regulators = intersect(myvariables, mytable[,"filter"])
+                
+                # collin.regulators = intersect(ResultsPerGene.i$significantRegulators, ResultsPerGene.i$allRegulators[,"filter"]) # "new" regulators
                 if (length(collin.regulators) > 0) {  # there were correlated regulators
-                    original.regulators = ResultsPerGene.i$allRegulators[ResultsPerGene.i$allRegulators[,"filter"] %in% collin.regulators,"regulator"]
+                    original.regulators = mytable[mytable[,"filter"] %in% collin.regulators, "regulator"]
+                    
                     ResultsPerGene.i$allRegulators[original.regulators, "Sig"] = 1
-                    ResultsPerGene.i$significantRegulators = c(ResultsPerGene.i$significantRegulators, original.regulators)
-                    if (action == "mean") {
-                        ResultsPerGene.i$significantRegulators = setdiff(ResultsPerGene.i$significantRegulators, collin.regulators)
-                    }
+                    ResultsPerGene.i$significantRegulators = c(ResultsPerGene[[i]]$significantRegulators, as.character(original.regulators))
+                    ResultsPerGene.i$significantRegulators = setdiff(ResultsPerGene[[i]]$significantRegulators, collin.regulators)
                 }
 
                 ## Counting original regulators in the model per omic
@@ -440,7 +499,7 @@ GetGLM = function(GeneExpression,
                     if (length(quitar) > 0) contando = contando[-quitar,]
                     quitar = which(contando[,"filter"] == "LowVariation")
                     if (length(quitar) > 0) contando = contando[-quitar,]
-                    contando = contando[setdiff(rownames(contando), collin.regulators),]
+                    contando = contando[-grep("_R", rownames(contando)),]
                 }
                 else {
                     contando = ResultsPerGene.i$allRegulators[which(ResultsPerGene.i$allRegulators[,"filter"] == "Model"),]
@@ -470,7 +529,7 @@ GetGLM = function(GeneExpression,
 
             # GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
             #                                    data.frame("gene" = gene, "problem" = "No predictors after EN"))
-            ResultsPerGene.i$GenesNOmodel = data.frame("gene" = gene, "problem" = "No predictors after EN")
+            ResultsPerGene.i$GenesNOmodel = data.frame("gene" = gene, "problem" = "No predictors after EN", stringsAsFactors = FALSE)
 
             ## Extracting significant regulators and recovering correlated regulators
             ResultsPerGene.i$significantRegulators = NULL
@@ -488,14 +547,15 @@ GetGLM = function(GeneExpression,
 
       if (is.null(myGLM)) {
 
-          ResultsPerGene.i$Y = des.mat2[,1]
+          ResultsPerGene.i$Y = GeneExpression[i,]
           ResultsPerGene.i$coefficients = NULL
 
           ResultsPerGene.i$GoodnessOfFit = c(NA, NA, NA, NA, NA)
 
       } else {
           ResultsPerGene.i$Y = data.frame("y" = myGLM$GLMfinal$y, "fitted.y" = myGLM$GLMfinal$fitted.values,
-                                             "residuals" = residuals(myGLM$GLMfinal))
+                                             "residuals" = residuals(myGLM$GLMfinal),
+                                          stringsAsFactors = FALSE)
 
           ResultsPerGene.i$coefficients = summary(myGLM$GLMfinal)$coefficients[,c(1,4), drop = FALSE]
           if (nrow(ResultsPerGene.i$coefficients) > 0) {
@@ -539,11 +599,11 @@ GetGLM = function(GeneExpression,
 
   names(ResultsPerGene) = Allgenes
 
-  myarguments = list(edesign = edesign, finaldesign = des.mat, Res.df = Res.df, alfa = alfa, family = family,
+  myarguments = list(edesign = edesign, finaldesign = des.mat, Res.df = Res.df, groups = Group, alfa = alfa, family = family,
                      stepwise = stepwise, center = center, scale = scale, elasticnet = elasticnet,
-                     min.variation = min.variation, correlation = correlation, action = action,
+                     min.variation = min.variation, correlation = correlation, 
                      MT.adjust = MT.adjust, min.obs = min.obs, epsilon = epsilon,
-                     dataOmics = data.omics)
+                     GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type)
 
   return(list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments))
 
@@ -745,50 +805,218 @@ RemovedRegulators = function(RetRegul.gene, myregLV, myregNA, data.omics){
 #' @export
 #'
 #' @examples
-CollinearityFilter = function(data, reg.table, correlation = 0.8, action = c("random", "mean")) {
-
+CollinearityFilter = function(data, reg.table, correlation = 0.8, omic.type) {
+  
   ## data = Regulator data matrix for all omics where missing values and regulators with low variation have been filtered out
   #         (regulators must be in columns)
   ## reg.table = Table with "gene", "regulator", "omic", "area", filter" where omics with no regulators have been removed
-
+  
   row.names(reg.table) = reg.table[,"regulator"]
-
-  resultado = list(RegulatorMatrix = data, SummaryPerGene = reg.table)
-
-  for (omic in unique(reg.table[,"omic"])) {
-
-    # Initial regulators
-    myreg = reg.table[which(reg.table[,"omic"] == omic), ,drop=FALSE]
-    myreg = as.character(myreg[which(myreg[,"filter"] == "Model"),"regulator"])
-
-    if (length(myreg) > 1) {  # if there is more than one regulator for this omic:
-
-      # Checking if correlation is higher than threshold value
-      mycor = data.frame(t(combn(myreg,2)), as.numeric(as.dist(cor(data[,myreg]))), stringsAsFactors = FALSE)
-      mycor = mycor[mycor[,3] >= correlation,]
-
-      if (nrow(mycor) == 1) {  ### only 2 regulators are correlated in this omic
-        correlacionados = unlist(mycor[,1:2])
-        resultado = CorreAction(correlacionados, data = resultado$RegulatorMatrix, reg.table = resultado$SummaryPerGene,
-                                action = action, nombre = "mc1", omic = omic)
-      }
-
-      if (nrow(mycor) >= 2) {   ### more than 2 regulators might be correlated in this omic
-
-        mygraph = graph.data.frame(mycor, directed=F)
-        mycomponents = clusters(mygraph)
-
-        for (i in 1:mycomponents$no) {
-          correlacionados = names(mycomponents$membership[mycomponents$membership == i])
-          resultado = CorreAction(correlacionados, data = resultado$RegulatorMatrix, reg.table = resultado$SummaryPerGene,
-                                  action = action, nombre = paste("mc", i, sep = ""), omic = omic)
+  #resultado = list(RegulatorMatrix = data, SummaryPerGene = reg.table)
+  
+  for (j in 1:length(omic.type)){
+    
+    if(omic.type[[j]] == 0){  # continuous variable
+      
+      # Initial regulators
+      myreg = reg.table[which(reg.table[,"omic"] == names(omic.type)[[j]]), ,drop=FALSE]
+      myreg = as.character(myreg[which(myreg[,"filter"] == "Model"),"regulator"])
+      
+      if (length(myreg) > 1) {  # if there is more than one regulator for this omic:
+        
+        # Dejo la matriz original para poder tomar luego las correlaciones de la red.
+        mycorrelations = data.frame(t(combn(myreg,2)), as.numeric(as.dist(cor(data[,myreg]))), stringsAsFactors = FALSE)
+        mycor = mycorrelations[abs(mycorrelations[,3]) >= correlation,] 
+        
+        if (nrow(mycor) == 1) {  ### only 2 regulators are correlated in this omic
+          
+          correlacionados = unlist(mycor[,1:2])
+          regulators = colnames(data)
+          keep = sample(correlacionados, 1) # Regulador al azar de la pareja
+          
+          ## Lo siguiente elimina el no representante de la matriz de reguladores. Al regulador escogido como representante,
+          ## le cambia el nombre por "mc_1_R" para que despues pase la seleccion de variables y asi, en reg.table se conserva
+          ## la info de que fue escogido como representante.
+          
+          remove = setdiff(correlacionados, keep)
+          regulators = setdiff(regulators, remove)
+          data = data[ ,regulators]
+          index.reg = which(colnames(data) == as.character(keep))
+          colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+          
+          # Cambio en reg.table. Asignacion de los nombres segun sea representante,
+          # correlacion positiva o negativa. Creacion de una nueva fila con el representante
+          # para la seleccion de variables y asi, no perder la info del representante.
+          
+          reg.table = rbind(reg.table, reg.table[keep,])
+          reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+          reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+          rownames(reg.table) = reg.table[ ,"regulator"]
+          
+          if(mycor[,3] > 0){
+            index = mycor[1, which(with(mycor, mycor[1 ,c(1,2)] != keep))]
+            reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "P", sep = "_")
+          } else{
+            index = mycor[1, which(with(mycor, mycor[1, c(1,2)] != keep))]
+            reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "N", sep = "_")
+          }
+        }
+        
+        if (nrow(mycor) >= 2) {   ### more than 2 regulators might be correlated in this omic
+          
+          mygraph = graph.data.frame(mycor, directed=F)
+          mycomponents = clusters(mygraph)
+          
+          for (i in 1:mycomponents$no) {
+            correlacionados = names(mycomponents$membership[mycomponents$membership == i])
+            regulators = colnames(data)
+            
+            ## Escoge un regulador al azar como representante de cada componente conexa. Para cada componente conexa elimina aquellos reguladores
+            ## que no han sido escogidos como representante.
+            keep = sample(correlacionados, 1)  # mantiene uno al azar
+            reg.remove = setdiff(correlacionados, keep) # correlated regulator to remove
+            regulators = setdiff(regulators, reg.remove)  # all regulators to keep
+            data = data[ ,regulators]
+            index.reg = which(colnames(data) == as.character(keep))
+            colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+            
+            # Asignacion de nombre al representante y nueva fila para el filtro de
+            # seleccion de variables (asi no se pierde la info del representante).
+            reg.table = rbind(reg.table, reg.table[keep,])
+            reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+            reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+            rownames(reg.table) = reg.table[ ,"regulator"]
+            
+            # Matriz que recoge los reguladores correlacionados con el representante: actual.correlation. Asi se puede ver si la correlacion es 
+            # positiva o negativa y asignar el nombre. Intente hacer merge(), expand.grid(), pero no daba las mismas combinaciones que combn(), por lo que
+            # vi necesario hacer un bucle para quedarme con aquellas parejas que interesan (representante - resto de reguladores).
+            actual.couple = data.frame(t(combn(correlacionados,2)), stringsAsFactors = FALSE)
+            colnames(actual.couple) = colnames(mycorrelations[,c(1,2)])
+            
+            actual.correlation = NULL
+            for(k in 1:nrow(actual.couple)){
+              if (any(actual.couple[k,c(1,2)] == keep)){
+                actual.correlation = rbind(actual.correlation, actual.couple[k,])
+              }
+            }
+            
+            actual.correlation = merge(actual.correlation[,c(1,2)],mycorrelations)
+            
+            # Uso la matriz anterior para recorrer las correlaciones y segun sea positiva
+            # o negativa, asigno un nombre.
+            for(k in 1:nrow(actual.correlation)){
+              if(actual.correlation[k,3] > 0){
+                index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
+                reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "P", sep = "_")
+              } else{
+                index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
+                reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "N", sep = "_")
+              }
+            }
+          }
         }
       }
-
+    } else {
+      
+      # Variables categoricas. El procedimiento es analogo, solo que las correlaciones
+      # se obtienen mediante tablas de contingencia 2 a 2. Se usa el coeficiente de correlacion phi. 
+      myreg = reg.table[which(reg.table[,"omic"] == names(omic.type)[[j]]), ,drop=FALSE]
+      myreg = as.character(myreg[which(myreg[,"filter"] == "Model"),"regulator"])
+      
+      if (length(myreg) > 1){
+        
+        # Phi. Contingency table.
+        couple = t(combn(myreg,2))
+        categorical.correlation = NULL
+        
+        # Aqui hago las tablas de contingencia y almaceno en la matriz categorical.correlation las correlaciones por
+        # parejas de reguladores.
+        for (k in 1:nrow(couple)){
+          contingency.table = table(data[,couple[k,1]], data[,couple[k,2]])
+          categorical.correlation = rbind(categorical.correlation, phi(contingency.table))
+        }
+        
+        # He creido conveniente tomar una correlacion de 0.6 por defecto para las variables
+        # cualitativas, ya que con ejemplos he visto que 0.6 ya presenta un alto numero de 
+        # valores iguales en mismas posiciones.
+        mycorrelations = data.frame(couple, categorical.correlation, stringsAsFactors = FALSE)
+        correlations = mycorrelations[abs(mycorrelations[,3]) >= 0.6,]
+        
+        
+        if (nrow(correlations) == 1) { ### only 2 regulators are correlated in this omic
+          
+          correlacionados = as.character(unlist(correlations[,1:2]))
+          regulators = colnames(data)
+          keep = sample(correlacionados, 1)
+          remove = setdiff(correlacionados, keep)
+          regulators = setdiff(regulators, remove)  # all regulators to keep
+          data = data[ ,regulators]
+          index.reg = which(colnames(data) == as.character(keep))
+          colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+          
+          reg.table = rbind(reg.table, reg.table[keep,])
+          reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+          reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+          rownames(reg.table) = reg.table[ ,"regulator"]
+          
+          if(correlations[,3] > 0){
+            index = as.character(correlations[1, which(with(correlations, correlations[1,c(1,2)] != keep))])
+            reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "P", sep = "_")
+          } else{
+            index = as.character(correlations[1, which(with(correlations, correlations[1,c(1,2)] != keep))])
+            reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "N", sep = "_")
+          }
+          
+        }
+        
+        if (nrow(correlations) >= 2) {   ### more than 2 regulators might be correlated in this omic
+          
+          mygraph = graph.data.frame(correlations, directed=F)
+          mycomponents = clusters(mygraph)
+          
+          for (i in 1:mycomponents$no) {
+            correlacionados = names(mycomponents$membership[mycomponents$membership == i])
+            regulators = colnames(data)
+            
+            keep = sample(correlacionados, 1)  # mantiene uno al azar
+            reg.remove = setdiff(correlacionados, keep) # correlated regulator to remove
+            regulators = setdiff(regulators, reg.remove)  # all regulators to keep
+            data = data[ ,regulators]
+            index.reg = which(colnames(data) == as.character(keep))
+            colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+            
+            reg.table = rbind(reg.table, reg.table[keep,])
+            reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+            reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+            rownames(reg.table) = reg.table[ ,"regulator"]
+            
+            actual.couple = as.data.frame(t(combn(correlacionados,2)), stringsAsFactors = FALSE)
+            colnames(actual.couple) = colnames(mycorrelations[,c(1,2)])
+            
+            actual.correlation = NULL
+            for(k in 1:nrow(actual.couple)){
+              if (any(actual.couple[k,c(1,2)] == keep)){
+                actual.correlation = rbind(actual.correlation, actual.couple[k,])
+              }
+            }
+            
+            actual.correlation = merge(actual.correlation[,c(1,2)],mycorrelations)
+            
+            for(k in 1:nrow(actual.correlation)){
+              if(actual.correlation[k,3] > 0){
+                index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
+                reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "P", sep = "_")
+              } else{
+                index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
+                reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "N", sep = "_")
+              }
+            }
+          }
+        }
+      }
     }
-
   }
-
+  resultado = list(RegulatorMatrix = data, SummaryPerGene = reg.table)
   rownames(resultado$SummaryPerGene) = resultado$SummaryPerGene[,"regulator"]
   return(resultado)
 }
@@ -879,434 +1107,373 @@ CorreAction = function (correlacionados, data, reg.table, omic, action = c("mean
 #' @param xlab
 #' @param cont.var
 #' @param cond2plot
+#' @param order  Should the experimental groups be ordered for the plot? If TRUE, omic values are also ordered accordingly.
+#        If FALSE, the function assumes they were provided in the right order for a meaningful plot.
 #' @param ...
 #'
 #' @return
 #' @export
 #'
 #' @examples
-plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPerOmic = TRUE,
-                    fittedModel = FALSE, replicates = FALSE, gene.col = 4, regu.col = NULL,
-                    xlab = "", cont.var = "Time", cond2plot = NULL,...) {
-
+plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPerOmic = FALSE,
+                    gene.col = 1, regu.col = NULL, order = TRUE,
+                    xlab = "", cont.var = NULL, cond2plot = NULL,...) {
+  
   # Colors for omics
-  omic.col = c("red3", "darkorange1", "purple2", "royalblue3", "green4")
-  names(omic.col) = c("Methyl", "ChIP", "miRNA", "DNase", "TF")
-
-  if (is.null(regu.col)) { any.col = 2 } else { any.col = regu.col }
-
-  # Changing margin
-  par(mar = c(5,3,4,3)+0.1)
-
-  # Replicates
-  if (!is.null(cont.var)) {  # we have continuous variable
-    if (!is.null(cond2plot)) { # cont.var + cond2plot
-
-      disseny = cbind(cond2plot, cont.var)
-      disseny = disseny[order(disseny[,1], disseny[,2]),]
-      myreplicates = apply(disseny, 1, paste, collapse = "_")
-      condi1 = sort(unique(cond2plot))
-      condi2 = sort(unique(cont.var))
-      allTreatments = apply(data.frame(rep(condi1, each = length(condi2)), rep(condi2, length(condi1))), 1, paste, collapse = "_")
-
-    } else {  # only continuous variable
-      disseny = data.frame(cont.var)
-      disseny = disseny[order(disseny[,1]), , drop = FALSE]
-      myreplicates = disseny[,1]
-      condi1 = NULL
-      condi2 = sort(unique(cont.var))
-      allTreatments = condi2
-    }
-
-  } else {   # no cont.var
-
-    if (!is.null(cond2plot)) { # only cond2plot
-
-      disseny = data.frame(cond2plot)
-      disseny = disseny[order(disseny[,1]), , drop = FALSE]
-      myreplicates = disseny[,1]
-      condi1 = NULL
-      condi2 = sort(unique(GLMoutput$arguments$edesign[,cond2plot]))
-      allTreatments = condi2
-
-    } else {  # nothing! ERROR
-
-      stop("plotGLM() requires at least either cont.var or cond2plot")
-
+  omic.col = colors()[c(554,89,111,512,17,586,132,428,601,568,86,390,
+                        100,200,300,400,500,10,20,30,40,50,60,70,80,90,150,250,350,450,550)]
+  
+  if (is.null(regu.col)) { 
+    any.col = omic.col[1:length(GLMoutput$arguments$dataOmics)]
+  } else { 
+    if (length(regu.col) == length(GLMoutput$arguments$dataOmics)) {
+      any.col = regu.col
+    } else {
+      any.col = rep(regu.col, length(GLMoutput$arguments$dataOmics))
     }
   }
-
+  names(any.col) = names(GLMoutput$arguments$dataOmics)
+  
+  
+  # Changing margin
+  par(mar = c(5,3,4,3)+0.1)
+  
+  # Groups to plot
+  if (is.null(cond2plot)) {
+    if (!is.null(GLMoutput$arguments$edesign)) {
+      cond2plot = apply(GLMoutput$arguments$edesign, 1, paste, collapse = "_")
+    }
+  }
+  
+  # Replicates   
+  if (!is.null(cont.var)) {  # we have continuous variable
+    if (!is.null(cond2plot)) { # cont.var + cond2plot
+      myreplicates = apply(cbind(cond2plot, cont.var), 1, paste, collapse = "_")
+      
+    } else {  # only continuous variable is provided
+      myreplicates = cont.var
+    }
+    
+  } else {   # no cont.var
+    
+    if (!is.null(cond2plot)) { # only cond2plot
+      myreplicates = colnames(GLMoutput$arguments$GeneExpression)
+    } else {  # nothing
+      myreplicates = colnames(GLMoutput$arguments$GeneExpression)
+    }
+  }
+  
   # Cast myreplicates to character
   myreplicates = as.character(myreplicates)
-  names(myreplicates) = rownames(GLMoutput$arguments$edesign)
-
+  names(myreplicates) = colnames(GLMoutput$arguments$GeneExpression)
+  if (order) {
+    myorder = order(myreplicates)
+    myreplicates = sort(myreplicates)
+    cond2plot = cond2plot[myorder]
+  }
+  myrepliUni = unique(myreplicates)
+  
+  
+  if (max(table(myreplicates)) == 1) {
+    replicates = FALSE
+  } else {
+    replicates = TRUE
+  }
+  
+  
+  if (is.null(cond2plot)) {
+    numLines = NULL
+  } else {
+    condi1 = unique(cond2plot)
+    num1 = 1:length(condi1); names(num1) = condi1
+    num2 = num1[as.character(cond2plot)]
+    if (replicates) {
+      num2 = aggregate(num2, by = list("rep" = myreplicates), unique)$x
+    } 
+    numLines = which(diff(num2) != 0)+0.5
+  }
+  
+  
   # Error values
-  # errorValues = errorValuesRegu = NULL
-
   getErrorValues = function(realValues, repsInfo) {
     # Disable it
     if (! replicates)
       return(NULL)
-
+    
     out_values = tapply(realValues, repsInfo, function(reps) sd(reps)/sqrt(length(reps)))
-
+    
     return(out_values)
   }
-
+  
+  
+  myrepliUni = unique(myreplicates)
+  
+  ## REGULATOR = NULL
+  
   if (is.null(regulator)) {  ### Plot all regulators for the given gene
-
+    
     GLMgene = GLMoutput$ResultsPerGene[[gene]]
-
+    
     if (is.null(GLMgene)) {
       stop(paste("No GLM was obtained for gene", gene))
     }
-
-    if (is.null(GLMgene$significantRegulators)) { ## No significant regulators -> plot only gene
-
+    
+    if (is.null(GLMgene$significantRegulators)) { ## No significant regulators
+      
       cat("No significant regulators were found for this gene.\n")
-      ######## dibujar gen !!!  TO DO
-
-    } else {  ## Significant regulators:
-
+      
+      
+    } else 
+    {  ## Significant regulators:
+      
       # Considering multicollinearity
       SigReg = GLMgene$allRegulators
       SigReg = SigReg[SigReg$Sig == 1, c("regulator", "omic", "area", "filter")]
-      # myMC = grep("_mc", SigReg[,"filter"])
-      # if (length(myMC) > 0) {
-      #   losMC = SigReg[myMC,]
-      #   SigReg = SigReg[-myMC,]
-      # }
-
+      
       SigReg = SigReg[GLMgene$significantRegulators,,drop = FALSE]
-
+      
       cat(paste(nrow(SigReg), "significant regulators are to be plotted for gene", gene)); cat("\n")
-
+      
       # Gene values
-      geneValues = GLMgene$Y$y  ### modificar si se pinta fitted
+      geneValues = GLMgene$Y$y  
+      if (order) geneValues = geneValues[myorder]
+      errorValues = getErrorValues(geneValues, myreplicates)
       geneValues = tapply(geneValues, myreplicates, mean)
-      # geneValues = geneValues[unique(myreplicates)]
-      geneValues = geneValues[allTreatments]
-      names(geneValues) = allTreatments
-
-      errorValues = getErrorValues(GLMgene$Y$y, myreplicates)
-
+      geneValues = geneValues[myrepliUni]
+      names(geneValues) = myrepliUni
+      
       # X values
-      x.points = 1:length(allTreatments)
-      numLines = 0    ########### esto es si hay cont.var
-      cont.var = GLMoutput$arguments$cont.var
-      # condiciones = GLMoutput$arguments$edesign[,setdiff(colnames(GLMoutput$arguments$edesign), cont.var),drop = FALSE]
-      # if (ncol(condiciones) > 0) {
-      #   for (cc in 1:length(condiciones)) {
-      #     numLines = numLines + length(unique(condiciones[,cc])) - 1
-      #   }
-      # }
-
-      if (!is.null(condi1)) numLines = length(condi1) - 1
-
-      # eje = aggregate(GLMoutput$arguments$edesign[,cont.var],
-      #         by = list(myreplicates), unique); print(eje)
-      # rownames(eje) = eje[,1]
-      # eje = eje[unique(myreplicates),2]
-      eje = allTreatments
-
-
+      x.points = 1:length(myrepliUni)
+      eje = myrepliUni
+      
       if (plotPerOmic) { ## All regulators from the same omic in the same plot
-
+        
         myomics = unique(SigReg$omic)
-
+        
         for (oo in myomics) {
-
+          
           SigRegOmic = SigReg[SigReg$omic == oo,]
-
-          # reguValues = GLMgene$X
+          
           omicValues = t(GLMoutput$arguments$dataOmics[[oo]])
           omicValues = omicValues[rownames(GLMgene$X),]
           reguValues = omicValues[, colnames(omicValues) == SigRegOmic$regulator[1]]
-
+          if (order) reguValues = reguValues[myorder]
           errorValuesRegu = getErrorValues(reguValues, myreplicates)
-
-          myreplicates = myreplicates[rownames(GLMgene$X)]
+          
           reguValues = tapply(reguValues, myreplicates, mean)
-          reguValues = reguValues[allTreatments]
-          names(reguValues) = allTreatments
-
-          mycol = omic.col[oo]
-          if (is.na(mycol)) mycol = any.col
-
+          reguValues = reguValues[myrepliUni]
+          names(reguValues) = myrepliUni
+          
+          mycol = any.col[oo]
+          
           if (nrow(SigRegOmic) == 1) {
             leftlab = SigRegOmic$regulator[1]
           } else { leftlab = oo }
-
-          yleftlim = range(omicValues[,SigRegOmic$regulator], na.rm = TRUE)
-
+          
+          yleftlim = range(omicValues[,SigRegOmic$regulator], na.rm = TRUE)   
+          
           if (! is.null(errorValuesRegu)) {
             yleftlim = range(
               apply(omicValues[, SigRegOmic$regulator, drop = FALSE], 2, function(x) {
+                if (order) x = x[myorder]
                 errorInd = getErrorValues(x, myreplicates)
                 meanValues = tapply(x, myreplicates, mean)
-                meanValues = meanValues[unique(myreplicates)]
-
+                meanValues = meanValues[myrepliUni]
+                
                 return(c(meanValues - errorInd, meanValues + errorInd))
               }))
           }
-
+          
           plotGeneRegu(x.points = x.points, geneValues = geneValues, reguValues = reguValues,
                        col = c(gene.col, mycol), yleftlim = yleftlim,
-                       xlab = xlab, condi1 = condi1, condi2 = condi2,
-                       yylab = c(gene, leftlab), pch = c(16,16),
+                       xlab = xlab, yylab = c(gene, leftlab), pch = c(16,16),
                        main = oo, numLines = numLines, x.names = eje,
                        geneErrorValues = errorValues, reguErrorValues = errorValuesRegu)
-
+          
           if (nrow(SigRegOmic) > 1) {
             for (i in 2:nrow(SigRegOmic)) {
-
-              # reguValues = GLMgene$X
-              omicValues = t(GLMoutput$arguments$dataOmics[[oo]])
-              omicValues = omicValues[rownames(GLMgene$X),]
+              
               reguValues = omicValues[, colnames(omicValues) == SigRegOmic$regulator[i]]
-              # reguValues = reguValues[, colnames(reguValues) == SigRegOmic$regulator[i]]
-
+              if (order) reguValues = reguValues[myorder]
               errorValuesRegu = getErrorValues(reguValues, myreplicates)
-
+              
               reguValues = tapply(reguValues, myreplicates, mean)
-              reguValues = reguValues[allTreatments]
-              names(reguValues) = allTreatments
-
+              reguValues = reguValues[myrepliUni]
+              names(reguValues) = myrepliUni
+              
               lines(x.points, reguValues, type = "o", lwd = 2, pch = i, col = mycol, lty = i)
-
-              if (! is.null(errorValuesRegu) && errorValuesRegu != 0) {
+              
+              if (! is.null(errorValuesRegu)) {
                 arrows(x.points, reguValues - errorValuesRegu, x.points, reguValues + errorValuesRegu,
                        code = 3, length = 0.02, angle = 90, col = mycol)
               }
             }
           }
-
+          
         }
-
+        
       } else {  ## Each regulator in a separate plot
-
+        
         for (rr in SigReg$regulator) {
-
-          # reguValues = GLMgene$X
+          
           oo = GLMoutput$ResultsPerGene[[gene]]$allRegulators[rr,"omic"]
           omicValues = t(GLMoutput$arguments$dataOmics[[oo]])
-          # omicValues = omicValues[rownames(GLMgene$X),]
           reguValues = omicValues[, colnames(omicValues) == rr]
-          # reguValues = reguValues[, colnames(reguValues) == rr]
-
+          if (order) reguValues = reguValues[myorder]
           errorValuesRegu = getErrorValues(reguValues, myreplicates)
-
-          # myreplicates = myreplicates[rownames(GLMgene$X)]
+          
           reguValues = tapply(reguValues, myreplicates, mean)
-          # reguValues = reguValues[unique(myreplicates)]
-          reguValues = reguValues[allTreatments]
-          names(reguValues) = allTreatments
-
-          mycol = omic.col[SigReg[rr, "omic"]]
-          if (is.na(mycol)) mycol = any.col
-
+          reguValues = reguValues[myrepliUni]
+          names(reguValues) = myrepliUni
+          
+          mycol = any.col[oo]
+          
           plotGeneRegu(x.points = x.points, geneValues = geneValues, reguValues = reguValues,
-                       col = c(gene.col, mycol),
-                       xlab = xlab,
+                       col = c(gene.col, mycol), xlab = xlab,
                        yylab = c(gene, rr), pch = c(16,16),
                        main = paste(as.character(SigReg[rr, c("omic", "area")]), collapse = " "),
-                       numLines = numLines, x.names = eje, condi1 = condi1, condi2 = condi2,
+                       numLines = numLines, x.names = eje, 
                        geneErrorValues = errorValues, reguErrorValues = errorValuesRegu)
-
+          
         }
-
+        
       }
-
+      
       return(GLMgene$allRegulators[GLMgene$significantRegulators, -6])
     }
-
+    
   }
-
-
+  
+  
+  ## GENE = NULL
+  
   if (is.null(gene)) {  ### Plot all genes regulated by the regulator
-
+    
     SigniReguGene = GetPairsGeneRegulator(genes = NULL, getGLMoutput = GLMoutput)
     SigniReguGene = SigniReguGene[SigniReguGene[,"regulator"] == regulator,]
-    myomic = SigniReguGene[1,"omic"]
-
+    myomics = SigniReguGene[,"omic"]
+    myomic = unique(myomics)
+    
     if (nrow(SigniReguGene) > 0) {  # When there are genes regulated by this regulator
-
+      
       if (is.null(reguValues)) {  # User does not provide reguValues
-          # i=1
-          reguValues = GLMoutput$arguments$dataOmics[[myomic]][regulator,]
-          # reguValues = GLMoutput$PerGene[[SigniReguGene[i,"gene"]]]$X
-          # reguValues = reguValues[, colnames(reguValues) == regulator]
-          # if (length(reguValues) == 0) {
-          #   while ((i <= nrow(SigniReguGene)) && (length(reguValues) == 0)) {
-          #     i = i+1
-          #     reguValues = GLMoutput$ResultsPerGene[[SigniReguGene[i,"gene"]]]$X
-          #     reguValues = reguValues[, colnames(reguValues) == regulator]
-          #   }
-          # }
+        reguValues = as.numeric(GLMoutput$arguments$dataOmics[[myomic]][regulator,])
       }
-
+      
       numGenes = length(SigniReguGene$gene)
       cat(paste(numGenes, "genes are regulated by", regulator)); cat("\n")
-
+      
       if (length(reguValues) > 0) {  # reguValues are available (recovered or given by user)
-
+        
+        if (order) reguValues = reguValues[myorder]
         errorValuesRegu = getErrorValues(reguValues, myreplicates)
-
-        # myreplicates = myreplicates[rownames(geneResults$X)] ## OJO, lo quito porque no esta GeneResults, hace falta realmente??
         reguValues = tapply(reguValues, myreplicates, mean)
-        reguValues = reguValues[allTreatments]
-        names(reguValues) = allTreatments
-
+        reguValues = reguValues[myrepliUni]
+        names(reguValues) = myrepliUni
+        
         lapply(1:numGenes, function (i) {
-
-          geneValues = GLMoutput$ResultsPerGene[[SigniReguGene[i,"gene"]]]$Y$y  ### modificar si se pinta fitted
+          
+          geneValues = GLMoutput$ResultsPerGene[[SigniReguGene[i,"gene"]]]$Y$y 
+          if (order) geneValues = geneValues[myorder]
+          errorValues = getErrorValues(geneValues, myreplicates)
           geneValues = tapply(geneValues, myreplicates, mean)
-          geneValues = geneValues[allTreatments]
-          names(geneValues) = allTreatments
-
-          errorValues = getErrorValues(GLMoutput$ResultsPerGene[[SigniReguGene[i,"gene"]]]$Y$y, myreplicates)
-
-          x.points = 1:length(allTreatments)
-          numLines = 0    ########### esto es si hay cont.var
-          # cont.var = GLMoutput$arguments$cont.var
-          # condiciones = GLMoutput$arguments$edesign[,setdiff(colnames(GLMoutput$arguments$edesign), cont.var),drop = FALSE]
-          # if (ncol(condiciones) > 0) {
-          #   for (cc in 1:ncol(condiciones)) {
-          #     numLines = numLines + length(unique(condiciones[,cc])) - 1
-          #   }
-          # }
-          # eje = aggregate(GLMoutput$arguments$edesign[,cont.var],
-          #                 by = list(myreplicates), unique)
-          # rownames(eje) = eje[,1]
-          # eje = eje[unique(myreplicates),2]
-
-          if (!is.null(condi1)) numLines = length(condi1) - 1
-
-          eje = allTreatments
-
+          geneValues = geneValues[myrepliUni]
+          names(geneValues) = myrepliUni
+          
+          x.points = 1:length(myrepliUni)
+          eje = myrepliUni
+          
           plotGeneRegu(x.points = x.points, geneValues = geneValues, reguValues = reguValues,
-                       col = c(gene.col, any.col),
-                       xlab = xlab, condi1 = condi1, condi2 = condi2,
+                       col = c(gene.col, any.col[myomics[i]]), xlab = xlab, 
                        yylab = c(SigniReguGene[i,"gene"], regulator), pch = c(16,16),
                        main = paste(as.character(SigniReguGene[1,c("omic", "area")]), collapse = " "),
                        numLines = numLines, x.names = eje,
                        geneErrorValues = errorValues, reguErrorValues = errorValuesRegu)
         })
       } else { cat("Regulator values could not be recovered from GLMoutput. Please provide them in reguValues argument to generate the plot.\n") }
-
+      
       return(SigniReguGene$gene)
-
+      
     } else { cat(paste("There are no genes significantly regulated by", regulator)); cat("\n") }
-
+    
   }
-
-
+  
+  
+  ## GENE + REGULATOR
+  
   if (!is.null(gene) && !is.null(regulator)) {  ### Plot only the given gene and the given regulator
-
+    
     geneResults = GLMoutput$ResultsPerGene[[gene]]
-
+    
     if (is.null(geneResults)) {
       stop(paste("No GLM was obtained for gene", gene))
-    } else {
-
+    } else 
+    {
+      myomic = geneResults$allRegulators[regulator, "omic"]
+      
       if (is.null(reguValues)) {  # User does not provide reguValues
-          reguValues = geneResults$allRegulators[regulator, "omic"] # omic
-          reguValues = as.numeric(GLMoutput$arguments$dataOmics[[reguValues]][regulator,]) # regulator values
-          # reguValues = reguValues[, colnames(reguValues) == regulator]
+        reguValues = as.numeric(GLMoutput$arguments$dataOmics[[myomic]][regulator,]) # regulator values
       }
-
+      
       if (length(reguValues) > 0) {  # reguValues are available (recovered or given by user)
-
+        
+        if (order)  reguValues = reguValues[myorder]
         errorValuesRegu = getErrorValues(reguValues, myreplicates)
-
-        # myreplicates = myreplicates[rownames(geneResults$X)]
         reguValues = tapply(reguValues, myreplicates, mean, na.rm = TRUE)
-        reguValues = reguValues[allTreatments]
-        names(reguValues) = allTreatments
-
-        geneValues = GLMoutput$ResultsPerGene[[gene]]$Y$y  ### modificar si se pinta fitted
+        reguValues = reguValues[myrepliUni]
+        names(reguValues) = myrepliUni
+        
+        geneValues = GLMoutput$ResultsPerGene[[gene]]$Y$y  
+        if (order) geneValues = geneValues[myorder]
+        errorValues = getErrorValues(geneValues, myreplicates)
         geneValues = tapply(geneValues, myreplicates, mean)
-        geneValues = geneValues[allTreatments]
-        names(geneValues) = allTreatments
-
-        errorValues = getErrorValues(GLMoutput$ResultsPerGene[[gene]]$Y$y, myreplicates)
-
-        x.points = 1:length(allTreatments)
-        numLines = 0    ########### esto es si hay cont.var
-        # cont.var = GLMoutput$arguments$cont.var
-        # condiciones = GLMoutput$arguments$edesign[,setdiff(colnames(GLMoutput$arguments$edesign), cont.var),drop = FALSE]
-        # if (ncol(condiciones) > 0) {
-        #   for (cc in 1:length(condiciones)) {
-        #     numLines = numLines + length(unique(condiciones[,cc])) - 1
-        #   }
-        # }
-        # eje = aggregate(GLMoutput$arguments$edesign[,cont.var],
-        #                 by = list(myreplicates), unique)
-        # rownames(eje) = eje[,1]
-        # eje = eje[unique(myreplicates),2]
-
-        if (!is.null(condi1)) numLines = length(condi1) - 1
-
-        eje = allTreatments
-
+        geneValues = geneValues[myrepliUni]
+        names(geneValues) = myrepliUni
+        
+        x.points = 1:length(myrepliUni)
+        eje = myrepliUni 
+        
         plotGeneRegu(x.points = x.points, geneValues = geneValues, reguValues = reguValues,
-                     col = c(gene.col, any.col),
-                     xlab = xlab, condi1 = condi1, condi2 = condi2,
+                     col = c(gene.col, any.col[myomic]), xlab = xlab, 
                      yylab = c(gene, regulator), pch = c(16,16),
                      main = paste(as.character(geneResults$allRegulators[regulator, c("omic", "area")]),
                                   collapse = " "),
                      numLines = numLines, x.names = eje,
                      geneErrorValues = errorValues, reguErrorValues = errorValuesRegu)
-
+        
       } else {
-
+        
         cat("Regulator values could not be recovered from GLMoutput.\n")
-
+        
         regulator = geneResults$allRegulators[regulator,"filter"]
-
+        
         if (regulator %in% rownames(geneResults$allRegulators)) {
-
+          
           cat(paste(regulator, "values will be plotted instead.")); cat("\n")
           cat(paste(regulator, "summarizes information from the following correlated regulators:")); cat("\n")
           cat(geneResults$allRegulators[geneResults$allRegulators[,"filter"] == regulator,"regulator"]); cat("\n")
-
+          
           reguValues = geneResults$X
           reguValues = reguValues[, colnames(reguValues) == regulator]
-
+          if (order) reguValues = reguValues[myorder]
           errorValuesRegu = getErrorValues(reguValues, myreplicates)
-
+          
           reguValues = tapply(reguValues, myreplicates, mean)
-          reguValues = reguValues[allTreatments]
-          names(reguValues) = allTreatments
-
-          geneValues = GLMoutput$ResultsPerGene[[gene]]$Y$y  ### modificar si se pinta fitted
+          reguValues = reguValues[myrepliUni]
+          names(reguValues) = myrepliUni
+          
+          geneValues = GLMoutput$ResultsPerGene[[gene]]$Y$y
+          if (order) geneValues = geneValues[myorder]
+          errorValues = getErrorValues(geneValues, myreplicates)
           geneValues = tapply(geneValues, myreplicates, mean)
-          geneValues = geneValues[allTreatments]
-          names(geneValues) = allTreatments
-
-          errorValues = getErrorValues(GLMoutput$ResultsPerGene[[gene]]$Y$y , myreplicates)
-
-          x.points = 1:length(unique(myreplicates))
-          numLines = 0    ########### esto es si hay cont.var
-          # cont.var = GLMoutput$arguments$cont.var
-          # condiciones = GLMoutput$arguments$edesign[,setdiff(colnames(GLMoutput$arguments$edesign), cont.var),drop = FALSE]
-          # if (ncol(condiciones) > 0) {
-          #   for (cc in 1:length(condiciones)) {
-          #     numLines = numLines + length(unique(condiciones[,cc])) - 1
-          #   }
-          # }
-          # eje = aggregate(GLMoutput$arguments$edesign[,cont.var],
-          #                 by = list(myreplicates), unique)
-          # rownames(eje) = eje[,1]
-          # eje = eje[unique(myreplicates),2]
-
-          if (!is.null(condi1)) numLines = length(condi1) - 1
-
-          eje = allTreatments
-
+          geneValues = geneValues[myrepliUni]
+          names(geneValues) = myrepliUni
+          
+          x.points = 1:length(myrepliUni)
+          eje = myrepliUni
+          
           plotGeneRegu(x.points = x.points, geneValues = geneValues, reguValues = reguValues,
-                       col = c(gene.col, any.col),
-                       xlab = xlab, condi1 = condi1, condi2 = condi2,
+                       col = c(gene.col, any.col[myomic]), xlab = xlab, 
                        yylab = c(gene, regulator), pch = c(16,16),
                        main = paste(as.character(geneResults$allRegulators[regulator, c("omic", "area")]),
                                     collapse = " "),
@@ -1314,18 +1481,16 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
                        geneErrorValues = errorValues, reguErrorValues = errorValuesRegu)
         } else {
           cat("The selected regulator was not declared as significant by the GLM.\n")
-          cat("Please select another regulator or provide the regulator values.\n")
+          cat("Please, either select another regulator or provide the regulator values.\n")
         }
-
+        
       }
-
+      
     }
-
+    
   }
-
-
+  
 }
-
 
 
 
@@ -1343,13 +1508,200 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 #' @export
 #'
 #' @examples
-GetPairsGeneRegulator = function (genes = NULL, getGLMoutput, correSense = FALSE) {
+GetPairsGeneRegulator = function (genes = NULL, getGLMoutput) {
 
   if (is.null(genes)) genes = rownames(getGLMoutput$GlobalSummary$ReguPerGene)
 
-  myresults = do.call("rbind", lapply(genes, GetPairs1GeneAllReg, getGLMoutput, correSense))
+  myresults = do.call("rbind", lapply(genes, GetPairs1GeneAllReg, getGLMoutput))
 
   #   colnames(myresults) = c("gene", "regulator", "omic", "area")
+  return(myresults)
+}
+
+RegulationPerCondition = function(getGLMoutput, betaTest = TRUE){
+  # getGLMoutput: results of the getGLM function.
+  design = getGLMoutput$arguments$finaldesign
+  Group = getGLMoutput$arguments$groups
+  
+  # Creo a partir de la funcion que ya estaba hecha (linea 1657) la tabla y le anyado los huecos en blanco y cambio el nombre a "representative".
+  genes = rownames(getGLMoutput$GlobalSummary$ReguPerGene)
+  myresults = do.call("rbind", lapply(genes, GetPairs1GeneAllReg, getGLMoutput))
+  colnames(myresults) = c(colnames(myresults)[1:4], "representative")
+  myresults[myresults[, "representative"] == "Model", "representative"] = ""
+  
+  if (is.null(design)){
+    
+    # Anyado la columna de coeficientes.           
+    coeffs = matrix(1, nrow(myresults), 1)
+    colnames(coeffs) = "coefficients"
+    rownames(coeffs) = rownames(myresults)
+    myresults = cbind(myresults, coeffs)
+    myresults[grep("_N", myresults[, "representative"]), "coefficients"] = -1  # Para cambiar el signo si pertenece al grupo de correlacionados negativamente
+    
+    for(k in unique(myresults[,"gene"])){     
+      
+      # Posicion y reguladores que son representantes.
+      counts = grep("_R", myresults[myresults[,"gene"] == k, "representative"]) # positions of representatives of mc
+      representatives = myresults[myresults[,"gene"] == k, "regulator"][counts]      # Devuelve el nombre real de los reguladores representantes
+      omic.representative = myresults[myresults[,"gene"] == k, c("regulator", "representative")][counts,]   # Columna Regulator y Representative
+      
+      # Necesito el if, si no da error. En caso de entrar, elimino las coletillas para que sea mas sencillo buscar y asignar el representante
+      if(length(representatives) != 0){
+        norow.nulls = which(myresults[myresults[,"gene"] == k, "representative"] != "")
+        myresults[myresults[,"gene"] == k, "representative"][norow.nulls] = sub("_P", "", myresults[myresults[,"gene"] == k, "representative"][norow.nulls])
+        myresults[myresults[,"gene"] == k, "representative"][norow.nulls] = sub("_N", "", myresults[myresults[,"gene"] == k, "representative"][norow.nulls])
+        myresults[myresults[,"gene"] == k, "representative"][norow.nulls] = sub("_R", "", myresults[myresults[,"gene"] == k, "representative"][norow.nulls])
+        
+        for(i in 1:length(representatives)){
+          # Aquellos que se llamen igual "omica_mc(numero)", se les asignara el representante
+          reg.rep = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == representatives[i], "representative"]
+          myresults[myresults[,"gene"] == k & myresults[,"representative"] == reg.rep, "representative"] = representatives[i]
+        }
+        
+        # Reguladores significativos del GLM. Pongo gsub() porque haciendo pruebas he visto que hay reguladores que se nombran `nombre regulador`. 
+        # Las comitas haran que no pueda encontrar el regulador
+        # en la tabla. Sin embargo, creo sign.glm para manterner las comitas y poder acceder a la tabla de coeficientes
+        significatives = gsub("`", "", names(getGLMoutput$ResultsPerGene[[k]]$coefficients[2:nrow(getGLMoutput$ResultsPerGene[[k]]$coefficients), 1]))
+        sign.glm = names(getGLMoutput$ResultsPerGene[[k]]$coefficients[2:nrow(getGLMoutput$ResultsPerGene[[k]]$coefficients), 1])
+        
+        for(i in 1:length(significatives)){
+          if(any(significatives[i] == omic.representative[,2])){
+            # index.regul: para saber que regulador es el representante y asi todos los que tengan su nombre en la columna "representative" tendran su coeficiente del modelo GLM.
+            index.regul = rownames(omic.representative)[which(omic.representative[,2] == significatives[i])]
+            PN = myresults[myresults[,"gene"] == k & myresults[,"representative"] == index.regul, "coefficients"]                        # Sera 1 o -1, segun tenga "_P" o "_N"
+            myresults[myresults[,"gene"] == k & myresults[,"representative"] == index.regul, "coefficients"] = PN*getGLMoutput$ResultsPerGene[[k]]$coefficients[sign.glm[i], 1]                                                    # Tendra signo de la tabla si es "_P" y signo opuesto si es "_N".
+          } else {
+            # En caso de no pertenecer a un grupo de reguladores correlacionados, cogera su coeficiente de la tabla y lo asignara a la posicion correspondiente
+            myresults[myresults[,"gene"] == k & myresults[,"regulator"] == significatives[i], "coefficients"] = getGLMoutput$ResultsPerGene[[k]]$coefficients[sign.glm[i], 1]
+          }
+        }
+        
+      } else {
+        # Si no presenta grupo de reguladores correlacionados, simplemente sacara los coeficientes de la tabla "coefficients"
+        myresults[myresults[,"gene"] == k, "coefficients"] = getGLMoutput$ResultsPerGene[[k]]$coefficients[2:nrow(getGLMoutput$ResultsPerGene[[k]]$coefficients), 1]
+      }
+    }
+    
+    
+  } else {
+    
+    # Anyado las columnas de las condiciones experimentales. Pongo "Group" porque al hacer model.matrix() siempre coloca "Group" y lo que se almacena en el objeto Group
+    index = unique(Group)
+    names.groups = paste("Group", index, sep = "")
+    conditions = matrix(0, nrow(myresults), length(names.groups))
+    colnames(conditions) = names.groups
+    rownames(conditions) = rownames(myresults)
+    myresults = cbind(myresults, conditions)
+    
+    for(k in unique(myresults[,"gene"])){
+      significant.regulators = getGLMoutput$ResultsPerGene[[k]]$significantRegulators                    # Reguladores significativos.
+      model.variables = gsub("`", "", rownames(getGLMoutput$ResultsPerGene[[k]]$coefficients))[-1]       # Reguladores e interacciones en el modelo.
+      
+      # Cojo las interacciones y creo objetos que contengan los reguladores que aparecen con interaccion, solas o ambas.
+      interactions.model = gsub("`", "", rownames(getGLMoutput$ResultsPerGene[[k]]$coefficients)[grep(":", rownames(getGLMoutput$ResultsPerGene[[k]]$coefficients))]) 
+      
+      inter.variables = unlist(strsplit(interactions.model, ":", fixed = TRUE))
+      if(is.null(inter.variables)){
+        inter.variables = NULL                                                                            # No hay interacciones.
+      } else {
+        inter.variables = inter.variables[seq(2, length(inter.variables), by = 2)]                        # Reguladores que presentan interseccion con algun grupo.
+      }
+      
+      variables.only = setdiff(setdiff(model.variables, interactions.model), inter.variables)             # Reguladores solos en el modelo, sin interacciones.
+      if(length(grep("Group", variables.only)) != 0){                                                     # No puedo hacer la interseccion con las variables significativas porque me cargo tambien omic_mc: hay que eliminar Group si esta.
+        variables.only = variables.only[-grep("Group", variables.only)]
+      }
+      
+      variables.inter.only = intersect(inter.variables, model.variables)                                  # Reguladores con interaccion y solas.
+      variables.inter = setdiff(inter.variables, model.variables)                                         # Reguladores con solo interaccion (no aparecen solas en el modelo).
+      
+      for(j in 2:nrow(getGLMoutput$ResultsPerGene[[k]]$coefficients)){
+        regul = unlist(strsplit(gsub("`", "", rownames(getGLMoutput$ResultsPerGene[[k]]$coefficients)[j]), ":"))
+        
+        # Evaluo en que conjunto se encuentra el regulador correspondiente y segun eso asigno el coeficiente o sumo el nuevo coeficiente a lo que ya habia en esa posicion.
+        if(any(regul %in% variables.only)){
+          if(any(regul %in% significant.regulators)){
+            myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] = getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+          } else {
+            myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] = getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+          }
+        }
+        
+        if(any(regul %in% variables.inter)){
+          if(any(regul %in% significant.regulators)){
+            myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+          } else {
+            myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+          }
+        }
+        
+        if(any(regul %in% variables.inter.only)){
+          if(any(regul %in% significant.regulators)){
+            if(length(regul) == 1){
+              myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+            } else {
+              myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+            }
+          } else {
+            if(length(regul) == 1){
+              myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+            } else {
+              myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+            }
+          }
+        }
+      }
+      
+      # Testing beta. Aplico la funcion que testea si la suma de coeficientes es significativa (linea 1677).
+      if(betaTest == TRUE){
+        myresults = BetaTest(coeffs = myresults, myGene = k, MOREresults = getGLMoutput)
+      }
+      
+      # Veo si hay representantes, en caso de haberlos asignara la misma fila del representante a los reguladores que acaben en "_P" y el opuesto a los que acaban en "_N".
+      countsR = grep("_R", myresults[myresults[,"gene"] == k, "representative"])
+      
+      if(length(countsR) != 0){
+        countsR = myresults[myresults[,"gene"] == k, 5:ncol(myresults)][countsR,]
+        
+        # Para los correlacionados positivamente: mete la misma fila de coeficientes del representante.
+        countsP = countsR
+        countsP[,"representative"] = sub("_R", "", countsP[,"representative"])
+        countsP[,"representative"] = paste(countsP[,"representative"], "_P", sep = "")
+        
+        for(l in 1:nrow(countsP)){
+          myresults[myresults[,"gene"] == k & myresults[,"representative"] == countsP[l,"representative"], 6:ncol(myresults)] = countsP[l,2:ncol(countsP)]
+        }
+        
+        # Para los correlacionados negativamente: mete la fila opuesta de coeficientes del representante.
+        countsN = countsR
+        countsN[,"representative"] = sub("_R", "", countsN[,"representative"])
+        countsN[,"representative"] = paste(countsN[,"representative"], "_N", sep = "")
+        
+        for(l in 1:nrow(countsN)){
+          myresults[myresults[,"gene"] == k & myresults[,"representative"] == countsN[l,"representative"], 6:ncol(myresults)] = -countsN[l,2:ncol(countsN)]
+        }
+        
+        counts = grep("_R", myresults[myresults[,"gene"] == k, "representative"])
+        representatives = myresults[myresults[,"gene"] == k, "regulator"][counts]                                    # Devuelve el nombre real de los reguladores representantes
+        omic.representative = myresults[myresults[,"gene"] == k, c("regulator", "representative")][counts,]          # Columna Regulator y Representative
+        
+        # Necesito el if, sino da error. En caso de entrar, elimino las coletillas para que sea mas sencillo buscar y asignar el representante.
+        if(length(representatives) != 0){
+          norow.nulls = which(myresults[myresults[,"gene"] == k, "representative"] != "")
+          myresults[myresults[,"gene"] == k, "representative"][norow.nulls] = sub("_P", "", myresults[myresults[,"gene"] == k, "representative"][norow.nulls])
+          myresults[myresults[,"gene"] == k, "representative"][norow.nulls] = sub("_N", "", myresults[myresults[,"gene"] == k, "representative"][norow.nulls])
+          myresults[myresults[,"gene"] == k, "representative"][norow.nulls] = sub("_R", "", myresults[myresults[,"gene"] == k, "representative"][norow.nulls])
+          
+          for(i in 1:length(representatives)){
+            # Aquellos que se llamen igual "omica_mc(numero)", se les asignara el representante.
+            reg.rep = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == representatives[i], "representative"]
+            myresults[myresults[,"gene"] == k & myresults[,"representative"] == reg.rep, "representative"] = representatives[i]
+          }
+        }
+      }
+    }
+  }
+  myresults[,6:ncol(myresults)] = signif(myresults[,6:ncol(myresults)], digits = 4) # Para que no salgan los numeros en diferentes notaciones
   return(myresults)
 }
 
@@ -1365,7 +1717,7 @@ GetPairsGeneRegulator = function (genes = NULL, getGLMoutput, correSense = FALSE
 #' @export
 #'
 #' @examples
-GetPairs1GeneAllReg = function (gene, getGLMoutput, correSense = FALSE) {
+GetPairs1GeneAllReg = function (gene, getGLMoutput) {
 
   reguSignif = getGLMoutput$ResultsPerGene[[gene]]$significantRegulators
 
@@ -1375,12 +1727,79 @@ GetPairs1GeneAllReg = function (gene, getGLMoutput, correSense = FALSE) {
   } else {  # Significant regulators
 
     reguSignif = getGLMoutput$ResultsPerGene[[gene]]$allRegulators[reguSignif,]
-    reguSignif = reguSignif[,c("gene", "regulator", "omic", "area")]
+    reguSignif = reguSignif[,c("gene", "regulator", "omic", "area", "filter")]
     return (reguSignif)
   }
 }
 
 
+BetaTest = function(coeffs, myGene, MOREresults){
+  
+  family = MOREresults$arguments$family
+  alfa = MOREresults$arguments$alfa
+  
+  # Coeficientes distintos de 0 en todas las columnas: significa que tendran una suma y debera hacerse el test.
+  mycoeffs = coeffs[coeffs[,"gene"] == myGene,]
+  row.null =  apply(mycoeffs[, 6:ncol(mycoeffs)], 1, function(x) all(x != 0))   ###  no seria en la columna 6?????
+  
+  # Tabla que solo recoge aquellos reguladores que poseen una suma en sus coeficientes.
+  mytable = mycoeffs[row.null, c(1,2,5:ncol(mycoeffs))]
+  
+  # Si todos los reguladores tienen interseccion (no aparecen solos), no habra suma de coeficientes y dara fallo. 
+  # Pongo el siguiente if para controlar esto.
+  if(dim(mytable)[1] != 0){
+    
+    # Comparo que reguladores tienen coeficientes distintos en cada grupo: eso significara que ha habido interaccion y aparece solo en el modelo, 
+    # entonces habra una suma de coeficientes.
+    # El primero es el referencial, comparo con el. Lo he intentado con apply, devuelve cada elemento si es TRUE o FALSE y yo quiero la fila. 
+    # También con which() pero no devuelve
+    # la posicion de la fila.
+    betas = NULL
+    for(j in 1:nrow(mytable)){
+      if(any(mytable[j,4] != mytable[j, 5:ncol(mytable)])){betas = rbind(betas, mytable[j,])}
+    }
+    
+    # Hay suma de coeficientes.
+    if(!is.null(betas)){
+      mySignificatives = rownames(MOREresults$ResultsPerGene[[myGene]]$coefficients)[-1]
+      mySigni = gsub("`", "", mySignificatives)
+      myY = MOREresults$ResultsPerGene[[myGene]]$Y[,1]
+      myX = MOREresults$ResultsPerGene[[myGene]]$X
+      myX = myX[, mySigni]
+      
+      for(i in 1:nrow(betas)){
+        
+        # Para tener en cuenta si es omica_mc_R.
+        if(betas[i,"representative"] == ""){
+          myRegulator = betas[i, "regulator"]
+        } else {
+          myRegulator = betas[i, "representative"]
+        }
+        
+        aquitar = mySignificatives[grep(myRegulator, mySignificatives)]
+        group = unlist(strsplit(aquitar, ":", fixed = TRUE))
+        group = gsub("`",  "",group[grep("Group", group)])
+        
+        # Modelo GLM
+        mymodel = glm(myY~., data = myX, family = family)
+        myHyp = paste0(paste(aquitar, collapse = "+"), " = 0")
+        pvalue = try(linearHypothesis(mymodel, c(myHyp), test = "Chisq")$"Pr(>Chisq)"[2], silent = TRUE)
+        
+        if(class(pvalue) == "try-error"){pvalue = NA}
+        
+        if(pvalue > alfa){
+          # Para escoger la fila correcta segun el nombre del regulador.
+          if(betas[i,"representative"] == ""){
+            coeffs[coeffs[, "gene"] == myGene & coeffs[, "regulator"] == myRegulator, group] = 0
+          } else {
+            coeffs[coeffs[, "gene"] == myGene & coeffs[, "representative"] == myRegulator, group] = 0
+          }
+        }
+      }
+    }
+  }
+  return(coeffs)
+}
 
 
 
@@ -1410,8 +1829,7 @@ GetPairs1GeneAllReg = function (gene, getGLMoutput, correSense = FALSE) {
 #' @examples
 plotGeneRegu = function (x.points, geneValues, reguValues, geneErrorValues, reguErrorValues, col = c(1,2),
                          xlab = "", yylab = c("right", "left"), pch = c(16,17), main = "",
-                         numLines = 0, x.names = NULL, yleftlim, yrightlim,
-                         condi1 = NULL, condi2) {
+                         numLines = NULL, x.names = NULL, yleftlim, yrightlim) {
 
   # Adjust the axis to include the error value
   if (missing(yrightlim)) {
@@ -1434,15 +1852,9 @@ plotGeneRegu = function (x.points, geneValues, reguValues, geneErrorValues, regu
           col = col, xlab = xlab, yylab = yylab, pch = pch, main = main, yrightlim = yrightlim,
           yrightErrorValues = geneErrorValues, yleftErrorValues = reguErrorValues)
 
-  if (numLines > 0) {
-      # aqui = length(x.points) / (numLines + 1)
-
-      if (!is.null(condi1)) {
-          aqui = length(condi2)
-          for (i in 1:numLines) {
-              abline(v = (2*aqui + 1)/2, lty = 2, col = 1)
-              aqui = aqui + length(condi2)
-          }
+  if (!is.null(numLines)) {
+    for (aa in numLines) {
+      abline(v = aa, lty = 2, col = 1)
     }
   }
 

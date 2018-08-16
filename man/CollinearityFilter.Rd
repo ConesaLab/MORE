@@ -4,8 +4,7 @@
 \alias{CollinearityFilter}
 \title{Title}
 \usage{
-CollinearityFilter(data, reg.table, correlation = 0.8, action = c("random",
-  "mean"))
+CollinearityFilter(data, reg.table, correlation = 0.8, omic.type)
 }
 \arguments{
 \item{action}{}

@@ -4,10 +4,10 @@
 \alias{plot.y2}
 \title{Title}
 \usage{
-\method{plot}{y2}(x, yright, yleft, yrightlim = range(yright, na.rm = TRUE),
-  yleftlim = range(yleft, na.rm = TRUE), xlim = range(x, na.rm = TRUE),
-  xlab = NULL, yylab = c("", ""), lwd = c(2, 2), pch = c(1, 2),
-  col = c(1, 2), type = c("o", "o"), linky = TRUE, smooth = 0,
+\method{plot}{y2}(x, yright, yleft, yrightlim = range(yright, na.rm =
+  TRUE), yleftlim = range(yleft, na.rm = TRUE), xlim = range(x, na.rm =
+  TRUE), xlab = NULL, yylab = c("", ""), lwd = c(2, 2), pch = c(1,
+  2), col = c(1, 2), type = c("o", "o"), linky = TRUE, smooth = 0,
   bg = c("white", "white"), lwds = 1, length = 10, ..., x2 = NULL,
   yright2 = NULL, yleft2 = NULL, col2 = c(3, 4), yrightErrorValues,
   yleftErrorValues)

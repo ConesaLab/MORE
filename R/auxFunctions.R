@@ -40,10 +40,10 @@ GenerateDesignMatrix = function (interactions.exp, degree, edesign, cont.var) {
         expcond = setdiff(colnames(desmat), cont.var) # remove cont.var
         # remove interactions to avoid having int > 2
         if (length(grep(":", expcond, fixed = TRUE)) > 0) expcond = expcond[-grep(":", expcond, fixed = TRUE)]
-        desmat = as.data.frame(cbind(desmat, poliEquat))
+        desmat = as.data.frame(cbind(desmat, poliEquat), stringsAsFactors = FALSE)
         fff = paste0("~ ", paste(sapply(politerms, function (x) paste(expcond, x, sep = ":")), collapse = "+"))
         fff = as.formula(fff)
-        desmat = as.data.frame(cbind(desmat, model.matrix(fff, desmat)[,-1, drop = FALSE]))
+        desmat = as.data.frame(cbind(desmat, model.matrix(fff, desmat)[,-1, drop = FALSE]), stringsAsFactors = FALSE)
       }
 
 
@@ -51,18 +51,18 @@ GenerateDesignMatrix = function (interactions.exp, degree, edesign, cont.var) {
       desmat = model.matrix(~., data = edesign)[, -1, drop = FALSE]
       if (!is.null(politerms)) {
         expcond = setdiff(colnames(desmat), cont.var) # remove cont.var
-        desmat = as.data.frame(cbind(desmat, poliEquat))
+        desmat = as.data.frame(cbind(desmat, poliEquat), stringsAsFactors = FALSE)
         if (length(expcond) > 0) {
           fff = paste0("~ ", paste(sapply(politerms, function (x) paste(expcond, x, sep = ":")), collapse = "+"))
           fff = as.formula(fff)
-          desmat = as.data.frame(cbind(desmat, model.matrix(fff, desmat)[,-1]))
+          desmat = as.data.frame(cbind(desmat, model.matrix(fff, desmat)[,-1]), stringsAsFactors = FALSE)
         }
       }
     }
 
   } else {  # no interactions
     desmat = model.matrix(~., data = edesign)[, -1, drop = FALSE]
-    if (!is.null(politerms)) desmat = as.data.frame(cbind(desmat, poliEquat))
+    if (!is.null(politerms)) desmat = as.data.frame(cbind(desmat, poliEquat), stringsAsFactors = FALSE)
   }
 
   return(desmat)
@@ -73,7 +73,7 @@ GenerateDesignMatrix = function (interactions.exp, degree, edesign, cont.var) {
 
 # Removing regulators with low variation ----------------------------------
 
-LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, Allgenes) {
+LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, Allgenes, omic.type) {
 
   if (is.null(min.variation)){
 
@@ -85,11 +85,13 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
     }
     names(data.omicsMean)=names(data.omics)
 
-    percVar=rep(10, length(data.omicsMean)) ## We fix it
+    percVar = c(10, 1)
+    names(percVar) = 0:1
+    percVar = percVar[as.character(omic.type)]
     names(percVar)=names(data.omicsMean)
 
     # Applying Low Variation filter
-    LowVar=LowVariatFilter(data=data.omicsMean, method="sd", percVar=percVar)
+    LowVar=LowVariatFilter(data=data.omicsMean, method="sd", percVar=percVar, omic.type = omic.type)
 
     # data.omicsMean reduced: without NA and LV
     data.omicsMean=LowVar$data
@@ -126,7 +128,7 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
     names(data.omicsMean) = names(data.omics)
 
     # Applying Low Variation filter
-    LowVar=LowVariatFilter(data = data.omicsMean, method = "user", percVar = min.variation)
+    LowVar=LowVariatFilter(data = data.omicsMean, method = "user", percVar = min.variation, omic.type = omic.type)
 
     data.omicsMean=LowVar$data  ## data.omicsMean reduced
 
@@ -159,71 +161,47 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 ## method: One of "sd","range", "IQrange" or "user"
 ## percVar: percentage of variation defined by the user
 
-LowVariatFilter=function(data, method, percVar){
-
+LowVariatFilter=function(data, method, percVar, omic.type){
+  
   SummaryRes = LV.reg = vector("list", length=length(data))
   names(SummaryRes) = names(LV.reg) = names(data)
-
-  if (method=="sd") {
-
-    for (ov in names(data)) {
-
-      met=apply(data[[ov]], 1, sd, na.rm=TRUE)  ## Compute standard deviation between conditions
-      maxMet=max(met)*(percVar[[ov]]/100)  ## Compute minimum variation allowed
-      myreg=met[met>maxMet]  # Regulators to be kept
-      LV.reg[[ov]]=names(met[met<=maxMet]) ## Keep names of removed regulators
-      data[[ov]]=data[[ov]][names(myreg), ,drop=FALSE]
-    }
-  }
-
-  if(method=="range"){
-
-    for (ov in names(data)){
-
-      met=apply(data[[ov]],1,function(x) max(x, na.rm=TRUE)-min(x, na.rm=TRUE) )
-      maxMet=summary(met)["Max."]*(percVar[[ov]]/100)
-      myreg=met[met>maxMet]
-      LV.reg[[ov]]=names(met[met<=maxMet]) ## Keep names of removed regulators
-      data[[ov]]=data[[ov]][names(myreg), , drop=FALSE]
-    }
-
-  }
-
-  if(method=="IQrange"){
-
-    for (ov in names(data)){
-
-      met=apply(data[[ov]],1,function(x) BiocGenerics::IQR(x, na.rm=TRUE) )
-      maxMet=summary(met)["Max."]*(percVar[[ov]]/100)
-      myreg=met[met>maxMet]
-      LV.reg[[ov]]=names(met[met<=maxMet]) ## Keep names of removed regulators
-      data[[ov]]=data[[ov]][names(myreg), , drop=FALSE]
-    }
-
-  }
-
-  if(method=="user"){
-
-    for (ov in names(data)){
-
-      if (min(dim(data[[ov]])) > 0) {
-        met = apply(data[[ov]], 1, function(x) max(x, na.rm=TRUE)-min(x, na.rm=TRUE) )
-        maxMet = percVar[[ov]] ## We don't consider the max, just the percentage defined by the user
-        myreg=met[met>maxMet]
+  
+  for (ov in names(data)) {
+    
+    if (omic.type[ov] == 0) {  # numerical regulators
+      
+      if (method=="sd") {
+        met=apply(data[[ov]], 1, sd, na.rm=TRUE)  ## Compute standard deviation between conditions
+        maxMet=max(met)*(percVar[ov]/100)  ## Compute minimum variation allowed
+        myreg=met[met>maxMet]  # Regulators to be kept
         LV.reg[[ov]]=names(met[met<=maxMet]) ## Keep names of removed regulators
-        data[[ov]]=data[[ov]][names(myreg), , drop=FALSE]
+        data[[ov]]=data[[ov]][names(myreg), ,drop=FALSE]
       }
-
+      
+      if(method=="user") {
+        if (min(dim(data[[ov]])) > 0) {
+          met = apply(data[[ov]], 1, function(x) max(x, na.rm=TRUE)-min(x, na.rm=TRUE) )
+          maxMet = percVar[ov] ## We don't consider the max, just the percentage defined by the user
+          myreg=met[met>maxMet]
+          LV.reg[[ov]]=names(met[met<=maxMet]) ## Keep names of removed regulators
+          data[[ov]]=data[[ov]][names(myreg), , drop=FALSE]
+        }
+      }
     }
-
-
+    
+    if (omic.type[ov] == 1) {  # binary categorical regulators
+      met = apply(data[[ov]], 1, function (x) { max(table(x)/length(x)) })  ## Compute proportion of most common value
+      myreg = met[met > percVar[ov]]  # Regulators to be kept
+      LV.reg[[ov]] = names(met[met <= percVar[ov]]) ## Keep names of removed regulators
+      data[[ov]] = data[[ov]][names(myreg), ,drop=FALSE]
+    }
   }
-
+  
   results=vector("list", length=2)
   results[[1]]=data
   results[[2]]=LV.reg
   names(results)=c("data", "LV.reg")
-
+  
   return(results)
 }
 
@@ -239,11 +217,11 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
  
   # Adding regulators
   if (is.null(des.mat)) {
-    des.mat2 = data.frame(reguValues, check.names = FALSE)
+    des.mat2 = data.frame(reguValues, check.names = FALSE, stringsAsFactors = FALSE)
     des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
     colnames(des.mat2)[1] = "response"
   } else {
-    des.mat2 = data.frame(des.mat, reguValues, check.names = FALSE)
+    des.mat2 = data.frame(des.mat, reguValues, check.names = FALSE, stringsAsFactors = FALSE)
     ### WITH INTERACTIONS with regulators
     if (interactions.reg > 0) {
       expcond = colnames(des.mat)
@@ -299,69 +277,43 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
 # ElasticNet variable selection -------------------------------------------
 
 ElasticNet = function (family2, des.mat2, epsilon, elasticnet, Res.df) {
-
-  if ((elasticnet > 0) && (ncol(des.mat2) > 2)) {  # Variable selection with ElasticNet
-
+  
+  if (!is.null(elasticnet) && (ncol(des.mat2) > 2)) {  # Variable selection with ElasticNet
+    
     if (!is.null(family2)) {
-
+      
       if (nrow(des.mat2) > 200) { mynfolds =  ceiling(nrow(des.mat2)/20) } else { mynfolds = nrow(des.mat2) }  # for CV
-
-      # TODO: check this fix?
-      # lambdaPred <- exp(seq(log(0.001), log(5), length.out=15))
+      
       cvEN = cv.glmnet(x = as.matrix(des.mat2[,-1]),
-                       y = des.mat2[,1],
-                       nfolds = mynfolds, alpha = 0.5, standardize = FALSE, thres = epsilon,
+                       y = des.mat2[,1], dfmax = nrow(des.mat2) - 1 - Res.df,
+                       nfolds = mynfolds, alpha = elasticnet, standardize = FALSE, thres = epsilon,
                        family = family2, grouped = FALSE)
-                       # lambda = lambdaPred)
-
-      if (elasticnet == 1) {  #  "ad-hoc" penalization parameter
-        myNZ = nrow(des.mat2) - 1 - Res.df
-        rangeNZ = range(cvEN$nzero)
-
-        if (myNZ < rangeNZ[1]) {
-          # No ElasticNet selection is performed
-          removedCoefs = NULL
-          myS = NULL
-        } else if ( myNZ > rangeNZ[2] ) {
-          myNZ = rangeNZ[2] # take the max of non-zero coefficients
-          myS = cvEN$lambda[cvEN$nzero == myNZ]
-        } else { # myNZ is within the computed range of non-zero values
-          myS = cvEN$lambda[cvEN$nzero == myNZ]
-          if (length(myS) == 0) {
-            tmp = abs(cvEN$nzero - myNZ)
-            myS = cvEN$lambda[tmp == min(tmp)]
-          }
-        }
-      }
-
-      if (elasticnet == 2) {  # optimum penalization parameter
-        myS = cvEN$lambda.min
-      }
-
+      
+      myS = cvEN$lambda.min  # optimum penalization parameter
+      
       if (length(myS) > 1) {  # more than 1 values for lambda
         myCVerror = cvEN$cvm[sapply(myS, function (i) which(cvEN$lambda == i))]
         myS = myS[which.min(myCVerror)]
       }
-
+      
       if (length(myS) == 1) {
         mycoef = colnames(des.mat2)[which(coef(cvEN, s = myS)[,1] != 0)] # selected coefficients
         mycoef = unique(c(colnames(des.mat2)[1], mycoef))
-
+        
         removedCoefs = setdiff(colnames(des.mat2), mycoef)
         removedCoefs = unique(gsub(".*[:?](.*)$", "\\1", removedCoefs))
-
+        
         des.mat2 = des.mat2[, mycoef, drop = FALSE]
         
         mycoef = unique(gsub(".*[:?](.*)$", "\\1", mycoef))
         removedCoefs = setdiff(removedCoefs, mycoef)
       }
-
+      
     } else { removedCoefs = NULL }
-
+    
   } else { removedCoefs = NULL }
-
-
-
+  
   return(list("des.mat2" = des.mat2, "removedCoefs" = removedCoefs))
 }
+
 

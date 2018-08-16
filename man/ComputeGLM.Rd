@@ -5,8 +5,8 @@
 \title{Title}
 \usage{
 ComputeGLM(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
-  Res.df = 4, family = negative.binomial(theta = 10), epsilon = 1e-05,
-  MT.adjust = "fdr", iter.max = 100)
+  Res.df = 4, family = negative.binomial(theta = 10),
+  epsilon = 1e-05, MT.adjust = "fdr", iter.max = 100)
 }
 \arguments{
 \item{iter.max}{}

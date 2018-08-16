@@ -4,7 +4,7 @@
 \alias{GetPairsGeneRegulator}
 \title{Title}
 \usage{
-GetPairsGeneRegulator(genes = NULL, getGLMoutput, correSense = FALSE)
+GetPairsGeneRegulator(genes = NULL, getGLMoutput)
 }
 \arguments{
 \item{correSense}{}

@@ -4,13 +4,13 @@
 \alias{GetGLM}
 \title{Genome-wide Generalized Linear Models}
 \usage{
-GetGLM(GeneExpression, associations, data.omics, edesign, cont.var = "Time",
-  degree = 1, center = TRUE, scale = FALSE, Res.df = 5,
-  epsilon = 1e-05, alfa = 0.05, MT.adjust = "none",
-  family = negative.binomial(theta = 10), elasticnet = 2,
-  stepwise = "backward", interactions.exp = TRUE, interactions.reg = 1,
-  min.variation = 0, correlation = 0.9, action = "mean", min.obs = 10,
-  mc.cores = 1)
+GetGLM(GeneExpression, associations, data.omics, edesign = NULL,
+  cont.var = "Time", degree = 1, center = TRUE, scale = FALSE,
+  Res.df = 5, epsilon = 1e-05, alfa = 0.05, MT.adjust = "none",
+  family = negative.binomial(theta = 10), elasticnet = 0.5,
+  stepwise = "backward", interactions.exp = TRUE,
+  interactions.reg = 1, min.variation = 0, correlation = 0.9,
+  min.obs = 10, omic.type = 0, mc.cores = 1)
 }
 \arguments{
 \item{GeneExpression}{Data frame containing gene expression data with genes in rows and
@@ -51,9 +51,11 @@ selection procedure. By default, "none". See the different options in ?\code{p.a
 \item{family}{Error distribution and link function to be used in the model (see ?\code{glm}
 for more information). By default, negative.binomial(theta=10).}
 
-\item{elasticnet}{0 = No ElasticNet variable selection; 1 = ElasticNet with ad-hoc penalization; 2 = ElasticNet with optimum penalization}
+\item{elasticnet}{ElasticNet mixing parameter. NULL = No ElasticNet variable selection. A number between 0 and 1 = ElasticNet is applied
+with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso
+penalty). The default is 0.5, which gives equal weight to ridge and lasso.}
 
-\item{stepwise}{Stepwise variable selection method to be applied. It can be one of: "backward"
+\item{stepwise}{Stepwise variable selection method to be applied. It can be one of: "none", "backward"
 (default), "forward", "two.ways.backward" or "two.ways.forward".}
 
 \item{interactions.exp}{If TRUE (default), interactions among the experimental variables
@@ -62,7 +64,11 @@ are included in the model.}
 \item{interactions.reg}{If TRUE (default), interactions between regulators and experimental
 variables are included in the model.}
 
-\item{min.variation}{### if NULL, it computes "sd"}
+\item{min.variation}{For numerical regulators, the minimum change that a regulator must present across conditions
+to keep it in the regression models. For binary regulators, if the proportion of the most repeated value equals or exceeds this value,
+the regulator will be considered to have low variation and removed from the regression models.}
+
+\item{omic.type}{0 = numerical variable (default), 1 = binary (categorical) variable. It should be a vector with length the number of omic types or a number (0 or 1) if all the omics are of the same type.}
 }
 \description{
 \code{GetGLM} fits a regression model for all the genes in the data set to identify

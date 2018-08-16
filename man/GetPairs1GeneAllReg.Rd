@@ -4,7 +4,7 @@
 \alias{GetPairs1GeneAllReg}
 \title{Title}
 \usage{
-GetPairs1GeneAllReg(gene, getGLMoutput, correSense = FALSE)
+GetPairs1GeneAllReg(gene, getGLMoutput)
 }
 \arguments{
 \item{correSense}{}

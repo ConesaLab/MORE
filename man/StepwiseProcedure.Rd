@@ -4,8 +4,8 @@
 \alias{StepwiseProcedure}
 \title{Title}
 \usage{
-StepwiseProcedure(stepwise, y, x, family, alfa, epsilon, MT.adjust = "fdr",
-  iter.max = 100)
+StepwiseProcedure(stepwise, y, x, family, alfa, epsilon,
+  MT.adjust = "fdr", iter.max = 100)
 }
 \arguments{
 \item{iter.max}{}

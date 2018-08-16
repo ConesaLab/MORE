@@ -5,11 +5,12 @@
 \title{Title}
 \usage{
 plotGLM(GLMoutput, gene, regulator = NULL, reguValues = NULL,
-  plotPerOmic = TRUE, fittedModel = FALSE, replicates = FALSE,
-  gene.col = 4, regu.col = NULL, xlab = "", cont.var = "Time",
-  cond2plot = NULL, ...)
+  plotPerOmic = FALSE, gene.col = 1, regu.col = NULL, order = TRUE,
+  xlab = "", cont.var = NULL, cond2plot = NULL, ...)
 }
 \arguments{
+\item{order}{Should the experimental groups be ordered for the plot? If TRUE, omic values are also ordered accordingly.}
+
 \item{...}{}
 }
 \description{
