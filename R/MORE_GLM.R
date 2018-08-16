@@ -383,7 +383,7 @@ GetGLM = function(GeneExpression,
 
         ## Multicollinearity
         res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
-                                 correlation = correlation, action = action, omic.type = omic.type)
+                                 correlation = correlation, omic.type = omic.type)
 
         ResultsPerGene.i$allRegulators = res$SummaryPerGene
 
@@ -799,7 +799,7 @@ RemovedRegulators = function(RetRegul.gene, myregLV, myregNA, data.omics){
 #' @param data
 #' @param reg.table
 #' @param correlation
-#' @param action
+#' @param omic.type
 #'
 #' @return
 #' @export
@@ -1518,6 +1518,15 @@ GetPairsGeneRegulator = function (genes = NULL, getGLMoutput) {
   return(myresults)
 }
 
+#' Title
+#'
+#' @param getGLMoutput 
+#' @param betaTest 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 RegulationPerCondition = function(getGLMoutput, betaTest = TRUE){
   # getGLMoutput: results of the getGLM function.
   design = getGLMoutput$arguments$finaldesign
@@ -1733,6 +1742,16 @@ GetPairs1GeneAllReg = function (gene, getGLMoutput) {
 }
 
 
+#' Title
+#'
+#' @param coeffs 
+#' @param myGene 
+#' @param MOREresults 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 BetaTest = function(coeffs, myGene, MOREresults){
   
   family = MOREresults$arguments$family

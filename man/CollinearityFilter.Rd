@@ -7,7 +7,7 @@
 CollinearityFilter(data, reg.table, correlation = 0.8, omic.type)
 }
 \arguments{
-\item{action}{}
+\item{omic.type}{}
 }
 \description{
 Title

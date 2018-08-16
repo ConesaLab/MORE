@@ -13,6 +13,17 @@ NULL
 # Generating design matrix with interactions between experimental variables ------------------------------
 ## We only consider interactions of order 2
 
+#' Title
+#'
+#' @param interactions.exp 
+#' @param degree 
+#' @param edesign 
+#' @param cont.var 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 GenerateDesignMatrix = function (interactions.exp, degree, edesign, cont.var) {
 
   if ((cont.var %in% colnames(edesign)) && (degree > 1)) {  # polynomial terms
@@ -73,6 +84,19 @@ GenerateDesignMatrix = function (interactions.exp, degree, edesign, cont.var) {
 
 # Removing regulators with low variation ----------------------------------
 
+#' Title
+#'
+#' @param min.variation 
+#' @param data.omics 
+#' @param ExpGroups 
+#' @param associations 
+#' @param Allgenes 
+#' @param omic.type 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, Allgenes, omic.type) {
 
   if (is.null(min.variation)){
@@ -161,6 +185,17 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 ## method: One of "sd","range", "IQrange" or "user"
 ## percVar: percentage of variation defined by the user
 
+#' Title
+#'
+#' @param data 
+#' @param method 
+#' @param percVar 
+#' @param omic.type 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 LowVariatFilter=function(data, method, percVar, omic.type){
   
   SummaryRes = LV.reg = vector("list", length=length(data))
@@ -213,6 +248,19 @@ LowVariatFilter=function(data, method, percVar, omic.type){
 
 # Adding interations with regulators -------------------------------------
 
+#' Title
+#'
+#' @param interactions.reg 
+#' @param reguValues 
+#' @param des.mat 
+#' @param cont.var 
+#' @param GeneExpression 
+#' @param gene 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.var, GeneExpression, gene) {
  
   # Adding regulators
@@ -276,6 +324,18 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
 
 # ElasticNet variable selection -------------------------------------------
 
+#' Title
+#'
+#' @param family2 
+#' @param des.mat2 
+#' @param epsilon 
+#' @param elasticnet 
+#' @param Res.df 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ElasticNet = function (family2, des.mat2, epsilon, elasticnet, Res.df) {
   
   if (!is.null(elasticnet) && (ncol(des.mat2) > 2)) {  # Variable selection with ElasticNet
