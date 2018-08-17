@@ -4,11 +4,7 @@ Version: 0.1.0
 Authors@R: c(person("Sonia", "Tarazona", email = "starazona@cipf.es", role = c("aut", "cre")), person("Blanca", "Tomás", role = c("aut")))
 Description: MORE is a method which facilitate the task of applying GLMs models to multi-omic data. The goal of MORE is to model gene expression as a function of experimental variables, such as treatment, and the potential regulators of a given gene. MORE has a several functionalities to filter regulator: variable selection (Lasso, ridge regression and ElasticNet), filter for regulators with low variation, for missing data, for correlated regulators and stepwise methods.
 Depends:
-    R (>= 3.2.3)
-License: GPL-2
-Encoding: UTF-8
-LazyData: true
-Imports:
+    R (>= 3.2.3),
     pbapply,
     glmnet,
     igraph,
@@ -16,14 +12,11 @@ Imports:
     parallel,
     psych,
     car
-Suggests:
-    testthat,
-    knitr,
-    rmarkdown,
-    BiocStyle
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
 Collate: 
     'ComputeGLM_function.R'
     'auxFunctions.R'
     'MORE_GLM.R'
 RoxygenNote: 6.1.0
-VignetteBuilder: knitr

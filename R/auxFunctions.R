@@ -13,7 +13,7 @@ NULL
 # Generating design matrix with interactions between experimental variables ------------------------------
 ## We only consider interactions of order 2
 
-#' Title
+#' GenerateDesignMatrix
 #'
 #' @param interactions.exp 
 #' @param degree 
@@ -22,6 +22,8 @@ NULL
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 GenerateDesignMatrix = function (interactions.exp, degree, edesign, cont.var) {
@@ -84,7 +86,7 @@ GenerateDesignMatrix = function (interactions.exp, degree, edesign, cont.var) {
 
 # Removing regulators with low variation ----------------------------------
 
-#' Title
+#' LowVariationRegu
 #'
 #' @param min.variation 
 #' @param data.omics 
@@ -95,6 +97,8 @@ GenerateDesignMatrix = function (interactions.exp, degree, edesign, cont.var) {
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, Allgenes, omic.type) {
@@ -185,7 +189,7 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 ## method: One of "sd","range", "IQrange" or "user"
 ## percVar: percentage of variation defined by the user
 
-#' Title
+#' LowVariatFilter
 #'
 #' @param data 
 #' @param method 
@@ -194,6 +198,8 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 LowVariatFilter=function(data, method, percVar, omic.type){
@@ -248,7 +254,7 @@ LowVariatFilter=function(data, method, percVar, omic.type){
 
 # Adding interations with regulators -------------------------------------
 
-#' Title
+#' RegulatorsInteractions
 #'
 #' @param interactions.reg 
 #' @param reguValues 
@@ -259,6 +265,8 @@ LowVariatFilter=function(data, method, percVar, omic.type){
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.var, GeneExpression, gene) {
@@ -324,7 +332,7 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
 
 # ElasticNet variable selection -------------------------------------------
 
-#' Title
+#' ElasticNet
 #'
 #' @param family2 
 #' @param des.mat2 
@@ -334,6 +342,8 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 ElasticNet = function (family2, des.mat2, epsilon, elasticnet, Res.df) {

@@ -27,7 +27,7 @@ NULL
 ## SummaryStepwise: List with 3 elements "p-value", "R-squared", "variables"
 
 
-#' Title
+#' ComputeGLM
 #'
 #' @param matrix.temp
 #' @param alfa
@@ -38,10 +38,10 @@ NULL
 #' @param MT.adjust
 #' @param iter.max
 #'
-#' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
-#' @examples
 ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
                       Res.df = 4, family = negative.binomial(theta=10), epsilon = 0.00001,
                       MT.adjust = "fdr", iter.max = 100) {
@@ -126,7 +126,7 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
 ## OUTPUT
 ## Final GLM
 
-#' Title
+#' PreviousBackward
 #'
 #' @param y
 #' @param d
@@ -140,6 +140,8 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.adjust = "fdr", iter.max = 100) {
@@ -209,7 +211,7 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' Title
+#' stepback.gdl
 #'
 #' @param y
 #' @param d.ini
@@ -223,6 +225,8 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, MT.adjust = "fdr"){
@@ -300,7 +304,7 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' Title
+#' two.ways.stepback.gdl
 #'
 #' @param y
 #' @param d.ini
@@ -314,6 +318,8 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.max, MT.adjust = "fdr", iter.max = 100) {
@@ -447,7 +453,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' Title
+#' StepwiseProcedure
 #'
 #' @param stepwise
 #' @param y
@@ -460,6 +466,8 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 StepwiseProcedure = function(stepwise, y, x, family, alfa, epsilon, MT.adjust = "fdr", iter.max = 100){
@@ -518,7 +526,7 @@ StepwiseProcedure = function(stepwise, y, x, family, alfa, epsilon, MT.adjust = 
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' Title
+#' stepfroMOD
 #'
 #' @param y
 #' @param d
@@ -529,6 +537,8 @@ StepwiseProcedure = function(stepwise, y, x, family, alfa, epsilon, MT.adjust = 
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
@@ -606,7 +616,7 @@ stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
 ## GLM after applying the stepwise methodology
 
 
-#' Title
+#' stepbackMOD
 #'
 #' @param y
 #' @param d
@@ -617,6 +627,8 @@ stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
@@ -676,7 +688,7 @@ stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' Title
+#' two.ways.stepbackMOD
 #'
 #' @param y
 #' @param d
@@ -688,6 +700,8 @@ stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", iter.max = 100) {
@@ -833,7 +847,7 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' Title
+#' two.ways.stepforMOD
 #'
 #' @param y
 #' @param d
@@ -845,6 +859,8 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", iter.max = 100){
@@ -960,7 +976,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
 ## OUTPUT
 ## list: "p-value", "R-squared", "variables"
 
-#' Title
+#' ResultsTable
 #'
 #' @param glm
 #' @param family
@@ -968,6 +984,8 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 ResultsTable = function(glm, family, epsilon){
@@ -1020,13 +1038,15 @@ ResultsTable = function(glm, family, epsilon){
 
 
 
-#' Title
+#' findPosition
 #'
 #' @param matrix
 #' @param vari
 #'
 #' @return
 #' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 findPosition = function (matrix, vari) {

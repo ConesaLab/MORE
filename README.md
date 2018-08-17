@@ -21,3 +21,5 @@ Before doing that it might be necessary to install the required dependencies:
 
 You can download the main vignette of the package from the download section in this repository: https://bitbucket.org/ConesaLab/more/downloads/
 
+In that directory you will also find a zipped folder containing the required files to run the package as a Shiny application.
+

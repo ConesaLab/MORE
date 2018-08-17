@@ -2,17 +2,89 @@
 % Please edit documentation in R/MORE_GLM.R
 \name{plotGLM}
 \alias{plotGLM}
-\title{Title}
+\title{Plot MORE results}
 \usage{
 plotGLM(GLMoutput, gene, regulator = NULL, reguValues = NULL,
   plotPerOmic = FALSE, gene.col = 1, regu.col = NULL, order = TRUE,
   xlab = "", cont.var = NULL, cond2plot = NULL, ...)
 }
 \arguments{
-\item{order}{Should the experimental groups be ordered for the plot? If TRUE, omic values are also ordered accordingly.}
+\item{GLMoutput}{It is the name of the object where we have saved the execution of the function \code{getGLM}.}
+
+\item{gene}{Is the ID of the gene that we want to analyze.}
+
+\item{regulator}{It is the name of the regulator that we want to analyze. Its default input value is NULL.}
+
+\item{reguValues}{It is a vector that the user can provide the values of a regulator that has not been stored 
+in \code{GLMoutput}. By default, it is NULL.}
+
+\item{plotPerOmic}{Is a parameter that allows the user to graph all the significant regulators of an omic in 
+the same graph (value TRUE). By default, its value is FALSE.}
+
+\item{gene.col}{It is the color that the user wants to assign to the gene. Its default input value is 1.}
+
+\item{regu.col}{It is the color that the user wants to assign to the regulator. Since the regulator parameter 
+is NULL, its default value will also be NULL}
+
+\item{order}{If the user wants to order the values to be plotted. By default, its value is TRUE.}
+
+\item{xlab}{The name that the user wants in the X axis.}
+
+\item{cont.var}{Name of the column in edesign matrix that is to be considered as a continuous explanatory variable 
+in the regression model. By default, its value is NULL.}
+
+\item{cond2plot}{Is a vector or factor indicating the experimental group of each value to represent. If it is 
+NULL (by default), the experimental design matrix will be taken.}
 
 \item{...}{}
 }
 \description{
-Title
+MORE includes the possibility of studying graphically the relationship of genes and regulators: given a 
+specific gene and regulator, study the regulators for a given gene, analyze which genes are regulated by 
+a specific regulator...
+}
+\examples{
+library(MORE)
+data(TestData)
+
+## Omic type
+OmicType = c(1, 0, 0)
+names(OmicType) = names(data.omics)
+
+## GetGLM function
+SimGLM = GetGLM(GeneExpression = GeneExpressionDE,
+                associations = associations,
+                data.omics = data.omics,
+                edesign = edesign[,-1, drop = FALSE],
+                degree = 1,
+                Res.df = 10, epsilon = 0.00001,
+                alfa = 0.05, MT.adjust = "fdr",
+                family = negative.binomial(theta = 10),
+                elasticnet = 0.7,
+                stepwise = "two.ways.backward",
+                interactions.exp = TRUE, interactions.reg = 1,
+                correlation = 0.8, min.variation = 0,
+                cont.var = NULL, min.obs = 10, omic.type = OmicType)
+
+## Given a gene and regulator
+plotGLM(GLMoutput = SimGLM, gene = "ENSMUSG00000012535",
+        regulator = "6_29609160_29609425", plotPerOmic = FALSE,
+        gene.col = "red4", regu.col = "green4")
+
+## Given a gene
+par(mfrow = c(2,2))
+plotGLM(GLMoutput = SimGLM, gene = "ENSMUSG00000012535",
+        regulator = NULL, plotPerOmic = FALSE, gene.col = "blue4")
+
+## Given a regulator
+par(mfrow = c(1,2))
+plotGLM(GLMoutput = SimGLM, gene = NULL, regulator = "mmu-miR-376c-3p",
+        plotPerOmic = FALSE, gene.col = "red4", regu.col = "green4")
+        
+        
+}
+\seealso{
+\code{\link{GetGLM}}
+
+\code{\link{TestData}}
 }

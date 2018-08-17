@@ -2,7 +2,29 @@
 % Please edit documentation in R/MORE_GLM.R
 \name{GetGLM}
 \alias{GetGLM}
-\title{Genome-wide Generalized Linear Models}
+\title{#' Omic Data
+#'
+#' This file is composed of four objects and can be used to test
+#' the MORE algorithm: gene expression matrix, association matrix,
+#' data omics matrix and the experimental design matrix.
+#'
+# @docType data
+#'
+# @usage data(TestData)
+#'
+#' @format \code{TestData} contains the following four lists:  \describe{
+#' \item{\code{GeneExpressionDE}}{It contains the counts of gene expression of each gene for the omic RNA-seq.}
+#' \item{\code{data.omics}}{It contains three data matrices with the expression values (count values) for each considered omic (ChIP-seq, miRNA-seq, TF).}
+#' \item{\code{associations}}{It contains three association matrices for each omic (potential regulators).}
+#' \item{\code{edesign}}{It is the experimental design matrix and it is composed of 8 time points in two conditions, therefore, we ave 16 experimental samples.}
+#' }
+#'
+# @keywords datasets
+#'
+#' @source \href{https://bitbucket.org/ConesaLab/mosim/}{MOSim package}
+#'
+"TestData"
+GLM model for each gene}
 \usage{
 GetGLM(GeneExpression, associations, data.omics, edesign = NULL,
   cont.var = "Time", degree = 1, center = TRUE, scale = FALSE,
@@ -13,65 +35,130 @@ GetGLM(GeneExpression, associations, data.omics, edesign = NULL,
   min.obs = 10, omic.type = 0, mc.cores = 1)
 }
 \arguments{
-\item{GeneExpression}{Data frame containing gene expression data with genes in rows and
-experimental samples in columns. Row names must be the gene IDs.}
+\item{GeneExpression}{Data frame containing gene expression data with genes in rows and 
+experimental samples in columns. The row names must be the gene IDs.}
 
-\item{associations}{List where each element correspond to a different omic data type (miRNAs,
-transcription factors, methylation, etc.). The names of the list will be the omics. Each element
-is a data frame with 2 columns (optionally 3) describing the potential interactions between genes
-and regulators for that omic. First column must contain the genes (or features in
-GeneExpression object), second column must contain the regulators, and an additional column can
-be added to describe the type of interaction (e.g., for methylation, if a CpG site is located in
-the promoter region of the gene, in the first exon, etc.).}
+\item{associations}{List where each element correspond to a different omic data type (miRNAs, 
+transcription factors, methylation, etc.). The names of the list will be the omics. Each 
+element is a data frame with two columns (optionally three) describing the potential interactions 
+between genes and regulators for that omic. First column must contain the regulators and an 
+additional column can be added to describe the type of interaction (for example, for methylation 
+if a CpG site is located in the promoter region of the gene, in the first exon, etc.).}
 
-\item{data.omics}{List where each element correspond to a different omic data type (miRNAs,
-transcription factors, methylation, etc.). The names of the list will be the omics. Each element
-is a data matrix with omic regulators in rows and samples in columns.}
+\item{data.omics}{List where each element correspond to a different omic data type (miRNAs, 
+transcription factors, methylation, etc.). The names of this list will be the omics and each 
+element of the list is a data matrix with omic regulators in rows and samples in columns.}
 
-\item{edesign}{Data frame describing the experimental design. Rows must be the samples (columns
-in GeneExpression) and columns must be the experimental variables to be included in the model
-(e.g. time, treatment, etc.).}
+\item{edesign}{Data frame describing the experimental design. Rows must be the samples, that is 
+the columns in the GeneExpression, and columns must be the experimental variables to be included 
+in the model, such as time, treatment, etc.}
 
-\item{cont.var}{Name of the column in edesign that is to be considered as a continuous
-explanatory variable in the regression model. NULL if edesign does not contain any continuous
-variables. By default, "Time".}
+\item{cont.var}{Name of the column in edesign matrix that is to be considered as a continuous explanatory 
+variable in the regression model. If edesign does not contain any continuous variables, the cont.var value 
+will be NULL. By default, its value is "Time".}
 
-\item{degree}{If cont.var is not NULL, non-linear (polynomial) relationships between the cont.var
-and the gene expression must be studied. By default, degree = 1 and must be an integer.
+\item{degree}{If cont.var is not NULL, non-linear (polynomial) relationships between the cont.var 
+and the gene expression must be studied. By default, its values is 1 and must be an integer. 
 A higher number will allow for in quadratic, cubic, etc. terms for cont.var in the model.}
 
-\item{Res.df}{Number of degrees of freedom in the residuals. By default, 5. Increasing
-Res.df will increase the power of the statistical model.}
+\item{center}{If the user wants the centered values (zero mean). By default is TRUE.}
+
+\item{scale}{If the user wants the scaled values. By default is FALSE.}
+
+\item{Res.df}{Number of degrees of freedom in the residuals. By default its value is 5. 
+Increasing Res.df will increase the power of the statistical model.}
+
+\item{epsilon}{A threshold for computing de GLM model and doing the variable selection procedure. By default, 0.00001.}
 
 \item{alfa}{Significance level. By default, 0.05.}
 
-\item{MT.adjust}{Multiple testing correction method to be used within the stepwise variable
-selection procedure. By default, "none". See the different options in ?\code{p.adjust}.}
+\item{MT.adjust}{Multiple testing correction method to be used within the stepwise variable selection procedure. By default, "none". 
+You can see the different options in \code{?p.adjust}.}
 
-\item{family}{Error distribution and link function to be used in the model (see ?\code{glm}
-for more information). By default, negative.binomial(theta=10).}
+\item{family}{Error distribution and link function to be used in the model (see glm for more information). 
+By default, \code{negative.binomial(theta = 10)}.}
 
-\item{elasticnet}{ElasticNet mixing parameter. NULL = No ElasticNet variable selection. A number between 0 and 1 = ElasticNet is applied
-with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso
-penalty). The default is 0.5, which gives equal weight to ridge and lasso.}
+\item{elasticnet}{ElasticNet mixing parameter. Its values can be the following: NULL (No ElasticNet variable selection), 
+value between 0 and 1 (ElasticNet is applied with this number being the combination between ridge and lasso penalization), 
+where value 0 is the ridge penalty and value 1 is the lasso penalty.}
 
-\item{stepwise}{Stepwise variable selection method to be applied. It can be one of: "none", "backward"
-(default), "forward", "two.ways.backward" or "two.ways.forward".}
+\item{stepwise}{Stepwise variable selection method to be applied. It can be one of: "none", "backward" (by default), 
+"forward", "two.ways.backward" or "two.ways.forward".}
 
-\item{interactions.exp}{If TRUE (default), interactions among the experimental variables
+\item{interactions.exp}{If this parameter is TRUE (by default), then interactions among the experimental variables 
 are included in the model.}
 
-\item{interactions.reg}{If TRUE (default), interactions between regulators and experimental
-variables are included in the model.}
+\item{interactions.reg}{If the value is not zero, MORE allows for interactions between each regulator and the covariates. 
+Several alternatives are possible: 1 (all possible interactions of order 2 with regulators are allowed but those involving 
+the continuous variable), 2 (all possible interactions of order 2 with regulators are allowed including those involving 
+the continuous variable) and 3(all possible interactions with regulators are allowed).}
 
-\item{min.variation}{For numerical regulators, the minimum change that a regulator must present across conditions
-to keep it in the regression models. For binary regulators, if the proportion of the most repeated value equals or exceeds this value,
-the regulator will be considered to have low variation and removed from the regression models.}
+\item{min.variation}{For numerical regulators, the minimum change that a regulator must present across conditions to 
+keep it in the regression models. For binary regulators, if the proportion of the most repeated value equals or exceeds 
+this value, the regulator will be considered to have low variation and removed from the regression models. By default, 
+its value is 10.}
 
-\item{omic.type}{0 = numerical variable (default), 1 = binary (categorical) variable. It should be a vector with length the number of omic types or a number (0 or 1) if all the omics are of the same type.}
+\item{correlation}{The threshold provided by the user to decide which regulators are correlated, and then choose a 
+representative of the group of correlated regulators. By default, its value is 0.9.}
+
+\item{min.obs}{The threshold provided by the user to decide which regulators to be excluded with low variation. 
+By default, its value is 10.}
+
+\item{omic.type}{This parameter is a list that contains for each omic the value 0 if the omic contains continuous values (default) 
+or 1 if it contains binary (categorical) values.}
+}
+\value{
+\code{ResultsPerGene}. It is a list that contains the following objects for each gene:
+  \item{Y}{Fitted values, residuals.}
+
+\item{X}{Matrix with all the predictors included in the final model.}
+
+\item{coefficients}{It collects the estimated coefficients and p-values.}
+
+\item{allRegulators}{Table with all the initial regulators indicating the corresponding omic, the area of the gene where they are located (if this information was provided previously), if they have been filtered out of the model and why, and if they are significant.}
+
+\item{significantRegulators}{A list containing the significant regulators.}
+
+\code{GlobalSummary}. It is a list that contains the following objects for each gene:
+\item{GoodnessOfFit}{It collects the p-value, final degrees of freedom in the residuals, R squared (which for GLMs is defined as the percentage of deviance explained by the model) and the Akaike information criterion (AIC).}
+
+\item{ReguPerGene}{Number of initial regulators for each omic, number of regulators included in the initial model and number of significant regulators.}
+
+\item{GenesNOmodel}{It contains the genes for which the final GLM model could not be obtained. There are three possible reasons for that and they are indicated: "Too many missing values", "No predictors after EN" and "GLM error", where EN indicates the ElasticNet procedure.}
+
+\code{Arguments}. List with the arguments used to generate the model: experimental design matrix, minimum degrees of freedom in the residuals, significance level, family distribution, variable selection...
 }
 \description{
-\code{GetGLM} fits a regression model for all the genes in the data set to identify
-the experimental variables and potential regulators that show a significant effect on
-the expression of each gene.
+The \code{GetGLM} function adjusts a generalized linear model (GLM) for each of the genes, so 
+that it can be analyzed which regulators and experimental variables have a significant effect. 
+To get to the final model, variable selection methods are applied (lasso, ridge regression and 
+ElasticNet), stepwise procedure, filter regulators with low variation, missing values and 
+correlated regulators.
+}
+\examples{
+library(MORE)
+data(TestData)
+
+## Omic type
+OmicType = c(1, 0, 0)
+names(OmicType) = names(data.omics)
+
+## GetGLM function
+SimGLM = GetGLM(GeneExpression = GeneExpressionDE,
+                associations = associations,
+                data.omics = data.omics,
+                edesign = edesign[,-1, drop = FALSE],
+                degree = 1,
+                Res.df = 10, epsilon = 0.00001,
+                alfa = 0.05, MT.adjust = "fdr",
+                family = negative.binomial(theta = 10),
+                elasticnet = 0.7,
+                stepwise = "two.ways.backward",
+                interactions.exp = TRUE, interactions.reg = 1,
+                correlation = 0.8, min.variation = 0,
+                cont.var = NULL, min.obs = 10, omic.type = OmicType)
+                
+}
+\seealso{
+\code{\link{TestData}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/MORE_GLM.R
 \name{plotGeneRegu}
 \alias{plotGeneRegu}
-\title{Title}
+\title{PlotGeneRegu}
 \usage{
 plotGeneRegu(x.points, geneValues, reguValues, geneErrorValues,
   reguErrorValues, col = c(1, 2), xlab = "", yylab = c("right",
@@ -13,5 +13,5 @@ plotGeneRegu(x.points, geneValues, reguValues, geneErrorValues,
 \item{yrightlim}{}
 }
 \description{
-Title
+PlotGeneRegu
 }
