@@ -1,10 +1,3 @@
-#' @import igraph MASS glmnet psych car
-#' @importFrom grDevices colors
-#' @importFrom graphics abline arrows axis box lines mtext par plot points
-#' @importFrom stats aggregate anova as.dist as.formula coef cor glm model.matrix na.omit p.adjust residuals sd supsmu
-#' @importFrom utils combn
-NULL
-
 ##################################
 ## ComputeGLM:
 ## Obtain final GLM and Summary with main results
@@ -27,21 +20,6 @@ NULL
 ## SummaryStepwise: List with 3 elements "p-value", "R-squared", "variables"
 
 
-#' ComputeGLM
-#'
-#' @param matrix.temp
-#' @param alfa
-#' @param stepwise
-#' @param Res.df
-#' @param family
-#' @param epsilon
-#' @param MT.adjust
-#' @param iter.max
-#'
-#' @export
-#' @keywords internal
-#' @noRd
-#'
 ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
                       Res.df = 4, family = negative.binomial(theta=10), epsilon = 0.00001,
                       MT.adjust = "fdr", iter.max = 100) {
@@ -52,7 +30,7 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
   y = matrix.temp[,1]
   x = matrix.temp[,-1, drop = FALSE]
 
-  
+
   ## NOT ENOUGH DF: VARIABLE SELECTION
 
   if (df.total< dim.reg){
@@ -74,7 +52,7 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
     ## ENOUGH DF: Apply the stepwise procedure choosen by the user if it is necessary
 
   } else {
-    
+
     glm1 = glm(y ~ ., data = x, family = family, epsilon=epsilon)
     
     if (stepwise == "none") {   ## NO Stepwise
@@ -82,25 +60,27 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
       glmPlot=glm1
       
     } else {  ## STEPWISE
+      
       resTemp=summary(glm1)
-  
+      
       mypvals = resTemp$coefficients[,4]
       mypvals = p.adjust(mypvals, method = MT.adjust)
-  
-      if(all(mypvals <= alfa)) {
-  
+      
+      if(all(mypvals <= alfa)) {   
+        
         glmPlot=glm1
-  
+        
       } else {
-  
+        
         glmPlot = StepwiseProcedure(stepwise=stepwise, y=y, x=x, family=family, alfa=alfa, epsilon=epsilon,
                                     MT.adjust = MT.adjust, iter.max = iter.max)           ## multiple testing method!!!
-  
+        
       }
     }
+    
   }
 
-  
+
   SummaryStepwise = ResultsTable(glm=glmPlot, family=family, epsilon=epsilon)
 
 
@@ -126,38 +106,21 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
 ## OUTPUT
 ## Final GLM
 
-#' PreviousBackward
-#'
-#' @param y
-#' @param d
-#' @param alfa
-#' @param family
-#' @param epsilon
-#' @param stepwise
-#' @param gdl.max
-#' @param MT.adjust
-#' @param iter.max
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.adjust = "fdr", iter.max = 100) {
-  
+
   pval <- NULL
   noms = NULL
   design <- NULL
   j = 1
-  d=as.data.frame(d, check.names = FALSE, stringsAsFactors = FALSE)
+  d=as.data.frame(d, check.names = FALSE)
 
   for (i in 1:ncol(d)) {  # one model per variable
     sub <- d[, i,drop=FALSE]
-    sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+    sub <- as.data.frame(sub, check.names = FALSE)
     glm1 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
     result <- summary(glm1)$coefficients[, 4]
     pval[i] <- result[j + 1]
+    # if (length(result) < 2) { print(head(sub)); print(table(sub)) }  ######  OJOOOOOOOO
     noms[i] = names(result)[j + 1]
   }
 
@@ -175,8 +138,8 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
 
   if(stepwise=="backward"){
 
-      glm2=stepback.gdl(y = y, d.ini = d.ini, d.res = d.res, alfa = alfa, family = family, epsilon = epsilon,
-                        gdl.max = gdl.max, tmax = tmax, MT.adjust = MT.adjust)
+    glm2=stepback.gdl(y = y, d.ini = d.ini, d.res = d.res, alfa = alfa, family = family, epsilon = epsilon,
+                      gdl.max = gdl.max, tmax = tmax, MT.adjust = MT.adjust)
 
   }
 
@@ -211,29 +174,11 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' stepback.gdl
-#'
-#' @param y
-#' @param d.ini
-#' @param d.res
-#' @param alfa
-#' @param family
-#' @param epsilon
-#' @param gdl.max
-#' @param tmax
-#' @param MT.adjust
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, MT.adjust = "fdr"){
 
   t=1 ## We introduce the var one per one, lesser p-value
 
-  d.ini=as.data.frame(d.ini, check.names = FALSE, stringsAsFactors = FALSE)  # variables with significant p-value in individual GLMs
+  d.ini=as.data.frame(d.ini, check.names = FALSE)  # variables with significant p-value in individual GLMs
   lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
   result <- summary(lm1)$coefficients[,4]  ## p-valores
   result = p.adjust(result, method = MT.adjust)  ## multiple testing method
@@ -269,6 +214,7 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
       } else {
         t=tmax
       }
+
     }
 
     lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
@@ -304,27 +250,9 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' two.ways.stepback.gdl
-#'
-#' @param y
-#' @param d.ini
-#' @param d.res
-#' @param alfa
-#' @param family
-#' @param epsilon
-#' @param gdl.max
-#' @param MT.adjust
-#' @param iter.max
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.max, MT.adjust = "fdr", iter.max = 100) {
 
-  d.ini=as.data.frame(d.ini, check.names = FALSE, stringsAsFactors = FALSE)  # Data for variables initially in the model
+  d.ini=as.data.frame(d.ini, check.names = FALSE)  # Data for variables initially in the model
   OUT=d.res  # Data for the variables previously discarded
 
   lm1 <- glm(y ~ ., data = d.ini, family = family, epsilon=epsilon)
@@ -334,8 +262,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
   max <- max(result[-1], na.rm = TRUE)
   if (length(result[-1]) < ncol(d.ini)) { OUT = data.frame(OUT,
                                                            d.ini[,setdiff(colnames(d.ini), names(result)[-1]), drop = FALSE],
-                                                           check.names = FALSE,
-                                                           stringsAsFactors = FALSE) }
+                                                           check.names = FALSE) }
   d.ini <- d.ini[, names(result)[-1], drop = FALSE]  # we need to do this to have the same order and because we may have NAs in the model due to singularities
 
   num.iter = 1
@@ -347,7 +274,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
     varout <- names(result)[result == max]
     varout=gsub("\`","",varout)
     pos <-  findPosition(matrix = d.ini, vari = varout)
-    OUT <- as.data.frame(cbind(OUT, d.ini[, pos,drop=FALSE]), check.names = FALSE, stringsAsFactors = FALSE)
+    OUT <- as.data.frame(cbind(OUT, d.ini[, pos,drop=FALSE]), check.names = FALSE)
 
     d.ini <- d.ini[, -pos, drop = FALSE]
 
@@ -355,7 +282,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
     pval <- NULL
     for (i in 1:ncol(OUT)) {
       sub <- cbind(d.ini, OUT[, i, drop=FALSE])
-      sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+      sub <- as.data.frame(sub, check.names = FALSE)
       lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
       result <- summary(lm2)$coefficients[, 4]
       names(result)=gsub("\`","",names(result))
@@ -365,7 +292,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
     pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
     if (all(is.na(pval))){
       min = Inf
-    }  else { min <- min(pval, na.rm = TRUE) } 
+    }  else { min <- min(pval, na.rm = TRUE) }
 
     while ((min <= alfa) && (ncol(d.ini) < gdl.max)) {
 
@@ -373,7 +300,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
       pos=na.omit(pos)
       if ((ncol(d.ini) + length(pos)) > gdl.max) { set.seed(123); pos = sample(pos, size = gdl.max - ncol(d.ini)) }
       d.ini <- cbind(d.ini, OUT[, pos, drop=FALSE])
-      d.ini <- as.data.frame(d.ini, check.names = FALSE, stringsAsFactors = FALSE)
+      d.ini <- as.data.frame(d.ini, check.names = FALSE)
 
       #       if (ncol(OUT) == 2) {
       #         max <- max(pval, na.rm = TRUE)
@@ -394,7 +321,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
       pval <- NULL
       for (i in 1:ncol(OUT)) {
         sub <- cbind(d.ini, OUT[, i])
-        sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+        sub <- as.data.frame(sub, check.names = FALSE)
         lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
         result <- summary(lm2)$coefficients[, 4]
         names(result)=gsub("\`","",names(result))
@@ -404,12 +331,12 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
       pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
       if (all(is.na(pval))){
         min = Inf
-      }  else { min <- min(pval, na.rm = TRUE) } 
-      
+      }  else { min <- min(pval, na.rm = TRUE) }
+
       if (ncol(OUT) == 1) {
         if (min <= alfa) {
           d.ini <- cbind(d.ini, OUT[, 1])
-          d.ini <- as.data.frame(d.ini, check.names = FALSE, stringsAsFactors = FALSE)
+          d.ini <- as.data.frame(d.ini, check.names = FALSE)
           colnames(d.ini)[j] <- colnames(OUT)[1]
         }
         min = 1
@@ -453,23 +380,6 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' StepwiseProcedure
-#'
-#' @param stepwise
-#' @param y
-#' @param x
-#' @param family
-#' @param alfa
-#' @param epsilon
-#' @param MT.adjust
-#' @param iter.max
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 StepwiseProcedure = function(stepwise, y, x, family, alfa, epsilon, MT.adjust = "fdr", iter.max = 100){
 
   if(stepwise=="forward") {
@@ -526,30 +436,15 @@ StepwiseProcedure = function(stepwise, y, x, family, alfa, epsilon, MT.adjust = 
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' stepfroMOD
-#'
-#' @param y
-#' @param d
-#' @param alfa
-#' @param family
-#' @param epsilon
-#' @param MT.adjust
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
   pval <- NULL
   design <- NULL
   j = 1
-  d=as.data.frame(d, check.names = FALSE, stringsAsFactors = FALSE)
+  d=as.data.frame(d, check.names = FALSE)
 
   for (i in 1:ncol(d)) {
     sub <- cbind(design, d[, i])
-    sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+    sub <- as.data.frame(sub, check.names = FALSE)
     lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
     result <- summary(lm2)
     pval[i] <- result$coefficients[, 4][j + 1]
@@ -563,19 +458,19 @@ stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
     pos <- c[b]
     pos <- pos[!is.na(pos)][1]
     design <- cbind(design, d[, pos])
-    design <- as.data.frame(design, check.names = FALSE, stringsAsFactors = FALSE)
+    design <- as.data.frame(design, check.names = FALSE)
     colnames(design)[j] <- colnames(d)[pos]
     j = j + 1
 
     if (ncol(d) == 2) { lastname <- colnames(d)[!b] }
-    d <- as.data.frame(d[, -pos], check.names = FALSE, stringsAsFactors = FALSE)
+    d <- as.data.frame(d[, -pos], check.names = FALSE)
     if(ncol(d) == 1) {colnames(d) = lastname}
 
     pval <- NULL
     if (ncol(d) != 0) {
       for (i in 1:ncol(d)) {
         sub <- cbind(design, d[, i])
-        sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+        sub <- as.data.frame(sub, check.names = FALSE)
         lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
         result <- summary(lm2)
         pval[i] <- result$coefficients[, 4][j + 1] ## la var que ya tenía metida no se va
@@ -584,7 +479,7 @@ stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
       pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
       if (all(is.na(pval))){
         min = Inf
-      }  else { min <- min(pval, na.rm = TRUE) } 
+      }  else { min <- min(pval, na.rm = TRUE) }
     }
     else min <- 1 ## Asi paro el bucle
   }
@@ -616,24 +511,9 @@ stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
 ## GLM after applying the stepwise methodology
 
 
-#' stepbackMOD
-#'
-#' @param y
-#' @param d
-#' @param alfa
-#' @param family
-#' @param epsilon
-#' @param MT.adjust
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
 
-  d=as.data.frame(d, check.names = FALSE, stringsAsFactors = FALSE)
+  d=as.data.frame(d, check.names = FALSE)
   lm1 <- glm(y ~ ., data = d, family=family, epsilon=epsilon)
   result <- summary(lm1)$coefficients[,4]
   result = p.adjust(result, method = MT.adjust)  ## multiple testing method
@@ -646,10 +526,11 @@ stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
     d <- d[, -pos]
     if (length(result[-1]) == 2) {
       min <- min(result[-1], na.rm = TRUE)
-      lastname <- names(result[-1])[result[-1] == min][1]
+      lastname <- names(result[-1])[result[-1] == min]
+      lastname = lastname[1]
     }
     if (is.null(dim(d))) {
-      d <- as.data.frame(d, check.names = FALSE, stringsAsFactors = FALSE)
+      d <- as.data.frame(d, check.names = FALSE)
       colnames(d) <- lastname
     }
 
@@ -688,25 +569,9 @@ stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' two.ways.stepbackMOD
-#'
-#' @param y
-#' @param d
-#' @param alfa
-#' @param family
-#' @param epsilon
-#' @param MT.adjust
-#' @param iter.max
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", iter.max = 100) {
 
-  d=as.data.frame(d, check.names = FALSE, stringsAsFactors = FALSE)  # explanatory variables (X)
+  d=as.data.frame(d, check.names = FALSE)  # explanatory variables (X)
   OUT <- NULL  # variables to go out of the model
   lm1 <- glm(y ~ ., data = d, family = family, epsilon=epsilon)  # model with ALL variables
   result <- summary(lm1)$coefficients[, 4]  # p-values
@@ -728,10 +593,10 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
     saliendo = colnames(d)[pos]
     if (is.null(OUT)) {
       x = 0
-      OUT <- as.data.frame(d[, pos], check.names = FALSE, stringsAsFactors = FALSE)   # Data of variables to go out
+      OUT <- as.data.frame(d[, pos], check.names = FALSE)   # Data of variables to go out
     } else {
       x <- ncol(OUT)
-      OUT <- as.data.frame(cbind(OUT, d[, pos]), check.names = FALSE, stringsAsFactors = FALSE, stringsAsFactors = FALSE)   # Data of variables to go out
+      OUT <- as.data.frame(cbind(OUT, d[, pos]), check.names = FALSE)   # Data of variables to go out
     }
 
     x <- (x+1):(x+length(pos))
@@ -744,7 +609,7 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
     pval <- NULL  # Computing p-values for OUT variables (candidates to re-enter in the model)
     for (i in 1:ncol(OUT)) {
       sub <- cbind(d, OUT[, i])
-      sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+      sub <- as.data.frame(sub, check.names = FALSE)
       lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
       result <- summary(lm2)$coefficients[, 4]
       names(result)=gsub("\`","",names(result))
@@ -767,7 +632,7 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
       } else {  ## what is going to enter is different from what has just exited
 
         d <- cbind(d, OUT[, pos])  # new significant variables enter into the model
-        d <- as.data.frame(d, stringsAsFactors = FALSE)
+        d <- as.data.frame(d)
         colnames(d)[j:(j+length(pos)-1)] <- colnames(OUT)[pos]  # Adding to X the new significant variables
 
         OUT <- OUT[, -pos, drop = FALSE]  # Removing added variables from OUT set
@@ -777,7 +642,7 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
           pval <- NULL   # p-values for variables still OUT of the model
           for (i in 1:ncol(OUT)) {
             sub <- cbind(d, OUT[, i])
-            sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+            sub <- as.data.frame(sub, check.names = FALSE)
             lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
             result <- summary(lm2)
             names(result)=gsub("\`","",names(result))
@@ -788,12 +653,12 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
 
           if (all(is.na(pval))){
             min = Inf
-          }  else { min <- min(pval, na.rm = TRUE) } 
-          
+          }  else { min <- min(pval, na.rm = TRUE) }
+
           if (ncol(OUT) == 1) {
             if (min <= alfa) {
               d <- cbind(d, OUT[, 1])
-              d <- as.data.frame(d, check.names = FALSE, stringsAsFactors = FALSE)
+              d <- as.data.frame(d, check.names = FALSE)
               colnames(d)[j] <- colnames(OUT)[1]
             }
             min = 1
@@ -847,32 +712,16 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
 ## OUTPUT
 ## GLM after applying the stepwise methodology
 
-#' two.ways.stepforMOD
-#'
-#' @param y
-#' @param d
-#' @param alfa
-#' @param family
-#' @param epsilon
-#' @param MT.adjust
-#' @param iter.max
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", iter.max = 100){
 
-  d=as.data.frame(d, check.names = FALSE, stringsAsFactors = FALSE)
+  d=as.data.frame(d, check.names = FALSE)
   pval <- NULL
   design <- NULL
   j = 1
 
   for (i in 1:ncol(d)) {
     sub <- cbind(design, d[, i])
-    sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+    sub <- as.data.frame(sub, check.names = FALSE)
     lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
     result <- summary(lm2)
     pval[i] <- result$coefficients[, 4][j + 1]
@@ -881,7 +730,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
   pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
   if (all(is.na(pval))){
     min = Inf
-  }  else { min <- min(pval, na.rm = TRUE) } 
+  }  else { min <- min(pval, na.rm = TRUE) }
 
   num.iter = 1
 
@@ -894,7 +743,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
     pos <- c[b]
     pos <- pos[!is.na(pos)][1]
     design <- cbind(design, d[, pos])
-    design <- as.data.frame(design, check.names = FALSE, stringsAsFactors = FALSE)
+    design <- as.data.frame(design, check.names = FALSE)
     colnames(design)[j] <- colnames(d)[pos]
 
     d <- d[, -pos, drop = FALSE]
@@ -907,16 +756,17 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
       varout <- names(result2)[result2 == max]
       varout=gsub("\`","",varout)
       pos <-  findPosition(matrix = design, vari = varout)
-      d <- as.data.frame(cbind(d, design[, pos]), check.names = FALSE, stringsAsFactors = FALSE)
+      d <- as.data.frame(cbind(d, design[, pos]), check.names = FALSE)
       x <- ncol(d)
       colnames(d)[x] <- colnames(design)[pos]
       if (ncol(design) == 2) {
         min <- min(result2[-1], na.rm = TRUE)
-        lastname <- names(result2)[result2 == min][1]
+        lastname <- names(result2)[result2 == min]
+        lastname = lastname[1]
       }
       design <- design[, -pos]
       if (is.null(dim(design))) {
-        design <- as.data.frame(design, check.names = FALSE, stringsAsFactors = FALSE)
+        design <- as.data.frame(design, check.names = FALSE)
         colnames(design) <- lastname
       }
       result2 <- summary(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
@@ -928,7 +778,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
     pval <- NULL
     for (i in 1:ncol(d)) {
       sub <- cbind(design, d[, i])
-      sub <- as.data.frame(sub, check.names = FALSE, stringsAsFactors = FALSE)
+      sub <- as.data.frame(sub, check.names = FALSE)
       lm2 <- glm(y ~ ., data = sub , family = family, epsilon=epsilon)
       result <- summary(lm2)
       pval[i] <- result$coefficients[, 4][j + 1]
@@ -937,12 +787,12 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
     pval = p.adjust(pval, method = MT.adjust)
     if (all(is.na(pval))){
       min = Inf
-    }  else { min <- min(pval, na.rm = TRUE) } 
-    
+    }  else { min <- min(pval, na.rm = TRUE) }
+
     if (ncol(d) == 1) {
       if (min <= alfa) {
         design <- cbind(design, d[, 1])
-        design <- as.data.frame(design, check.names = FALSE, stringsAsFactors = FALSE)
+        design <- as.data.frame(design, check.names = FALSE)
         colnames(design)[j] <- colnames(d)[1]
       }
       min = 1
@@ -976,18 +826,6 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
 ## OUTPUT
 ## list: "p-value", "R-squared", "variables"
 
-#' ResultsTable
-#'
-#' @param glm
-#' @param family
-#' @param epsilon
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 ResultsTable = function(glm, family, epsilon){
 
   y=glm$y
@@ -1038,17 +876,6 @@ ResultsTable = function(glm, family, epsilon){
 
 
 
-#' findPosition
-#'
-#' @param matrix
-#' @param vari
-#'
-#' @return
-#' @export
-#' @keywords internal
-#' @noRd
-#'
-#' @examples
 findPosition = function (matrix, vari) {
   d = NULL
   a <- colnames(matrix)
