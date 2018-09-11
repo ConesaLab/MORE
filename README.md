@@ -23,3 +23,5 @@ You can download the main vignette of the package from the download section in t
 
 In that directory you will also find a zipped folder containing the required files to run the package as a Shiny application.
 
+You can see a MORE Shiny application example in the user guide and also in the following video: https://youtu.be/SSIaeFRNsXg
+
