@@ -389,20 +389,20 @@ GetGLM = function(GeneExpression,
         ## Creating data matrix with regulators and with/without interactions
         des.mat2 = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
                                           des.mat, cont.var, GeneExpression, gene)
-        
+
         ## Scaling predictors for ElasticNet
         if (!is.null(elasticnet)) {
           if (scale) {
             des.mat2EN = des.mat2
           } else {
-            
+
             ScaleMatrix = res$RegulatorMatrix
             for(k in 1:ncol(ScaleMatrix)){
               if(any(res$RegulatorMatrix[,k] != 1 & res$RegulatorMatrix[,k] != 0)){
                 ScaleMatrix[,k] = scale(ScaleMatrix[,k])
               }
             }
-            
+
             des.mat2EN = RegulatorsInteractions(interactions.reg,
                                                 reguValues = ScaleMatrix,
                                                 des.mat, cont.var, GeneExpression, gene)
@@ -643,7 +643,7 @@ GetAllReg=function(gene, associations){
       }
 
       Reg.matrix.temp = cbind(gene,myregulators,ov)
-      Reg.matrix.temp = Reg.matrix.temp[,c(1,2,4,3),drop=FALSE] ## Dejo el mismo orden que ten√?a
+      Reg.matrix.temp = Reg.matrix.temp[,c(1,2,4,3),drop=FALSE] ## Dejo el mismo orden que tenia
       colnames(Reg.matrix.temp)=c("gene","regulator","omic","area")
       NrReg.temp=ov.nr
       Reg.matrix=rbind(Reg.matrix,Reg.matrix.temp)
