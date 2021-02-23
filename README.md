@@ -5,9 +5,9 @@
 Currently the easiest option for installing the package is to use the devtools R package:
 
     install.packages("devtools")
-    devtools::install_bitbucket("ConesaLab/more")
+    devtools::install_github("ConesaLab/MORE")
 
-Before doing that it might be necessary to install the required dependencies:
+Before installation, it might be necessary to install the required dependencies:
 
 * pbapply
 * glmnet
