@@ -1720,7 +1720,7 @@ BetaTest = function(coeffs, myGene, MOREresults){
       mySigni = gsub("`", "", mySignificatives)
       myY = MOREresults$ResultsPerGene[[myGene]]$Y[,1]
       myX = MOREresults$ResultsPerGene[[myGene]]$X
-      myX = myX[, mySigni]
+      myX = myX[, mySigni, drop = FALSE]
 
       for(i in 1:nrow(betas)){
 
