@@ -149,23 +149,33 @@ GetGLM = function(GeneExpression,
 
 
 
-  ### Checking if there are regulators with "_R", "_P" or "_N"
+  ## Checking if there are regulators with "_R", "_P" or "_N" or with ":"
   message = FALSE
   for (i in 1:length(names(data.omics))){
 
-    problemas = c(rownames(data.omics[[i]])[grep("_R", rownames(data.omics[[i]]))],
-                  rownames(data.omics[[i]])[grep("_P", rownames(data.omics[[i]]))],
-                  rownames(data.omics[[i]])[grep("_N", rownames(data.omics[[i]]))])
+    problemas = c(rownames(data.omics[[i]])[grep("_R$", rownames(data.omics[[i]]))],
+                  rownames(data.omics[[i]])[grep("_P$", rownames(data.omics[[i]]))],
+                  rownames(data.omics[[i]])[grep("_N$", rownames(data.omics[[i]]))])
+
+    problema = c(grep(":", rownames(data.omics[[i]]), value = TRUE))
+    rownames(data.omics[[i]]) = gsub(':', '-', rownames(data.omics[[i]]))
+    rownames(data.omics[[i]]) = gsub('_R$', '-R', rownames(data.omics[[i]]))
+    rownames(data.omics[[i]]) = gsub('_P$', '-P', rownames(data.omics[[i]]))
+    rownames(data.omics[[i]]) = gsub('_N$', '-N', rownames(data.omics[[i]]))
+
+    #Change the name in the association matrix
+    associations[[i]][[2]]=gsub(':', '-', associations[[i]][[2]])
 
     if(length(problemas) > 0) {
-      cat(names(data.omics)[i], "\n")
-      cat("Some regulators in this omic have names that may conflict with the algorithm by ending in _R, _P or _N.", "\n")
-      cat("Please change the following", names(data.omics)[i],  "identifiers: ", problemas, "\n")
-      message = TRUE
+      cat("In",names(data.omics)[i], ',', problemas ,"regulators have names that may cause conflict with the algorithm by ending in _R, _P or _N", "\n")
+      cat("Endings changed with -R, -P or -N, respectively", "\n")
+    }
+
+    if(length(problema) > 0) {
+      cat("Some regulators in the omic", names(data.omics)[i],  "have names with \":\" that could cause conflict, replaced with \"-\" ", "\n")
+      cat("Changed identifiers: ", problema, "\n")
     }
   }
-
-  if(message) stop("ERROR: Please, change the identifiers indicated above.")
 
 
 
