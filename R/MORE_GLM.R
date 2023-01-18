@@ -140,14 +140,32 @@ GetGLM = function(GeneExpression,
     if(!length(colnames(data.omics[[i]])) == length(colnames(GeneExpression)) ) {
       stop("ERROR: Samples in data.omics must be the same as in GeneExpression and in edesign")
     }
-    if(!is.null(edesign)){
-      if(!length(colnames(data.omics[[i]])) == length(rownames(edesign)) ) {
-        stop("ERROR: Samples in data.omics must be the same as in GeneExpression and in edesign")
-      }
+  }
+  if(!is.null(edesign)){
+    if(!length(colnames(GeneExpression)) == length(rownames(edesign)) ) {
+      stop("ERROR: Samples in data.omics must be the same as in GeneExpression and in edesign")
     }
   }
 
-
+  ## Checking that samples are in the same order in GeneExpressionDE, data.omics and edesign
+  orderproblem<-FALSE
+  if(is.null(edesign)){
+    orderproblem<-all(sapply(data.omics, function(x) isTRUE(all.equal(sort(names(x)),sort(names(GeneExpression))))))
+    if(orderproblem){
+      data.omics<-lapply(data.omics, function(x) x[,order(colnames(GeneExpression))])
+    }
+    else{
+      cat('Warning. GeneExpression and data.omics samples have not same names. We assume that they are ordered.\n')
+    }
+  } else{
+    orderproblem<-all(c(sapply(data.omics, function(x) isTRUE(all.equal(sort(names(x)),sort(names(GeneExpression))))), isTRUE(all.equal(sort(rownames(edesign)),sort(names(GeneExpression))))))
+    if(orderproblem){
+      data.omics<-lapply(data.omics, function(x) x[,sort(colnames(GeneExpression))])
+      edesign<-edesign[sort(colnames(GeneExpression)), , drop=FALSE]
+    } else{
+      cat('Warning. GeneExpression, edesign and data.omics samples have not same names. We assume that they are ordered.\n')
+    }
+  }
 
   ## Checking if there are regulators with "_R", "_P" or "_N" or with ":"
   message = FALSE
