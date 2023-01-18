@@ -5,7 +5,7 @@
 
 ## By Sonia & Monica
 ## 07-July-2016
-## Last modified: July 2018
+## Last modified: August 2022
 
 
 options(stringsAsFactors = FALSE)
@@ -1192,7 +1192,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 
 
     } else
-      {  ## Significant regulators:
+    {  ## Significant regulators:
 
       # Considering multicollinearity
       SigReg = GLMgene$allRegulators
@@ -1376,8 +1376,8 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
     if (is.null(geneResults)) {
       stop(paste("No GLM was obtained for gene", gene))
     } else
-      {
-        myomic = geneResults$allRegulators[regulator, "omic"]
+    {
+      myomic = geneResults$allRegulators[regulator, "omic"]
 
       if (is.null(reguValues)) {  # User does not provide reguValues
         reguValues = as.numeric(GLMoutput$arguments$dataOmics[[myomic]][regulator,]) # regulator values
@@ -1779,11 +1779,11 @@ plotGeneRegu = function (x.points, geneValues, reguValues, geneErrorValues, regu
   }
 
   if (missing(yleftlim)) {
-   if (! missing(reguErrorValues) && ! is.null(reguErrorValues)) {
-    yleftlim = range(c(reguValues - reguErrorValues, reguValues + reguErrorValues), na.rm = TRUE)
-   } else {
-    yleftlim = range(reguValues, na.rm = TRUE)
-   }
+    if (! missing(reguErrorValues) && ! is.null(reguErrorValues)) {
+      yleftlim = range(c(reguValues - reguErrorValues, reguValues + reguErrorValues), na.rm = TRUE)
+    } else {
+      yleftlim = range(reguValues, na.rm = TRUE)
+    }
   }
 
   plot.y2(x = x.points, yright = geneValues, yleft = reguValues, yleftlim = yleftlim,
@@ -1842,7 +1842,7 @@ plot.y2 <- function(x, yright, yleft, yrightlim = range(yright, na.rm = TRUE),
                     lwds = 1, length = 10, ...,
                     x2 = NULL, yright2 = NULL, yleft2 = NULL, col2 = c(3,4),
                     yrightErrorValues, yleftErrorValues
-                    )
+)
 {
   #par(mar = c(5,2,4,2), oma = c(0,3,0,3))
 
