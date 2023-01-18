@@ -195,6 +195,7 @@ GetGLM = function(GeneExpression,
     }
   }
 
+
   ##Checking that there are no replicates in the identifiers and changing identifiers in case of need
 
   for (i in 1:(length(names(data.omics))-1)){
@@ -215,9 +216,6 @@ GetGLM = function(GeneExpression,
     }
   }
 
-
-
-
   # Preparing family for ElasticNet variable selection
   family2 = family$family
   family2 = strsplit(family2, "(", fixed = TRUE)[[1]][1]
@@ -232,6 +230,19 @@ GetGLM = function(GeneExpression,
     message(sprintf("Elasticnet variable selection cannot be applied for family %s", family2))
   }
 
+  #Checking there are no -Inf/Inf values and eliminate genes/regulator that contain them
+  infproblemgene<-is.infinite(rowSums(GeneExpression))
+  infproblemreg<-lapply(data.omics, function(x) is.infinite(rowSums(x)))
+  if(any(infproblemgene)){
+    genesInf<-rownames(GeneExpression)[infproblemgene]
+    GeneExpression<-GeneExpression[!infproblemgene,]
+  }else{genesInf <-NULL}
+  for (i in 1:length(names(data.omics))){
+    if(any(infproblemreg[[i]])){
+      cat(rownames(data.omics[[i]])[infproblemreg[[i]]], 'regulators of the omic', names(data.omics)[i] ,'have been deleted due to -Inf/Inf values. \n')
+      data.omics[[i]]<-data.omics[[i]][!infproblemreg[[i]],]
+    }
+  }
 
   ## Removing genes with too many NAs and keeping track
   genesNotNA = apply(GeneExpression, 1, function (x) sum(!is.na(x)))
@@ -314,6 +325,12 @@ GetGLM = function(GeneExpression,
     GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
                                        data.frame("gene" = constantGenes,
                                                   "problem" = rep("Response values are constant", length(constantGenes))))
+  }
+  if (length(genesInf) > 0){
+    GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
+                                       data.frame("gene" = genesInf,
+                                                  "problem" = rep("-Inf/Inf values", length(genesInf))))
+
   }
 
 
