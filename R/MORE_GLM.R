@@ -477,7 +477,6 @@ GetGLM = function(GeneExpression,
           if (scale) {
             des.mat2EN = des.mat2
           } else {
-
             ScaleMatrix = res$RegulatorMatrix
             for(k in 1:ncol(ScaleMatrix)){
               if(any(res$RegulatorMatrix[,k] != 1 & res$RegulatorMatrix[,k] != 0)){
@@ -622,7 +621,6 @@ GetGLM = function(GeneExpression,
           contando = as.numeric(contando[names(data.omics)])
           contando[is.na(contando)] = 0
           GlobalSummary$ReguPerGene[gene, grep("-Mod", colnames(GlobalSummary$ReguPerGene))] = contando
-
         }
 
       } ## Close "else" --> None regulators from begining
@@ -632,7 +630,7 @@ GetGLM = function(GeneExpression,
         ResultsPerGene[[i]]$Y = GeneExpression[i,]
         ResultsPerGene[[i]]$coefficients = NULL
 
-        GlobalSummary$GoodnessOfFit[gene,] = c(NA, NA, NA, NA, NA)
+        GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[rownames(GlobalSummary$GoodnessOfFit) != gene,]
 
       } else {
         ResultsPerGene[[i]]$Y = data.frame("y" = myGLM$GLMfinal$y, "fitted.y" = myGLM$GLMfinal$fitted.values,
