@@ -135,10 +135,15 @@ GetGLM = function(GeneExpression,
   if (Res.df >= (ncol(GeneExpression)-1)) stop("ERROR: You must decrease the Res.df so that a model can be computed.")
 
 
-  # Checking that the number of samples per omic is equal to number of samples for gene expression
+  # Checking that the number of samples per omic is equal to number of samples for gene expression and the number of samples for edesign
   for (i in 1:length(names(data.omics))){
     if(!length(colnames(data.omics[[i]])) == length(colnames(GeneExpression)) ) {
-      stop("ERROR: Samples in data.omics must be the same as in GeneExpression")
+      stop("ERROR: Samples in data.omics must be the same as in GeneExpression and in edesign")
+    }
+    if(!is.null(edesign)){
+      if(!length(colnames(data.omics[[i]])) == length(rownames(edesign)) ) {
+        stop("ERROR: Samples in data.omics must be the same as in GeneExpression and in edesign")
+      }
     }
   }
 
