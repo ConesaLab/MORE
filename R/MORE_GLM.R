@@ -250,6 +250,14 @@ GetGLM = function(GeneExpression,
   genesNA = setdiff(rownames(GeneExpression), genesNotNA)
   GeneExpression = GeneExpression[genesNotNA,]
 
+  ## Removing genes with no regulators
+  genesNOreg = lapply(associations, function(x) setdiff( rownames(GeneExpression),x[,1]))
+  genesNOreg = Reduce(intersect, genesNOreg)
+  GeneExpression = GeneExpression[!(rownames(GeneExpression) %in% genesNOreg),]
+  if (length(genesNOreg) > 0){
+    cat(genesNOreg, "genes had no initial regulators\n", length(genesNOreg), "genes had no initial regulators. Models will be computed for", length(rownames(GeneExpression)), 'genes.\n')
+  }
+
   ## Removing constant genes
   constantGenes = apply(GeneExpression, 1, sd, na.rm = TRUE)
   notConstant = names(constantGenes)[constantGenes > 0]
@@ -313,8 +321,8 @@ GetGLM = function(GeneExpression,
   ### Results objects
 
   ## Global summary for all genes
-  GlobalSummary = vector("list", length = 3)
-  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel")
+  GlobalSummary = vector("list", length = 4)
+  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators")
 
   GlobalSummary$GenesNOmodel = NULL
   if (length(genesNA) > 0) {
@@ -333,6 +341,10 @@ GetGLM = function(GeneExpression,
 
   }
 
+  GlobalSummary$GenesNOregulators = NULL
+  if (length(genesNOreg) > 0){
+    GlobalSummary$GenesNoregulators = data.frame("gene" = genesNOreg, "problem" = rep("Gene had no initial regulators", length(genesNOreg)))
+  }
 
   GlobalSummary$GoodnessOfFit = matrix(NA, ncol = 5, nrow = nGenes)
   rownames(GlobalSummary$GoodnessOfFit) = Allgenes
