@@ -5,7 +5,7 @@
 
 ## By Sonia & Monica
 ## 07-July-2016
-## Last modified: July 2018
+## Last modified: August 2022
 
 
 options(stringsAsFactors = FALSE)
@@ -135,35 +135,86 @@ GetGLM = function(GeneExpression,
   if (Res.df >= (ncol(GeneExpression)-1)) stop("ERROR: You must decrease the Res.df so that a model can be computed.")
 
 
-  # Checking that the number of samples per omic is equal to number of samples for gene expression
+  # Checking that the number of samples per omic is equal to number of samples for gene expression and the number of samples for edesign
   for (i in 1:length(names(data.omics))){
     if(!length(colnames(data.omics[[i]])) == length(colnames(GeneExpression)) ) {
-      stop("ERROR: Samples in data.omics must be the same as in GeneExpression")
+      stop("ERROR: Samples in data.omics must be the same as in GeneExpression and in edesign")
+    }
+  }
+  if(!is.null(edesign)){
+    if(!length(colnames(GeneExpression)) == length(rownames(edesign)) ) {
+      stop("ERROR: Samples in data.omics must be the same as in GeneExpression and in edesign")
     }
   }
 
+  ## Checking that samples are in the same order in GeneExpressionDE, data.omics and edesign
+  orderproblem<-FALSE
+  if(is.null(edesign)){
+    orderproblem<-all(sapply(data.omics, function(x) isTRUE(all.equal(sort(names(x)),sort(names(GeneExpression))))))
+    if(orderproblem){
+      data.omics<-lapply(data.omics, function(x) x[,order(colnames(GeneExpression))])
+    }
+    else{
+      cat('Warning. GeneExpression and data.omics samples have not same names. We assume that they are ordered.\n')
+    }
+  } else{
+    orderproblem<-all(c(sapply(data.omics, function(x) isTRUE(all.equal(sort(names(x)),sort(names(GeneExpression))))), isTRUE(all.equal(sort(rownames(edesign)),sort(names(GeneExpression))))))
+    if(orderproblem){
+      data.omics<-lapply(data.omics, function(x) x[,sort(colnames(GeneExpression))])
+      edesign<-edesign[sort(colnames(GeneExpression)), , drop=FALSE]
+    } else{
+      cat('Warning. GeneExpression, edesign and data.omics samples have not same names. We assume that they are ordered.\n')
+    }
+  }
 
-
-  ### Checking if there are regulators with "_R", "_P" or "_N"
+  ## Checking if there are regulators with "_R", "_P" or "_N" or with ":"
   message = FALSE
   for (i in 1:length(names(data.omics))){
 
-    problemas = c(rownames(data.omics[[i]])[grep("_R", rownames(data.omics[[i]]))],
-                  rownames(data.omics[[i]])[grep("_P", rownames(data.omics[[i]]))],
-                  rownames(data.omics[[i]])[grep("_N", rownames(data.omics[[i]]))])
+    problemas = c(rownames(data.omics[[i]])[grep("_R$", rownames(data.omics[[i]]))],
+                  rownames(data.omics[[i]])[grep("_P$", rownames(data.omics[[i]]))],
+                  rownames(data.omics[[i]])[grep("_N$", rownames(data.omics[[i]]))])
+
+    problema = c(grep(":", rownames(data.omics[[i]]), value = TRUE))
+    rownames(data.omics[[i]]) = gsub(':', '-', rownames(data.omics[[i]]))
+    rownames(data.omics[[i]]) = gsub('_R$', '-R', rownames(data.omics[[i]]))
+    rownames(data.omics[[i]]) = gsub('_P$', '-P', rownames(data.omics[[i]]))
+    rownames(data.omics[[i]]) = gsub('_N$', '-N', rownames(data.omics[[i]]))
+
+    #Change the name in the association matrix
+    associations[[i]][[2]]=gsub(':', '-', associations[[i]][[2]])
 
     if(length(problemas) > 0) {
-      cat(names(data.omics)[i], "\n")
-      cat("Some regulators in this omic have names that may conflict with the algorithm by ending in _R, _P or _N.", "\n")
-      cat("Please change the following", names(data.omics)[i],  "identifiers: ", problemas, "\n")
-      message = TRUE
+      cat("In",names(data.omics)[i], ',', problemas ,"regulators have names that may cause conflict with the algorithm by ending in _R, _P or _N", "\n")
+      cat("Endings changed with -R, -P or -N, respectively", "\n")
+    }
+
+    if(length(problema) > 0) {
+      cat("Some regulators in the omic", names(data.omics)[i],  "have names with \":\" that could cause conflict, replaced with \"-\" ", "\n")
+      cat("Changed identifiers: ", problema, "\n")
     }
   }
 
-  if(message) stop("ERROR: Please, change the identifiers indicated above.")
+
+  ##Checking that there are no replicates in the identifiers and changing identifiers in case of need
+
+  for (i in 1:(length(names(data.omics))-1)){
+    for(j in (i+1):(length(names(data.omics)))){
+      repeated = intersect(rownames(data.omics[[i]]), rownames(data.omics[[j]]))
 
 
+      if(length(repeated) > 0) {
+        cat(names(data.omics)[i], "and", names(data.omics)[j], "omics have shared identifiers in regulators:", repeated, "\n")
+        #Change the name in the association matrix
+        associations[[i]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[i],'-', repeated, sep='')
+        associations[[j]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[j],'-', repeated, sep='')
+        #Change the name in data.omics
+        rownames(data.omics[[i]])[which(rownames(data.omics[[i]])==repeated)] =  paste(names(data.omics)[i],'-', repeated,sep='')
+        rownames(data.omics[[j]])[which(rownames(data.omics[[j]])==repeated)] =  paste(names(data.omics)[j],'-', repeated,sep = '')
 
+      }
+    }
+  }
 
   # Preparing family for ElasticNet variable selection
   family2 = family$family
@@ -179,12 +230,33 @@ GetGLM = function(GeneExpression,
     message(sprintf("Elasticnet variable selection cannot be applied for family %s", family2))
   }
 
+  #Checking there are no -Inf/Inf values and eliminate genes/regulator that contain them
+  infproblemgene<-is.infinite(rowSums(GeneExpression))
+  infproblemreg<-lapply(data.omics, function(x) is.infinite(rowSums(x)))
+  if(any(infproblemgene)){
+    genesInf<-rownames(GeneExpression)[infproblemgene]
+    GeneExpression<-GeneExpression[!infproblemgene,]
+  }else{genesInf <-NULL}
+  for (i in 1:length(names(data.omics))){
+    if(any(infproblemreg[[i]])){
+      cat(rownames(data.omics[[i]])[infproblemreg[[i]]], 'regulators of the omic', names(data.omics)[i] ,'have been deleted due to -Inf/Inf values. \n')
+      data.omics[[i]]<-data.omics[[i]][!infproblemreg[[i]],]
+    }
+  }
 
   ## Removing genes with too many NAs and keeping track
   genesNotNA = apply(GeneExpression, 1, function (x) sum(!is.na(x)))
   genesNotNA = names(which(genesNotNA >= min.obs))
   genesNA = setdiff(rownames(GeneExpression), genesNotNA)
   GeneExpression = GeneExpression[genesNotNA,]
+
+  ## Removing genes with no regulators
+  genesNOreg = lapply(associations, function(x) setdiff( rownames(GeneExpression),x[,1]))
+  genesNOreg = Reduce(intersect, genesNOreg)
+  GeneExpression = GeneExpression[!(rownames(GeneExpression) %in% genesNOreg),]
+  if (length(genesNOreg) > 0){
+    cat(genesNOreg, "genes had no initial regulators\n", length(genesNOreg), "genes had no initial regulators. Models will be computed for", length(rownames(GeneExpression)), 'genes.\n')
+  }
 
   ## Removing constant genes
   constantGenes = apply(GeneExpression, 1, sd, na.rm = TRUE)
@@ -249,8 +321,8 @@ GetGLM = function(GeneExpression,
   ### Results objects
 
   ## Global summary for all genes
-  GlobalSummary = vector("list", length = 3)
-  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel")
+  GlobalSummary = vector("list", length = 4)
+  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators")
 
   GlobalSummary$GenesNOmodel = NULL
   if (length(genesNA) > 0) {
@@ -262,7 +334,17 @@ GetGLM = function(GeneExpression,
                                        data.frame("gene" = constantGenes,
                                                   "problem" = rep("Response values are constant", length(constantGenes))))
   }
+  if (length(genesInf) > 0){
+    GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
+                                       data.frame("gene" = genesInf,
+                                                  "problem" = rep("-Inf/Inf values", length(genesInf))))
 
+  }
+
+  GlobalSummary$GenesNOregulators = NULL
+  if (length(genesNOreg) > 0){
+    GlobalSummary$GenesNoregulators = data.frame("gene" = genesNOreg, "problem" = rep("Gene had no initial regulators", length(genesNOreg)))
+  }
 
   GlobalSummary$GoodnessOfFit = matrix(NA, ncol = 5, nrow = nGenes)
   rownames(GlobalSummary$GoodnessOfFit) = Allgenes
@@ -395,7 +477,6 @@ GetGLM = function(GeneExpression,
           if (scale) {
             des.mat2EN = des.mat2
           } else {
-
             ScaleMatrix = res$RegulatorMatrix
             for(k in 1:ncol(ScaleMatrix)){
               if(any(res$RegulatorMatrix[,k] != 1 & res$RegulatorMatrix[,k] != 0)){
@@ -540,7 +621,6 @@ GetGLM = function(GeneExpression,
           contando = as.numeric(contando[names(data.omics)])
           contando[is.na(contando)] = 0
           GlobalSummary$ReguPerGene[gene, grep("-Mod", colnames(GlobalSummary$ReguPerGene))] = contando
-
         }
 
       } ## Close "else" --> None regulators from begining
@@ -550,7 +630,7 @@ GetGLM = function(GeneExpression,
         ResultsPerGene[[i]]$Y = GeneExpression[i,]
         ResultsPerGene[[i]]$coefficients = NULL
 
-        GlobalSummary$GoodnessOfFit[gene,] = c(NA, NA, NA, NA, NA)
+        GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[rownames(GlobalSummary$GoodnessOfFit) != gene,]
 
       } else {
         ResultsPerGene[[i]]$Y = data.frame("y" = myGLM$GLMfinal$y, "fitted.y" = myGLM$GLMfinal$fitted.values,
@@ -574,7 +654,10 @@ GetGLM = function(GeneExpression,
     }
 
   }  ## At this point the loop for all genes is finished
-
+  
+  # Remove from GoodnessOfFit genes with no significant regulators
+  
+  GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[-which(GlobalSummary$GoodnessOfFit[,5]==0),]
 
   myarguments = list(edesign = edesign, finaldesign = des.mat, Res.df = Res.df, groups = Group, alfa = alfa, family = family,
                      stepwise = stepwise, center = center, scale = scale, elasticnet = elasticnet,
@@ -1192,7 +1275,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 
 
     } else
-      {  ## Significant regulators:
+    {  ## Significant regulators:
 
       # Considering multicollinearity
       SigReg = GLMgene$allRegulators
@@ -1376,8 +1459,8 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
     if (is.null(geneResults)) {
       stop(paste("No GLM was obtained for gene", gene))
     } else
-      {
-        myomic = geneResults$allRegulators[regulator, "omic"]
+    {
+      myomic = geneResults$allRegulators[regulator, "omic"]
 
       if (is.null(reguValues)) {  # User does not provide reguValues
         reguValues = as.numeric(GLMoutput$arguments$dataOmics[[myomic]][regulator,]) # regulator values
@@ -1779,11 +1862,11 @@ plotGeneRegu = function (x.points, geneValues, reguValues, geneErrorValues, regu
   }
 
   if (missing(yleftlim)) {
-   if (! missing(reguErrorValues) && ! is.null(reguErrorValues)) {
-    yleftlim = range(c(reguValues - reguErrorValues, reguValues + reguErrorValues), na.rm = TRUE)
-   } else {
-    yleftlim = range(reguValues, na.rm = TRUE)
-   }
+    if (! missing(reguErrorValues) && ! is.null(reguErrorValues)) {
+      yleftlim = range(c(reguValues - reguErrorValues, reguValues + reguErrorValues), na.rm = TRUE)
+    } else {
+      yleftlim = range(reguValues, na.rm = TRUE)
+    }
   }
 
   plot.y2(x = x.points, yright = geneValues, yleft = reguValues, yleftlim = yleftlim,
@@ -1842,7 +1925,7 @@ plot.y2 <- function(x, yright, yleft, yrightlim = range(yright, na.rm = TRUE),
                     lwds = 1, length = 10, ...,
                     x2 = NULL, yright2 = NULL, yleft2 = NULL, col2 = c(3,4),
                     yrightErrorValues, yleftErrorValues
-                    )
+)
 {
   #par(mar = c(5,2,4,2), oma = c(0,3,0,3))
 
