@@ -82,7 +82,7 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
     }
     names(data.omicsMean)=names(data.omics)
 
-    percVar = c(10, 0.9)
+    percVar = c(10, 0.1)
     names(percVar) = 0:1
     percVar = percVar[as.character(omic.type)]
     names(percVar)=names(data.omicsMean)
@@ -99,7 +99,6 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
       data.omics[[ov]]= data.omics[[ov]][rownames(data.omicsMean[[ov]]),] ## Reduced data.omics
     }
 
-
   }
   else {
 
@@ -115,13 +114,7 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
     if (length(min.variation) == 1) {  ## Including min.variation = 0. I need a vector with omics names
       min.variation=rep(min.variation,length(data.omics))
       names(min.variation)=names(data.omics)
-    } else {
-      for(k in 1:length(min.variation)){
-        if(omic.type[k] == 1){
-          min.variation[k] = 1 - min.variation[k]
-        }
-      }
-    }
+    } 
 
     # computing mean per condition in data.omics
     data.omicsMean=vector("list", length = length(data.omics))
@@ -194,8 +187,8 @@ LowVariatFilter=function(data, method, percVar, omic.type){
 
     if (omic.type[ov] == 1) {  # binary categorical regulators
       if(percVar[ov] != 0){ # compute filter if cutoff is not 0
-        met = apply(data[[ov]], 1, function (x) { max(table(x)/length(x)) })  ## Compute proportion of most common value
-        myreg = met[met < percVar[ov]]  # Regulators to be kept
+        met = apply(data[[ov]], 1, function (x) { max(x, na.rm = TRUE)-min(x, na.rm = TRUE) })  ## Compute maximun variation between groups
+        myreg = met[met > percVar[ov]]  # Regulators to be kept
         LV.reg[[ov]] = names(met[met >= percVar[ov]]) ## Keep names of removed regulators
         data[[ov]] = data[[ov]][names(myreg), ,drop=FALSE]
       }
