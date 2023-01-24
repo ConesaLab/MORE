@@ -654,7 +654,10 @@ GetGLM = function(GeneExpression,
     }
 
   }  ## At this point the loop for all genes is finished
-
+  
+  # Remove from GoodnessOfFit genes with no significant regulators
+  
+  GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[-which(GlobalSummary$GoodnessOfFit[,5]==0),]
 
   myarguments = list(edesign = edesign, finaldesign = des.mat, Res.df = Res.df, groups = Group, alfa = alfa, family = family,
                      stepwise = stepwise, center = center, scale = scale, elasticnet = elasticnet,
