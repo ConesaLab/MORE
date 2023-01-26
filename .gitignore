@@ -19,7 +19,7 @@
 
 # produced vignettes
 vignettes/*.html
-vignettes/*.pdf
+#vignettes/*.pdf
 vignettes/*cache/*
 vignettes/*.sty
 vignettes/*.log
