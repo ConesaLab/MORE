@@ -461,9 +461,13 @@ GetGLM = function(GeneExpression,
       }
       else {  ## Regulators for the model!!
 
-        ## Multicollinearity
-        res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
+        ## Apply multicollinearity filter only if there is more than one regulator for a gene
+        
+        if (ncol(res$RegulatorMatrix)>1){
+          
+          res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
                                  correlation = correlation, omic.type = omic.type)
+        }
 
         ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
 
