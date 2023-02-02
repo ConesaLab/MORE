@@ -255,7 +255,7 @@ GetGLM = function(GeneExpression,
   genesNOreg = Reduce(intersect, genesNOreg)
   GeneExpression = GeneExpression[!(rownames(GeneExpression) %in% genesNOreg),]
   if (length(genesNOreg) > 0){
-    cat(genesNOreg, "genes had no initial regulators\n", length(genesNOreg), "genes had no initial regulators. Models will be computed for", length(rownames(GeneExpression)), 'genes.\n')
+    cat(length(genesNOreg), "genes had no initial regulators. Models will be computed for", length(rownames(GeneExpression)), 'genes.\n')
   }
 
   ## Removing constant genes
