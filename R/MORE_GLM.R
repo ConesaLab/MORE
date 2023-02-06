@@ -109,7 +109,7 @@ library(car)
 #'
 #' @examples
 GetGLM = function(GeneExpression,
-                  associations,
+                  associations = NULL,
                   data.omics,
                   edesign = NULL,
                   center = TRUE, scale = FALSE,
@@ -181,8 +181,10 @@ GetGLM = function(GeneExpression,
     rownames(data.omics[[i]]) = gsub('_P$', '-P', rownames(data.omics[[i]]))
     rownames(data.omics[[i]]) = gsub('_N$', '-N', rownames(data.omics[[i]]))
 
-    #Change the name in the association matrix
-    associations[[i]][[2]]=gsub(':', '-', associations[[i]][[2]])
+    #Change the name in the association matrix only if associations is not NULL
+    if(!is.null(associations)){
+      associations[[i]][[2]]=gsub(':', '-', associations[[i]][[2]])
+    }
 
     if(length(problemas) > 0) {
       cat("In",names(data.omics)[i], ',', problemas ,"regulators have names that may cause conflict with the algorithm by ending in _R, _P or _N", "\n")
@@ -205,9 +207,11 @@ GetGLM = function(GeneExpression,
 
       if(length(repeated) > 0) {
         cat(names(data.omics)[i], "and", names(data.omics)[j], "omics have shared identifiers in regulators:", repeated, "\n")
-        #Change the name in the association matrix
-        associations[[i]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[i],'-', repeated, sep='')
-        associations[[j]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[j],'-', repeated, sep='')
+        #Change the name in the association matrix only if is not NULL
+        if(!is.null(associations)){
+          associations[[i]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[i],'-', repeated, sep='')
+          associations[[j]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[j],'-', repeated, sep='')
+        }
         #Change the name in data.omics
         rownames(data.omics[[i]])[which(rownames(data.omics[[i]])==repeated)] =  paste(names(data.omics)[i],'-', repeated,sep='')
         rownames(data.omics[[j]])[which(rownames(data.omics[[j]])==repeated)] =  paste(names(data.omics)[j],'-', repeated,sep = '')
@@ -230,7 +234,7 @@ GetGLM = function(GeneExpression,
     message(sprintf("Elasticnet variable selection cannot be applied for family %s", family2))
   }
 
-  #Checking there are no -Inf/Inf values and eliminate genes/regulator that contain them
+  #Checking there are not -Inf/Inf values and eliminate genes/regulator that contain them
   infproblemgene<-is.infinite(rowSums(GeneExpression))
   infproblemreg<-lapply(data.omics, function(x) is.infinite(rowSums(x)))
   if(any(infproblemgene)){
@@ -250,12 +254,15 @@ GetGLM = function(GeneExpression,
   genesNA = setdiff(rownames(GeneExpression), genesNotNA)
   GeneExpression = GeneExpression[genesNotNA,]
 
-  ## Removing genes with no regulators
-  genesNOreg = lapply(associations, function(x) setdiff( rownames(GeneExpression),x[,1]))
-  genesNOreg = Reduce(intersect, genesNOreg)
-  GeneExpression = GeneExpression[!(rownames(GeneExpression) %in% genesNOreg),]
-  if (length(genesNOreg) > 0){
-    cat(length(genesNOreg), "genes had no initial regulators. Models will be computed for", length(rownames(GeneExpression)), 'genes.\n')
+  ## Removing genes with no regulators only if associations is not NULL
+  genesNOreg = NULL
+  if(!is.null(associations)){
+    genesNOreg = lapply(associations, function(x) setdiff( rownames(GeneExpression),x[,1]))
+    genesNOreg = Reduce(intersect, genesNOreg)
+    GeneExpression = GeneExpression[!(rownames(GeneExpression) %in% genesNOreg),]
+    if (length(genesNOreg) > 0){
+      cat(length(genesNOreg), "genes had no initial regulators. Models will be computed for", length(rownames(GeneExpression)), 'genes.\n')
+    }
   }
 
   ## Removing constant genes
@@ -375,7 +382,7 @@ GetGLM = function(GeneExpression,
 
     if (is.element(i, pap)) cat(paste("Fitting model for gene", i, "out of", nGenes, "\n"))
 
-    RetRegul = GetAllReg(gene=gene, associations=associations)
+    RetRegul = GetAllReg(gene=gene, associations=associations, data.omics = data.omics)
     RetRegul.gene = RetRegul$Results  ## RetRegul$TableGene: nr reg per omic
     ## Some of these reg will be removed, because they are not in data.omics
 
@@ -576,18 +583,15 @@ GetGLM = function(GeneExpression,
               ResultsPerGene[[i]]$allRegulators[original.regulators, "Sig"] = 1
               ResultsPerGene[[i]]$significantRegulators = c(ResultsPerGene[[i]]$significantRegulators, as.character(original.regulators))
               ResultsPerGene[[i]]$significantRegulators = setdiff(ResultsPerGene[[i]]$significantRegulators, collin.regulators)
-            }
-
-            ## Counting original regulators in the model per omic
-            if (length(collin.regulators) > 0) {
+              
+              ## Counting original regulators in the model per omic
               contando = ResultsPerGene[[i]]$allRegulators
               quitar = which(contando[,"filter"] == "MissingValue")
               if (length(quitar) > 0) contando = contando[-quitar,]
               quitar = which(contando[,"filter"] == "LowVariation")
               if (length(quitar) > 0) contando = contando[-quitar,]
               contando = contando[-grep("_R", rownames(contando)),]
-            }
-            else {
+            } else {
               contando = ResultsPerGene[[i]]$allRegulators[which(ResultsPerGene[[i]]$allRegulators[,"filter"] == "Model"),]
             }
             contando = table(contando[,"omic"])
@@ -661,7 +665,9 @@ GetGLM = function(GeneExpression,
   
   # Remove from GoodnessOfFit genes with no significant regulators
   
-  GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[-which(GlobalSummary$GoodnessOfFit[,5]==0),]
+  genesNosig = names(which(GlobalSummary$GoodnessOfFit[,5]==0))
+  genessig = setdiff(rownames(GlobalSummary$GoodnessOfFit), genesNosig)
+  GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,]
 
   myarguments = list(edesign = edesign, finaldesign = des.mat, Res.df = Res.df, groups = Group, alfa = alfa, family = family,
                      stepwise = stepwise, center = center, scale = scale, elasticnet = elasticnet,
@@ -701,56 +707,19 @@ uniquePaste = function (x) {
 ## associations: List containing as many elements as original association files between genes and each omic (association$miRNA, association$DNase, etc.)
 ## data.omics: For removing regulators with no-information
 
-GetAllReg=function(gene, associations){
+GetAllReg=function(gene, associations, data.omics){
 
   Reg.matrix=NULL
   NrReg=NULL
-  myomic=names(associations)
-
-  for(ov in myomic){
-
-    colnames(associations[[ov]])[1]="gene"
-
-    ## Regulator with area
-
-    if(ncol(associations[[ov]])>2){
-
-      myregulators=associations[[ov]][associations[[ov]]$gene==gene, ,drop=FALSE] ## "regulator" with Area--> Matrix
-
-      if(nrow(myregulators)==0){
-        ov.nr=nrow(myregulators) ## regulators nr per omic --> It could be 0
-        myregulators=c("No-regulator","")
-        myregulators=t(as.matrix(myregulators))
-
-      } else {
-        myregulators=aggregate(myregulators,by=list(myregulators[,2]),uniquePaste) ## Agrupado por "region", me devuelve Area separado por comas
-        myregulators=myregulators[,-c(1:2)]
-        myregulators[,2]=sapply(myregulators[,2], paste, collapse = ";")
-        ov.nr=nrow(myregulators)
-      }
-
-      Reg.matrix.temp = cbind(gene,myregulators,ov)
-      Reg.matrix.temp = Reg.matrix.temp[,c(1,2,4,3),drop=FALSE] ## Dejo el mismo orden que tenia
-      colnames(Reg.matrix.temp)=c("gene","regulator","omic","area")
-      NrReg.temp=ov.nr
-      Reg.matrix=rbind(Reg.matrix,Reg.matrix.temp)
-      colnames(Reg.matrix)=c("gene","regulator","omic","area")
-      NrReg=c(NrReg, NrReg.temp)
-
-      ## Regulators without area
-
-    } else {
-
-      myregulators=associations[[ov]][associations[[ov]]$gene==gene,2, drop=FALSE] ## "regulator" --> No tiene Area
-      myregulators=unique(myregulators) ## Could it be repeated??
-      ov.nr=nrow(myregulators) ## regulators nr per omic --> It could be 0
-
-      if(nrow(myregulators)==0){
-        myregulators=c("No-regulator")
-        myregulators=t(as.matrix(myregulators))
-      }
-
-      Reg.matrix.temp=cbind(gene,myregulators,ov,"")  ## Lo tengo que dejar igual que las otras omicas
+  myomic=names(data.omics)
+  
+  if (is.null(associations)){
+    for (ov in myomic) {
+      myregulators=rownames(data.omics[[ov]])
+      ov.nr=length(myregulators)
+      
+      
+      Reg.matrix.temp=cbind(rep(gene,ov.nr),myregulators,ov,"")  ## Lo tengo que dejar igual que las otras omicas
       NrReg.temp=ov.nr
       colnames(Reg.matrix.temp)=c("gene","regulator","omic","area")
       Reg.matrix.temp = t(apply(Reg.matrix.temp,1, as.character))  ## adding this here to avoid factors
@@ -758,8 +727,60 @@ GetAllReg=function(gene, associations){
       colnames(Reg.matrix)=c("gene","regulator","omic","area")
       NrReg=c(NrReg, NrReg.temp)
     }
-  }
+  } else{
+    for(ov in myomic){
 
+      colnames(associations[[ov]])[1]="gene"
+  
+      ## Regulator with area
+  
+      if(ncol(associations[[ov]])>2){
+  
+        myregulators=associations[[ov]][associations[[ov]]$gene==gene, ,drop=FALSE] ## "regulator" with Area--> Matrix
+  
+        if(nrow(myregulators)==0){
+          ov.nr=nrow(myregulators) ## regulators nr per omic --> It could be 0
+          myregulators=c("No-regulator","")
+          myregulators=t(as.matrix(myregulators))
+  
+        } else {
+          myregulators=aggregate(myregulators,by=list(myregulators[,2]),uniquePaste) ## Agrupado por "region", me devuelve Area separado por comas
+          myregulators=myregulators[,-c(1:2)]
+          myregulators[,2]=sapply(myregulators[,2], paste, collapse = ";")
+          ov.nr=nrow(myregulators)
+        }
+  
+        Reg.matrix.temp = cbind(gene,myregulators,ov)
+        Reg.matrix.temp = Reg.matrix.temp[,c(1,2,4,3),drop=FALSE] ## Dejo el mismo orden que tenia
+        colnames(Reg.matrix.temp)=c("gene","regulator","omic","area")
+        NrReg.temp=ov.nr
+        Reg.matrix=rbind(Reg.matrix,Reg.matrix.temp)
+        colnames(Reg.matrix)=c("gene","regulator","omic","area")
+        NrReg=c(NrReg, NrReg.temp)
+  
+        ## Regulators without area
+  
+      } else {
+  
+        myregulators=associations[[ov]][associations[[ov]]$gene==gene,2, drop=FALSE] ## "regulator" --> No tiene Area
+        myregulators=unique(myregulators) ## Could it be repeated??
+        ov.nr=nrow(myregulators) ## regulators nr per omic --> It could be 0
+  
+        if(nrow(myregulators)==0){
+          myregulators=c("No-regulator")
+          myregulators=t(as.matrix(myregulators))
+        }
+  
+        Reg.matrix.temp=cbind(gene,myregulators,ov,"")  ## Lo tengo que dejar igual que las otras omicas
+        NrReg.temp=ov.nr
+        colnames(Reg.matrix.temp)=c("gene","regulator","omic","area")
+        Reg.matrix.temp = t(apply(Reg.matrix.temp,1, as.character))  ## adding this here to avoid factors
+        Reg.matrix=rbind(Reg.matrix,Reg.matrix.temp)
+        colnames(Reg.matrix)=c("gene","regulator","omic","area")
+        NrReg=c(NrReg, NrReg.temp)
+      }
+    }
+  }
   Results2=c(gene,NrReg)
   myomic=paste(myomic,"Ini",sep="-")
   names(Results2)=c("gene",myomic)
