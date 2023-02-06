@@ -73,10 +73,17 @@
 LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, Allgenes, omic.type) {
 
   if (is.null(min.variation)){
+    
+    if(!is.null(associations)){
+      for (ov in names(associations)){
+        myreg=associations[[ov]][associations[[ov]][,1] %in% Allgenes,2] # removing regulators not associated to our genes
+        data.omics[[ov]]=data.omics[[ov]][intersect(myreg, rownames(data.omics[[ov]])),] ## Reduced data.omics
+      }
+      rm("myreg")
+    }
 
     #### Low variation cutoff is computed automatically
     data.omicsMean = vector("list", length=length(data.omics))
-
     for(i in 1:length(data.omics)){
       data.omicsMean[[i]]=t(apply(data.omics[[i]], 1, tapply, ExpGroups, mean))
     }
@@ -92,11 +99,10 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 
     # data.omicsMean reduced: without NA and LV
     data.omicsMean=LowVar$data
-
-    for (ov in names(associations)){
-      myreg=associations[[ov]][associations[[ov]][,1] %in% Allgenes,2] # removing regulators not associated to our genes
-      data.omicsMean[[ov]]=data.omicsMean[[ov]][intersect(myreg, rownames(data.omicsMean[[ov]])),]
-      data.omics[[ov]]= data.omics[[ov]][rownames(data.omicsMean[[ov]]),] ## Reduced data.omics
+    
+    ## data.omics reduced: only mygenes and without NA and LV
+    for (ov in names(data.omics)){
+      data.omics[[ov]] = data.omics[[ov]][rownames(data.omicsMean[[ov]]),]
     }
 
   }
@@ -104,12 +110,15 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 
     #### Low variation cutoff is set by the user
 
-    # removing regulators not associated to our genes
-    for (ov in names(associations)){
-      myreg=associations[[ov]][associations[[ov]][,1] %in% Allgenes,2]
-      data.omics[[ov]]=data.omics[[ov]][intersect(myreg, rownames(data.omics[[ov]])),]
+    # removing regulators not associated to our genes only when there is associations matrix
+    if(!is.null(associations)){
+      for (ov in names(associations)){
+        myreg=associations[[ov]][associations[[ov]][,1] %in% Allgenes,2]
+        data.omics[[ov]]=data.omics[[ov]][intersect(myreg, rownames(data.omics[[ov]])),]
+      }
+      rm("myreg")
     }
-
+    
     # Creating vector for min.variation
     if (length(min.variation) == 1) {  ## Including min.variation = 0. I need a vector with omics names
       min.variation=rep(min.variation,length(data.omics))
@@ -135,7 +144,7 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 
   }
 
-  rm("myreg"); rm("data.omicsMean"); gc()
+  rm("data.omicsMean"); gc()
 
   # Regulators removed due to low variation filter
   myregLV=LowVar$LV.reg
