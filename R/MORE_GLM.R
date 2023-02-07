@@ -485,7 +485,7 @@ GetGLM = function(GeneExpression,
 
         ## Scaling predictors for ElasticNet
         if (!is.null(elasticnet)) {
-          if (scale) {
+          if (!scale) {
             des.mat2EN = des.mat2
           } else {
             ScaleMatrix = res$RegulatorMatrix
