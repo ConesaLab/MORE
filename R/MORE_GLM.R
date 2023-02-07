@@ -480,13 +480,12 @@ GetGLM = function(GeneExpression,
 
 
         ## Creating data matrix with regulators and with/without interactions
-        des.mat2 = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
-                                          des.mat, cont.var, GeneExpression, gene)
 
         ## Scaling predictors for ElasticNet
         if (!is.null(elasticnet)) {
           if (!scale) {
-            des.mat2EN = des.mat2
+            des.mat2EN = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
+                                                des.mat, cont.var, GeneExpression, gene)
           } else {
             ScaleMatrix = res$RegulatorMatrix
             for(k in 1:ncol(ScaleMatrix)){
@@ -500,12 +499,12 @@ GetGLM = function(GeneExpression,
                                                 des.mat, cont.var, GeneExpression, gene)
           }
         } else {
-          des.mat2EN = des.mat2
+          des.mat2EN = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
+                                              des.mat, cont.var, GeneExpression, gene)
         }
 
 
         # Removing observations with missing values
-        des.mat2 = na.omit(des.mat2)
         des.mat2EN = na.omit(des.mat2EN)
 
         ###  Variable selection --> Elasticnet
@@ -514,7 +513,7 @@ GetGLM = function(GeneExpression,
         removedCoefs = intersect(tmp[["removedCoefs"]], rownames(ResultsPerGene[[i]]$allRegulators))
         if (length(removedCoefs) > 0) ResultsPerGene[[i]]$allRegulators[removedCoefs,"filter"] = "ElasticNet"
 
-        des.mat2 = as.data.frame(des.mat2[,colnames(tmp[["des.mat2"]])])
+        des.mat2 = as.data.frame(des.mat2EN[,colnames(tmp[["des.mat2"]])])
         ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
 
         rm(tmp); rm(removedCoefs); rm(des.mat2EN); gc()
