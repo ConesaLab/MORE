@@ -855,7 +855,6 @@ RemovedRegulators = function(RetRegul.gene, myregLV, myregNA, data.omics){
 # Checking multi-collinearity ---------------------------------------------
 
 CollinearityFilter = function(data, reg.table, correlation = 0.8, omic.type) {
-  set.seed(1)
 
   ## data = Regulator data matrix for all omics where missing values and regulators with low variation have been filtered out
   #         (regulators must be in columns)
