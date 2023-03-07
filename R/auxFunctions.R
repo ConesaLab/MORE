@@ -74,14 +74,13 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 
   if (is.null(min.variation)){
     
-    if(!is.null(associations)){
-      for (ov in names(associations)){
+    for (ov in names(associations)){
+      if(!is.null(associations[[ov]])){
         myreg=associations[[ov]][associations[[ov]][,1] %in% Allgenes,2] # removing regulators not associated to our genes
         data.omics[[ov]]=data.omics[[ov]][intersect(myreg, rownames(data.omics[[ov]])),] ## Reduced data.omics
+        rm("myreg")
       }
-      rm("myreg")
     }
-
     #### Low variation cutoff is computed automatically
     data.omicsMean = vector("list", length=length(data.omics))
     for(i in 1:length(data.omics)){
@@ -103,6 +102,9 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
     ## data.omics reduced: only mygenes and without NA and LV
     for (ov in names(data.omics)){
       data.omics[[ov]] = data.omics[[ov]][rownames(data.omicsMean[[ov]]),]
+      # Remove regulators from associations that have been removed due to LowVariation
+      associations[[ov]] = associations[[ov]][associations[[ov]][,2] %in% rownames(data.omics[[ov]]),,drop = FALSE]
+      
     }
 
   }
@@ -111,12 +113,12 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
     #### Low variation cutoff is set by the user
 
     # removing regulators not associated to our genes only when there is associations matrix
-    if(!is.null(associations)){
-      for (ov in names(associations)){
+    for (ov in names(associations)){
+      if(!is.null(associations[[ov]])){
         myreg=associations[[ov]][associations[[ov]][,1] %in% Allgenes,2]
         data.omics[[ov]]=data.omics[[ov]][intersect(myreg, rownames(data.omics[[ov]])),]
+        rm("myreg")
       }
-      rm("myreg")
     }
     
     # Creating vector for min.variation
@@ -140,6 +142,9 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
     ## data.omics reduced: only mygenes and without NA and LV
     for (ov in names(data.omics)){
       data.omics[[ov]] = data.omics[[ov]][rownames(data.omicsMean[[ov]]),]
+      # Remove regulators from associations that have been removed due to LowVariation
+      associations[[ov]] = associations[[ov]][associations[[ov]][,2] %in% rownames(data.omics[[ov]]),,drop = FALSE]
+      
     }
 
   }
