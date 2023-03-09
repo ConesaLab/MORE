@@ -204,28 +204,32 @@ GetGLM = function(GeneExpression,
 
 
   ##Checking that there are no replicates in the identifiers and changing identifiers in case of need
-
-  for (i in 1:(length(names(data.omics))-1)){
-    for(j in (i+1):(length(names(data.omics)))){
-      repeated = intersect(rownames(data.omics[[i]]), rownames(data.omics[[j]]))
-
-
-      if(length(repeated) > 0) {
-        cat(names(data.omics)[i], "and", names(data.omics)[j], "omics have shared identifiers in regulators:", repeated, "\n")
-        #Change the name in the association matrix only if is not NULL
-        if(!is.null(associations[[i]])){
-          associations[[i]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[i],'-', repeated, sep='')
+  
+  if(length(names(data.omics))>1){
+    for (i in 1:(length(names(data.omics))-1)){
+      for(j in (i+1):(length(names(data.omics)))){
+        repeated = intersect(rownames(data.omics[[i]]), rownames(data.omics[[j]]))
+        
+        
+        if(length(repeated) > 0) {
+          cat(names(data.omics)[i], "and", names(data.omics)[j], "omics have shared identifiers in regulators:", repeated, "\n")
+          #Change the name in the association matrix only if is not NULL
+          if(!is.null(associations[[i]])){
+            associations[[i]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[i],'-', repeated, sep='')
+          }
+          if(!is.null(associations[[j]])){
+            associations[[j]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[j],'-', repeated, sep='')
+          }
+          #Change the name in data.omics
+          rownames(data.omics[[i]])[which(rownames(data.omics[[i]])==repeated)] =  paste(names(data.omics)[i],'-', repeated,sep='')
+          rownames(data.omics[[j]])[which(rownames(data.omics[[j]])==repeated)] =  paste(names(data.omics)[j],'-', repeated,sep = '')
+          
         }
-        if(!is.null(associations[[j]])){
-          associations[[j]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[j],'-', repeated, sep='')
-        }
-        #Change the name in data.omics
-        rownames(data.omics[[i]])[which(rownames(data.omics[[i]])==repeated)] =  paste(names(data.omics)[i],'-', repeated,sep='')
-        rownames(data.omics[[j]])[which(rownames(data.omics[[j]])==repeated)] =  paste(names(data.omics)[j],'-', repeated,sep = '')
-
       }
     }
   }
+
+  
 
   # Preparing family for ElasticNet variable selection
   family2 = family$family
