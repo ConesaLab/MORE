@@ -652,15 +652,15 @@ GetGLM = function(GeneExpression,
         ResultsPerGene[[i]]$Y = data.frame("y" = myGLM$GLMfinal$y, "fitted.y" = myGLM$GLMfinal$fitted.values,
                                            "residuals" = residuals(myGLM$GLMfinal))
 
-        ResultsPerGene[[i]]$coefficients = summary(myGLM$GLMfinal)$coefficients[,c(1,4), drop = FALSE]
+        ResultsPerGene[[i]]$coefficients = summary.glm(myGLM$GLMfinal)$coefficients[,c(1,4), drop = FALSE]
         if (nrow(ResultsPerGene[[i]]$coefficients) > 0) {
           colnames(ResultsPerGene[[i]]$coefficients) = c("coefficient", "p-value")
         }
 
         GlobalSummary$GoodnessOfFit[gene,] = c(myGLM$SummaryStepwise$"p.value",
-                                               summary(myGLM$GLMfinal)$df.residual,
+                                               summary.glm(myGLM$GLMfinal)$df.residual,
                                                myGLM$SummaryStepwise$"R.squared",
-                                               summary(myGLM$GLMfinal)$aic,
+                                               summary.glm(myGLM$GLMfinal)$aic,
                                                length(ResultsPerGene[[gene]]$significantRegulators))
 
 
