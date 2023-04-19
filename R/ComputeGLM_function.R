@@ -61,7 +61,7 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
       
     } else {  ## STEPWISE
       
-      resTemp=summary(glm1)
+      resTemp=summary.glm(glm1)
       
       mypvals = resTemp$coefficients[,4]
       mypvals = p.adjust(mypvals, method = MT.adjust)
@@ -118,7 +118,7 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
     sub <- d[, i,drop=FALSE]
     sub <- as.data.frame(sub, check.names = FALSE)
     glm1 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-    result <- summary(glm1)$coefficients[, 4]
+    result <- summary.glm(glm1)$coefficients[, 4]
     pval[i] <- result[j + 1]
     # if (length(result) < 2) { print(head(sub)); print(table(sub)) }  ######  OJOOOOOOOO
     noms[i] = names(result)[j + 1]
@@ -180,7 +180,7 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
 
   d.ini=as.data.frame(d.ini, check.names = FALSE)  # variables with significant p-value in individual GLMs
   lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
-  result <- summary(lm1)$coefficients[,4]  ## p-valores
+  result <- summary.glm(lm1)$coefficients[,4]  ## p-valores
   result = p.adjust(result, method = MT.adjust)  ## multiple testing method
   names(result)=gsub("\`","",names(result))  ## Remove quotation mark
   if (length(result[-1]) < ncol(d.ini)) { d.res = cbind(d.res, d.ini[,setdiff(colnames(d.ini), names(result)[-1])]) }
@@ -200,7 +200,7 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
 
       lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
 
-      result <- summary(lm1)$coefficients[,4]  ## p-valores
+      result <- summary.glm(lm1)$coefficients[,4]  ## p-valores
       result = p.adjust(result, method = MT.adjust)   ## multiple testing method
       names(result)=gsub("\`","",names(result))
       max <- max(result[-1], na.rm = TRUE)
@@ -218,7 +218,7 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
     }
 
     lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
-    result <- summary(lm1)$coefficients[,4]   ## p-valores
+    result <- summary.glm(lm1)$coefficients[,4]   ## p-valores
     result = p.adjust(result, method = MT.adjust) ## multiple testing method
     names(result)=gsub("\`","",names(result))
     max <- max(result[-1], na.rm = TRUE)
@@ -256,7 +256,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
   OUT=d.res  # Data for the variables previously discarded
 
   lm1 <- glm(y ~ ., data = d.ini, family = family, epsilon=epsilon)
-  result <- summary(lm1)$coefficients[, 4]
+  result <- summary.glm(lm1)$coefficients[, 4]
   result = p.adjust(result, method = MT.adjust)   ## multiple testing method
   names(result)=gsub("\`","",names(result))  ## Remove quotation mark
   max <- max(result[-1], na.rm = TRUE)
@@ -284,7 +284,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
       sub <- cbind(d.ini, OUT[, i, drop=FALSE])
       sub <- as.data.frame(sub, check.names = FALSE)
       lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-      result <- summary(lm2)$coefficients[, 4]
+      result <- summary.glm(lm2)$coefficients[, 4]
       names(result)=gsub("\`","",names(result))
       pval[i] <- result[j + 1]
     }
@@ -323,7 +323,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
         sub <- cbind(d.ini, OUT[, i])
         sub <- as.data.frame(sub, check.names = FALSE)
         lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-        result <- summary(lm2)$coefficients[, 4]
+        result <- summary.glm(lm2)$coefficients[, 4]
         names(result)=gsub("\`","",names(result))
         pval[i] <- result[j + 1]
       }
@@ -345,7 +345,7 @@ two.ways.stepback.gdl = function (y, d.ini, d.res, alfa , family, epsilon, gdl.m
 
     if (ncol(d.ini) > 0) {
       lm1 <- glm(y ~ ., data = d.ini, family = family, epsilon=epsilon)
-      result <- summary(lm1)$coefficients[, 4]
+      result <- summary.glm(lm1)$coefficients[, 4]
       result = p.adjust(result, method = MT.adjust) ## multiple testing method
       names(result)=gsub("\`","",names(result))
       max <- max(result[-1], na.rm = TRUE)
@@ -446,7 +446,7 @@ stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
     sub <- cbind(design, d[, i])
     sub <- as.data.frame(sub, check.names = FALSE)
     lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-    result <- summary(lm2)
+    result <- summary.glm(lm2)
     pval[i] <- result$coefficients[, 4][j + 1]
   }
   ## multiple testing method!!!
@@ -472,7 +472,7 @@ stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr") {
         sub <- cbind(design, d[, i])
         sub <- as.data.frame(sub, check.names = FALSE)
         lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-        result <- summary(lm2)
+        result <- summary.glm(lm2)
         pval[i] <- result$coefficients[, 4][j + 1] ## la var que ya tenía metida no se va
       }
 
@@ -515,7 +515,7 @@ stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
 
   d=as.data.frame(d, check.names = FALSE)
   lm1 <- glm(y ~ ., data = d, family=family, epsilon=epsilon)
-  result <- summary(lm1)$coefficients[,4]
+  result <- summary.glm(lm1)$coefficients[,4]
   result = p.adjust(result, method = MT.adjust)  ## multiple testing method
   names(result)=gsub("\`","",names(result))  ## Remove quotation mark
   max <- max(result[-1], na.rm = TRUE)
@@ -536,7 +536,7 @@ stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
 
     if (ncol(d) > 0) {    ### IF included by STC
       lm1 <- glm(y ~ ., data = d, family = family, epsilon=epsilon)
-      result <- summary(lm1)$coefficients[, 4]
+      result <- summary.glm(lm1)$coefficients[, 4]
       result = p.adjust(result, method = MT.adjust) ## multiple testing method
       names(result)=gsub("\`","",names(result))
       max <- max(result[-1], na.rm = TRUE)
@@ -574,7 +574,7 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
   d=as.data.frame(d, check.names = FALSE)  # explanatory variables (X)
   OUT <- NULL  # variables to go out of the model
   lm1 <- glm(y ~ ., data = d, family = family, epsilon=epsilon)  # model with ALL variables
-  result <- summary(lm1)$coefficients[, 4]  # p-values
+  result <- summary.glm(lm1)$coefficients[, 4]  # p-values
   result = p.adjust(result, method = MT.adjust)  # adjusted p-values
   names(result)=gsub("\`","",names(result))  ## Remove quotation mark
   max <- max(result[-1], na.rm = TRUE)  # highest p-value
@@ -611,7 +611,7 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
       sub <- cbind(d, OUT[, i])
       sub <- as.data.frame(sub, check.names = FALSE)
       lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-      result <- summary(lm2)$coefficients[, 4]
+      result <- summary.glm(lm2)$coefficients[, 4]
       names(result)=gsub("\`","",names(result))
       pval[i] <- result[j + 1]   # p-value of the new candidate variable
     }
@@ -644,7 +644,7 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
             sub <- cbind(d, OUT[, i])
             sub <- as.data.frame(sub, check.names = FALSE)
             lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-            result <- summary(lm2)
+            result <- summary.glm(lm2)
             names(result)=gsub("\`","",names(result))
             pval[i] <- result$coefficients[, 4][j + 1]
           }
@@ -672,7 +672,7 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
     # No more OUT variables can be added to the model -> New model
     if (ncol(d) > 0) {
       lm1 <- glm(y ~ ., data = d, family = family, epsilon=epsilon)
-      result <- summary(lm1)$coefficients[, 4]
+      result <- summary.glm(lm1)$coefficients[, 4]
       result = p.adjust(result, method = MT.adjust)  ## multiple testing method!!!
       names(result)=gsub("\`","",names(result))
       max <- max(result[-1], na.rm = TRUE)
@@ -723,7 +723,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
     sub <- cbind(design, d[, i])
     sub <- as.data.frame(sub, check.names = FALSE)
     lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-    result <- summary(lm2)
+    result <- summary.glm(lm2)
     pval[i] <- result$coefficients[, 4][j + 1]
   }
 
@@ -748,7 +748,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
 
     d <- d[, -pos, drop = FALSE]
 
-    result2 <- summary(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
+    result2 <- summary.glm(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
     result2 = p.adjust(result2, method = MT.adjust)  ## multiple testing method
     max <- max(result2[-1], na.rm = TRUE)
 
@@ -769,7 +769,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
         design <- as.data.frame(design, check.names = FALSE)
         colnames(design) <- lastname
       }
-      result2 <- summary(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
+      result2 <- summary.glm(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
       ## multiple testing method!!!
       result2 = p.adjust(result2, method = MT.adjust)
       max <- max(result2[-1], na.rm = TRUE)
@@ -780,7 +780,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
       sub <- cbind(design, d[, i])
       sub <- as.data.frame(sub, check.names = FALSE)
       lm2 <- glm(y ~ ., data = sub , family = family, epsilon=epsilon)
-      result <- summary(lm2)
+      result <- summary.glm(lm2)
       pval[i] <- result$coefficients[, 4][j + 1]
     }
     ## multiple testing method!!!
@@ -847,7 +847,7 @@ ResultsTable = function(glm, family, epsilon){
 
   # Computing goodness of fit:
 
-  resFin=summary(glm)
+  resFin=summary.glm(glm)
   bondad = (resFin$null.deviance-resFin$deviance)/resFin$null.deviance  ### R-SQUARED
   rownames(resFin$coefficients)=gsub("`","",rownames(resFin$coefficients)) ## Remove quotation marks
   vars.in=rownames(resFin$coefficients)   #### VARIABLES
