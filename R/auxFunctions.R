@@ -212,7 +212,7 @@ LowVariatFilter=function(data, method, percVar, omic.type){
       if(method == 'user'){ 
         met = apply(data[[ov]], 1, function (x) { max(x, na.rm = TRUE)-min(x, na.rm = TRUE) })  ## Compute maximun variation between groups
         myreg = met[met > percVar[ov]]  # Regulators to be kept
-        LV.reg[[ov]] = names(met[met >= percVar[ov]]) ## Keep names of removed regulators
+        LV.reg[[ov]] = names(met[met <= percVar[ov]]) ## Keep names of removed regulators
         data[[ov]] = data[[ov]][names(myreg), ,drop=FALSE]
       }
     }
