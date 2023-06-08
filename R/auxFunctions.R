@@ -280,7 +280,7 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
 
     } else  {    ### WITHOUT INTERACTIONS
 
-      des.mat2 = cbind(t(GeneExpression[gene,]), des.mat)
+      des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
       colnames(des.mat2)[1] = "response"
 
     }
