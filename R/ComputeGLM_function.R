@@ -696,10 +696,6 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
 
 
 
-
-
-
-
 #### Method: two.ways.forward
 
 ## INPUT
@@ -723,7 +719,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
     sub <- cbind(design, d[, i])
     sub <- as.data.frame(sub, check.names = FALSE)
     lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-    result <- summary(lm2)
+    result <- summary.glm(lm2)
     pval[i] <- result$coefficients[, 4][j + 1]
   }
   
@@ -757,7 +753,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
       
       d <- d[, -pos, drop = FALSE]
       
-      result2 <- summary(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
+      result2 <- summary.glm(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
       result2 = p.adjust(result2, method = MT.adjust)  ## multiple testing method
       max <- max(result2[-1], na.rm = TRUE)
       
@@ -778,7 +774,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
           design <- as.data.frame(design, check.names = FALSE)
           colnames(design) <- lastname
         }
-        result2 <- summary(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
+        result2 <- summary.glm(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
         ## multiple testing method!!!
         result2 = p.adjust(result2, method = MT.adjust)
         max <- max(result2[-1], na.rm = TRUE)
@@ -789,7 +785,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
         sub <- cbind(design, d[, i])
         sub <- as.data.frame(sub, check.names = FALSE)
         lm2 <- glm(y ~ ., data = sub , family = family, epsilon=epsilon)
-        result <- summary(lm2)
+        result <- summary.glm(lm2)
         pval[i] <- result$coefficients[, 4][j + 1]
       }
       ## multiple testing method!!!
