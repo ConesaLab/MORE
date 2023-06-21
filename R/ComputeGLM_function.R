@@ -713,102 +713,111 @@ two.ways.stepbackMOD=function (y, d, alfa , family, epsilon, MT.adjust = "fdr", 
 ## GLM after applying the stepwise methodology
 
 two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", iter.max = 100){
-
+  
   d=as.data.frame(d, check.names = FALSE)
   pval <- NULL
   design <- NULL
   j = 1
-
+  
   for (i in 1:ncol(d)) {
     sub <- cbind(design, d[, i])
     sub <- as.data.frame(sub, check.names = FALSE)
     lm2 <- glm(y ~ ., data = sub, family = family, epsilon=epsilon)
-    result <- summary.glm(lm2)
+    result <- summary(lm2)
     pval[i] <- result$coefficients[, 4][j + 1]
   }
-
+  
   pval = p.adjust(pval, method = MT.adjust)  ## multiple testing method
-  if (all(is.na(pval))){
-    min = Inf
-  }  else { min <- min(pval, na.rm = TRUE) }
-
-  num.iter = 1
-
-  while ((min <= alfa) && (num.iter <= iter.max)) {
-
-    num.iter = num.iter + 1
-
-    b <- pval == min
-    c <- c(1:length(pval))
-    pos <- c[b]
-    pos <- pos[!is.na(pos)][1]
-    design <- cbind(design, d[, pos])
-    design <- as.data.frame(design, check.names = FALSE)
-    colnames(design)[j] <- colnames(d)[pos]
-
-    d <- d[, -pos, drop = FALSE]
-
-    result2 <- summary.glm(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
-    result2 = p.adjust(result2, method = MT.adjust)  ## multiple testing method
-    max <- max(result2[-1], na.rm = TRUE)
-
-    while (max > alfa) {
-      varout <- names(result2)[result2 == max]
-      varout=gsub("\`","",varout)
-      pos <-  findPosition(matrix = design, vari = varout)
-      d <- as.data.frame(cbind(d, design[, pos]), check.names = FALSE)
-      x <- ncol(d)
-      colnames(d)[x] <- colnames(design)[pos]
-      if (ncol(design) == 2) {
-        min <- min(result2[-1], na.rm = TRUE)
-        lastname <- names(result2)[result2 == min]
-        lastname = lastname[1]
-      }
-      design <- design[, -pos]
-      if (is.null(dim(design))) {
-        design <- as.data.frame(design, check.names = FALSE)
-        colnames(design) <- lastname
-      }
-      result2 <- summary.glm(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
-      ## multiple testing method!!!
-      result2 = p.adjust(result2, method = MT.adjust)
-      max <- max(result2[-1], na.rm = TRUE)
-    }
-    j = ncol(design) + 1
-    pval <- NULL
-    for (i in 1:ncol(d)) {
-      sub <- cbind(design, d[, i])
-      sub <- as.data.frame(sub, check.names = FALSE)
-      lm2 <- glm(y ~ ., data = sub , family = family, epsilon=epsilon)
-      result <- summary.glm(lm2)
-      pval[i] <- result$coefficients[, 4][j + 1]
-    }
-    ## multiple testing method!!!
-    pval = p.adjust(pval, method = MT.adjust)
+  
+  #If there is only one variable
+  
+  if(length(pval)==1 && pval < alfa){
+    lm1 <- glm(y ~ ., data = d, family = family, epsilon=epsilon)
+  } else if(length(pval)==1 && pval > alfa){
+    lm1 <- glm(y ~ 1, data = d, family = family, epsilon=epsilon)
+  } else{
+    
     if (all(is.na(pval))){
       min = Inf
     }  else { min <- min(pval, na.rm = TRUE) }
-
-    if (ncol(d) == 1) {
-      if (min <= alfa) {
-        design <- cbind(design, d[, 1])
-        design <- as.data.frame(design, check.names = FALSE)
-        colnames(design)[j] <- colnames(d)[1]
+    
+    num.iter = 1
+    
+    while ((min <= alfa) && (num.iter <= iter.max)) {
+      
+      num.iter = num.iter + 1
+      
+      b <- pval == min
+      c <- c(1:length(pval))
+      pos <- c[b]
+      pos <- pos[!is.na(pos)][1]
+      design <- cbind(design, d[, pos])
+      design <- as.data.frame(design, check.names = FALSE)
+      colnames(design)[j] <- colnames(d)[pos]
+      
+      d <- d[, -pos, drop = FALSE]
+      
+      result2 <- summary(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
+      result2 = p.adjust(result2, method = MT.adjust)  ## multiple testing method
+      max <- max(result2[-1], na.rm = TRUE)
+      
+      while (max > alfa) {
+        varout <- names(result2)[result2 == max]
+        varout=gsub("\`","",varout)
+        pos <-  findPosition(matrix = design, vari = varout)
+        d <- as.data.frame(cbind(d, design[, pos]), check.names = FALSE)
+        x <- ncol(d)
+        colnames(d)[x] <- colnames(design)[pos]
+        if (ncol(design) == 2) {
+          min <- min(result2[-1], na.rm = TRUE)
+          lastname <- names(result2)[result2 == min]
+          lastname = lastname[1]
+        }
+        design <- design[, -pos]
+        if (is.null(dim(design))) {
+          design <- as.data.frame(design, check.names = FALSE)
+          colnames(design) <- lastname
+        }
+        result2 <- summary(glm(y ~ ., data = design, family = family, epsilon=epsilon))$coefficients[,4]
+        ## multiple testing method!!!
+        result2 = p.adjust(result2, method = MT.adjust)
+        max <- max(result2[-1], na.rm = TRUE)
       }
-      min = 1
+      j = ncol(design) + 1
+      pval <- NULL
+      for (i in 1:ncol(d)) {
+        sub <- cbind(design, d[, i])
+        sub <- as.data.frame(sub, check.names = FALSE)
+        lm2 <- glm(y ~ ., data = sub , family = family, epsilon=epsilon)
+        result <- summary(lm2)
+        pval[i] <- result$coefficients[, 4][j + 1]
+      }
+      ## multiple testing method!!!
+      pval = p.adjust(pval, method = MT.adjust)
+      if (all(is.na(pval))){
+        min = Inf
+      }  else { min <- min(pval, na.rm = TRUE) }
+      
+      if (ncol(d) == 1) {
+        if (min <= alfa) {
+          design <- cbind(design, d[, 1])
+          design <- as.data.frame(design, check.names = FALSE)
+          colnames(design)[j] <- colnames(d)[1]
+        }
+        min = 1
+      }
+    }
+    
+    if (is.null(design)) {
+      lm1 <- glm(y ~ 1, family = family, epsilon=epsilon)
+      
+    } else {
+      lm1 <- glm(y ~ ., data = design, family = family, epsilon=epsilon)
     }
   }
-
-  if (is.null(design)) {
-    lm1 <- glm(y ~ 1, family = family, epsilon=epsilon)
-
-  } else {
-    lm1 <- glm(y ~ ., data = design, family = family, epsilon=epsilon)
-  }
+  
   return(lm1)
 }
-
-
 
 
 
