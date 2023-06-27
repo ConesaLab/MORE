@@ -2182,7 +2182,7 @@ RegulationPerCondition = function(getGLMoutput){
 # For only 1 gene
 GetPairs1GeneAllReg = function (gene, getGLMoutput) {
 
-  reguSignif = getGLMoutput$ResultsPerGene[[gene]]$significantRegulators
+  reguSignif = getGLMoutput$ResultsPerGene[[gene]]$relevantRegulators
 
   if (is.null(reguSignif)) {  # NO significant regulators
     return (NULL)
