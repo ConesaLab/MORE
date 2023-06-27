@@ -420,9 +420,7 @@ GetGLM = function(GeneExpression,
         sdNo0 = names(sdNo0)[sdNo0 > 0]
         des.mat2 = des.mat2[,sdNo0]
 
-        myGLM = ComputeGLM(matrix.temp = data.frame(des.mat2, check.names = FALSE),
-                           alfa = alfa, stepwise = 'none', Res.df = Res.df,
-                           family = family, epsilon = epsilon, MT.adjust = MT.adjust)
+        isModel =NULL
 
         ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
         ResultsPerGene[[i]]$relevantRegulators = NULL
@@ -465,9 +463,12 @@ GetGLM = function(GeneExpression,
           sdNo0 = names(sdNo0)[sdNo0 > 0]
           des.mat2 = des.mat2[,sdNo0]
 
-          myGLM = ComputeGLM(matrix.temp = data.frame(des.mat2, check.names = FALSE),
-                             alfa = alfa, stepwise = 'none', Res.df = Res.df,
-                             family = family, epsilon = epsilon, MT.adjust = MT.adjust)
+          isModel = NULL
+          
+          GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
+                                             data.frame("gene" = gene,
+                                                        "problem" = 'No regulators left after NA/LowVar filtering'))
+    
 
           ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
           ResultsPerGene[[i]]$relevantRegulators = NULL
