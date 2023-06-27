@@ -147,8 +147,7 @@ more <-function(GeneExpression,
                   correlation = correlation,
                   min.obs = min.obs,
                   omic.type = omic.type,
-                  filtermet = filtermet,
-                  all_settings))
+                  filtermet = filtermet))
     
   }
   
@@ -167,8 +166,7 @@ more <-function(GeneExpression,
            omic.type = omic.type,
            edesign.type = edesign.type,
            scaletype = scaletype,
-           p.method =p.method,
-           all_settings))
+           p.method =p.method))
   }
   
 }
