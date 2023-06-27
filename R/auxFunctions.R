@@ -311,6 +311,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet, Res.df) {
                        family = family2, grouped = FALSE)
 
       myS = cvEN$lambda.min  # optimum penalization parameter
+      y.fitted = predict(cvEN, s = myS, newx = as.matrix(des.mat2[,-1]))
 
       if (length(myS) > 1) {  # more than 1 values for lambda
         myCVerror = cvEN$cvm[sapply(myS, function (i) which(cvEN$lambda == i))]
@@ -318,22 +319,31 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet, Res.df) {
       }
 
       if (length(myS) == 1) {
-        mycoef = colnames(des.mat2)[which(coef(cvEN, s = myS)[,1] != 0)] # selected coefficients
-        mycoef = unique(c(colnames(des.mat2)[1], mycoef))
-
+        x = des.mat2[,-1]
+        sel = colnames(x)[which(coef(cvEN, s = myS)[-1,1] != 0)] # selected coefficients without intercept
+        selcoef = as.data.frame(as.matrix(coef(cvEN, s = myS)[which(coef(cvEN, s = myS)[,1] != 0),,drop=FALSE]))
+        mycoef = c(colnames(des.mat2)[1], sel)
+        
         removedCoefs = setdiff(colnames(des.mat2), mycoef)
-        removedCoefs = unique(gsub(".*[:?](.*)$", "\\1", removedCoefs))
-
         des.mat2 = des.mat2[, mycoef, drop = FALSE]
-
-        mycoef = unique(gsub(".*[:?](.*)$", "\\1", mycoef))
-        removedCoefs = setdiff(removedCoefs, mycoef)
       }
+      
+      m = modelcharac(cvEN, myS, des.mat2[,1], y.fitted)
+      isModel = TRUE
 
-    } else { removedCoefs = NULL }
+    } else { removedCoefs = NULL; selcoef=NULL; y.fitted = NULL;m = list('AICc'=NULL,'R.squared'=NULL,'cvRMSE'=NULL ); isModel = NULL }
 
-  } else { removedCoefs = NULL }
+  } else { removedCoefs = NULL; selcoef=NULL;y.fitted = NULL; m = list('AICc'=NULL,'R.squared'=NULL,'cvRMSE'=NULL ); isModel = NULL }
 
-  return(list("des.mat2" = des.mat2, "removedCoefs" = removedCoefs))
+  return(list("des.mat2" = des.mat2, "removedCoefs" = removedCoefs, "coefficients" = selcoef, 'fitted.values' = y.fitted, 'm' = m, 'isModel'=isModel))
 }
 
+modelcharac = function(fitted.glm,s, y, y.fitted){
+  n = fitted.glm$glmnet.fit$nobs
+  
+  R2 = fitted.glm$glmnet.fit$dev.ratio[which(fitted.glm$glmnet.fit$lambda == s)]
+  RMSE = sqrt(sum((y-y.fitted)^2)/n)
+  cvRMSE= sqrt(sum((y-y.fitted)^2)/n)/mean(y)
+  
+  return(list('R.squared'=R2, 'RMSE' = RMSE ,'cvRMSE'=cvRMSE))
+}
