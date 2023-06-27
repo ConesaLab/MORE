@@ -1550,7 +1550,7 @@ GetPairsGeneRegulator = function (genes = NULL, getGLMoutput) {
 }
 
 
-RegulationPerCondition = function(getGLMoutput, betaTest = TRUE){
+RegulationPerCondition = function(getGLMoutput){
   # getGLMoutput: results of the getGLM function.
   design = getGLMoutput$arguments$finaldesign
   Group = getGLMoutput$arguments$groups
@@ -1682,11 +1682,6 @@ RegulationPerCondition = function(getGLMoutput, betaTest = TRUE){
             }
           }
         }
-      }
-
-      # Testing beta. Aplico la funcion que testea si la suma de coeficientes es significativa (linea 1677).
-      if(betaTest == TRUE){
-        myresults = BetaTest(coeffs = myresults, myGene = k, MOREresults = getGLMoutput)
       }
 
       # Veo si hay representantes, en caso de haberlos asignara la misma fila del representante a los reguladores que acaben en "_P" y el opuesto a los que acaban en "_N".
