@@ -1275,7 +1275,7 @@ partialcorrelation <- function(data, myreg, omic.type, method='pearson'){
   icvx = try(solve(cvx), silent = TRUE)
   if(class(icvx)[1] == "try-error"){
     icvx <- try(ginv(cvx), silent = TRUE)
-    if(class(icvx) == 'try-error'){
+    if(class(icvx)[1] == 'try-error'){
       dec = suppressWarnings( irlba(cvx, nv = min(dim(cvx)) - 1, nu = min(dim(cvx)) - 1))
       icvx = dec$u %*% diag(dec$d) %*% t(dec$v)
     }
