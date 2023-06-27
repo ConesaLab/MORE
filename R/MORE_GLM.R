@@ -1700,9 +1700,9 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
       stop(paste("No GLM was obtained for gene", gene))
     }
 
-    if (is.null(GLMgene$significantRegulators)) { ## No significant regulators
+    if (is.null(GLMgene$relevantRegulators)) { ## No significant regulators
 
-      cat("No significant regulators were found for this gene.\n")
+      cat("No relevant regulators were found for this gene.\n")
 
 
     } else
@@ -1710,9 +1710,9 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 
       # Considering multicollinearity
       SigReg = GLMgene$allRegulators
-      SigReg = SigReg[SigReg$Sig == 1, c("regulator", "omic", "area", "filter")]
+      SigReg = SigReg[SigReg$Rel == 1, c("regulator", "omic", "area", "filter")]
 
-      SigReg = SigReg[GLMgene$significantRegulators,,drop = FALSE]
+      SigReg = SigReg[GLMgene$relevantRegulators,,drop = FALSE]
 
       cat(paste(nrow(SigReg), "significant regulators are to be plotted for gene", gene)); cat("\n")
 
@@ -1821,7 +1821,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 
       }
 
-      return(GLMgene$allRegulators[GLMgene$significantRegulators, -6])
+      return(GLMgene$allRegulators[GLMgene$relevantRegulators, -6])
     }
 
   }
@@ -2068,7 +2068,7 @@ RegulationPerCondition = function(getGLMoutput){
     myresults = cbind(myresults, conditions)
 
     for(k in unique(myresults[,"gene"])){
-      significant.regulators = getGLMoutput$ResultsPerGene[[k]]$significantRegulators                    # Reguladores significativos.
+      significant.regulators = getGLMoutput$ResultsPerGene[[k]]$relevantRegulators                    # Reguladores significativos.
       model.variables = gsub("`", "", rownames(getGLMoutput$ResultsPerGene[[k]]$coefficients))[-1]       # Reguladores e interacciones en el modelo.
 
       # Cojo las interacciones y creo objetos que contengan los reguladores que aparecen con interaccion, solas o ambas.
