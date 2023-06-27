@@ -1714,7 +1714,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 
       SigReg = SigReg[GLMgene$relevantRegulators,,drop = FALSE]
 
-      cat(paste(nrow(SigReg), "significant regulators are to be plotted for gene", gene)); cat("\n")
+      cat(paste(nrow(SigReg), "relevant regulators are to be plotted for gene", gene)); cat("\n")
 
       # Gene values
       geneValues = GLMgene$Y$y
@@ -1876,7 +1876,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 
       return(SigniReguGene$gene)
 
-    } else { cat(paste("There are no genes significantly regulated by", regulator)); cat("\n") }
+    } else { cat(paste("There are no genes relevantly regulated by", regulator)); cat("\n") }
 
   }
 
@@ -1962,7 +1962,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
                        numLines = numLines, x.names = eje,
                        geneErrorValues = errorValues, reguErrorValues = errorValuesRegu)
         } else {
-          cat("The selected regulator was not declared as significant by the GLM.\n")
+          cat("The selected regulator was not declared as relevant by the ElasticNet\n")
           cat("Please, either select another regulator or provide the regulator values.\n")
         }
 
