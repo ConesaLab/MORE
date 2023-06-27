@@ -1653,32 +1653,32 @@ RegulationPerCondition = function(getGLMoutput, betaTest = TRUE){
         # Evaluo en que conjunto se encuentra el regulador correspondiente y segun eso asigno el coeficiente o sumo el nuevo coeficiente a lo que ya habia en esa posicion.
         if(any(regul %in% variables.only)){
           if(any(regul %in% significant.regulators)){
-            myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] = getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+            myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] = getGLMoutput$ResultsPerGene[[k]]$coefficients[j,]
           } else {
-            myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] = getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+            myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] = getGLMoutput$ResultsPerGene[[k]]$coefficients[j,]
           }
         }
 
         if(any(regul %in% variables.inter)){
           if(any(regul %in% significant.regulators)){
-            myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+            myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j,]
           } else {
-            myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+            myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j,]
           }
         }
 
         if(any(regul %in% variables.inter.only)){
           if(any(regul %in% significant.regulators)){
             if(length(regul) == 1){
-              myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+              myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul, c(names.groups)] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j,]
             } else {
-              myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+              myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"regulator"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j,]
             }
           } else {
             if(length(regul) == 1){
-              myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+              myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul, c(names.groups)] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j,]
             } else {
-              myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j]
+              myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] = myresults[myresults[,"gene"] == k & myresults[,"representative"] == regul[2], regul[1]] + getGLMoutput$ResultsPerGene[[k]]$coefficients[j,]
             }
           }
         }
