@@ -124,14 +124,14 @@ more <-function(GeneExpression,
                 correlation = 0.9,
                 min.obs = 10,
                 omic.type = 0,
-                filtermet = 1,
+                filter = 'cor',
                 scaletype = 1,
                 edesign.type= 0,
                 p.method = 'jack',
                 all_settings,
-                method  ='GLM'){
+                method  ='glm'){
   
-  if(method=='GLM'){
+  if(method=='glm'){
     
     return(GetGLM(GeneExpression,
                   associations,
@@ -147,11 +147,11 @@ more <-function(GeneExpression,
                   correlation = correlation,
                   min.obs = min.obs,
                   omic.type = omic.type,
-                  filtermet = filtermet))
+                  filter = filter))
     
   }
   
-  if (method == 'PLS'){
+  if (method == 'pls'){
     
     return(GetPLS(GeneExpression,
            associations,

@@ -104,7 +104,7 @@ library(irlba)
 #' with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso
 #' penalty). The default is 0.5, which gives equal weight to ridge and lasso.
 #' @param omic.type 0 = numerical variable (default), 1 = binary (categorical) variable. It should be a vector with length the number of omic types or a number (0 or 1) if all the omics are of the same type.
-#' @param filtermet 1 = Original MORE multicollinearity filter will be applyed. 2= COR method will be applyed which takes into account the possible multicollinearity between omics. 3 = PC method will be applyed which computes the partial correlation
+#' @param filter  cor= takes into account the possible multicollinearity between omics. pcor = computes the partial correlation to take into account the possible multicollinearity between omics.
 #'
 #' @return
 #' @export
@@ -124,7 +124,7 @@ GetGLM = function(GeneExpression,
                   correlation = 0.9,
                   min.obs = 10,
                   omic.type = 0,
-                  filtermet = 1){
+                  filter = 'cor'){
 
 
   cont.var = NULL
@@ -483,15 +483,15 @@ GetGLM = function(GeneExpression,
         ## Apply multicollinearity filter only if there is more than one regulator for a gene
         
         if (ncol(res$RegulatorMatrix)>1){
-          if(filtermet==1){
-            res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
-                                     correlation = correlation, omic.type = omic.type)
-          }
-          if(filtermet==2){
+          # if(filter==1){
+          #   res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
+          #                            correlation = correlation, omic.type = omic.type)
+          # }
+          if(filter=='cor'){
             res = CollinearityFilter1(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
                                       correlation = correlation, omic.type = omic.type)
           }
-          if(filtermet==3){
+          if(filter=='pcor'){
             res = CollinearityFilter2(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
                                       correlation = correlation, omic.type = omic.type)
           }
@@ -831,226 +831,226 @@ RemovedRegulators = function(RetRegul.gene, myregLV, myregNA, data.omics){
 
 
 # Checking multi-collinearity ---------------------------------------------
-
-CollinearityFilter = function(data, reg.table, correlation = 0.8, omic.type) {
-
-  ## data = Regulator data matrix for all omics where missing values and regulators with low variation have been filtered out
-  #         (regulators must be in columns)
-  ## reg.table = Table with "gene", "regulator", "omic", "area", filter" where omics with no regulators have been removed
-
-  row.names(reg.table) = reg.table[,"regulator"]
-  #resultado = list(RegulatorMatrix = data, SummaryPerGene = reg.table)
-
-  for (j in 1:length(omic.type)){
-
-    if(omic.type[[j]] == 0){  # continuous variable
-
-      # Initial regulators
-      myreg = reg.table[which(reg.table[,"omic"] == names(omic.type)[[j]]), ,drop=FALSE]
-      myreg = as.character(myreg[which(myreg[,"filter"] == "Model"),"regulator"])
-
-      if (length(myreg) > 1) {  # if there is more than one regulator for this omic:
-
-        # Dejo la matriz original para poder tomar luego las correlaciones de la red.
-        mycorrelations = data.frame(t(combn(myreg,2)), as.numeric(as.dist(cor(data[,myreg]))), stringsAsFactors = FALSE)
-        mycor = mycorrelations[abs(mycorrelations[,3]) >= correlation,]
-
-        if (nrow(mycor) == 1) {  ### only 2 regulators are correlated in this omic
-
-          correlacionados = unlist(mycor[,1:2])
-          regulators = colnames(data)
-          keep = sample(correlacionados, 1) # Regulador al azar de la pareja
-
-          ## Lo siguiente elimina el no representante de la matriz de reguladores. Al regulador escogido como representante,
-          ## le cambia el nombre por "mc_1_R" para que despues pase la seleccion de variables y asi, en reg.table se conserva
-          ## la info de que fue escogido como representante.
-
-          remove = setdiff(correlacionados, keep)
-          regulators = setdiff(regulators, remove)
-          data = as.matrix(data[ ,regulators])
-          colnames(data) = regulators
-          index.reg = which(colnames(data) == as.character(keep))
-          colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
-
-          # Cambio en reg.table. Asignacion de los nombres segun sea representante,
-          # correlacion positiva o negativa. Creacion de una nueva fila con el representante
-          # para la seleccion de variables y asi, no perder la info del representante.
-
-          reg.table = rbind(reg.table, reg.table[keep,])
-          reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
-          reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
-          rownames(reg.table) = reg.table[ ,"regulator"]
-
-          if(mycor[,3] > 0){
-            index = mycor[1, which(with(mycor, mycor[1 ,c(1,2)] != keep))]
-            reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "P", sep = "_")
-          } else{
-            index = mycor[1, which(with(mycor, mycor[1, c(1,2)] != keep))]
-            reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "N", sep = "_")
-          }
-        }
-
-        if (nrow(mycor) >= 2) {   ### more than 2 regulators might be correlated in this omic
-
-          mygraph = graph.data.frame(mycor, directed=F)
-          mycomponents = clusters(mygraph)
-
-          for (i in 1:mycomponents$no) {
-            correlacionados = names(mycomponents$membership[mycomponents$membership == i])
-            regulators = colnames(data)
-
-            ## Escoge un regulador al azar como representante de cada componente conexa. Para cada componente conexa elimina aquellos reguladores
-            ## que no han sido escogidos como representante.
-            keep = sample(correlacionados, 1)  # mantiene uno al azar
-            reg.remove = setdiff(correlacionados, keep) # correlated regulator to remove
-            regulators = setdiff(regulators, reg.remove)  # all regulators to keep
-            data = as.matrix(data[ ,regulators])
-            colnames(data) = regulators
-            index.reg = which(colnames(data) == as.character(keep))
-            colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
-
-            # Asignacion de nombre al representante y nueva fila para el filtro de
-            # seleccion de variables (asi no se pierde la info del representante).
-            reg.table = rbind(reg.table, reg.table[keep,])
-            reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
-            reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
-            rownames(reg.table) = reg.table[ ,"regulator"]
-
-            # Matriz que recoge los reguladores correlacionados con el representante: actual.correlation. Asi se puede ver si la correlacion es
-            # positiva o negativa y asignar el nombre. Intente hacer merge(), expand.grid(), pero no daba las mismas combinaciones que combn(), por lo que
-            # vi necesario hacer un bucle para quedarme con aquellas parejas que interesan (representante - resto de reguladores).
-            actual.couple = data.frame(t(combn(correlacionados,2)), stringsAsFactors = FALSE)
-            colnames(actual.couple) = colnames(mycorrelations[,c(1,2)])
-
-            actual.correlation = NULL
-            for(k in 1:nrow(actual.couple)){
-              if (any(actual.couple[k,c(1,2)] == keep)){
-                actual.correlation = rbind(actual.correlation, actual.couple[k,])
-              }
-            }
-
-            actual.correlation = merge(actual.correlation[,c(1,2)],mycorrelations)
-
-            # Uso la matriz anterior para recorrer las correlaciones y segun sea positiva
-            # o negativa, asigno un nombre.
-            for(k in 1:nrow(actual.correlation)){
-              if(actual.correlation[k,3] > 0){
-                index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
-                reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "P", sep = "_")
-              } else{
-                index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
-                reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "N", sep = "_")
-              }
-            }
-          }
-        }
-      }
-    } else {
-
-      # Variables categoricas. El procedimiento es analogo, solo que las correlaciones
-      # se obtienen mediante tablas de contingencia 2 a 2. Se usa el coeficiente de correlacion phi.
-      myreg = reg.table[which(reg.table[,"omic"] == names(omic.type)[[j]]), ,drop=FALSE]
-      myreg = as.character(myreg[which(myreg[,"filter"] == "Model"),"regulator"])
-
-      if (length(myreg) > 1){
-
-        # Phi. Contingency table.
-        couple = t(combn(myreg,2))
-        categorical.correlation = NULL
-
-        # Aqui hago las tablas de contingencia y almaceno en la matriz categorical.correlation las correlaciones por
-        # parejas de reguladores.
-        for (k in 1:nrow(couple)){
-          contingency.table = table(data[,couple[k,1]], data[,couple[k,2]])
-          categorical.correlation = rbind(categorical.correlation, phi(contingency.table))
-        }
-
-        # He creido conveniente tomar una correlacion de 0.6 por defecto para las variables
-        # cualitativas, ya que con ejemplos he visto que 0.6 ya presenta un alto numero de
-        # valores iguales en mismas posiciones.
-        mycorrelations = data.frame(couple, categorical.correlation)
-        correlations = mycorrelations[abs(mycorrelations[,3]) >= correlation,]
-
-
-        if (nrow(correlations) == 1) { ### only 2 regulators are correlated in this omic
-
-          correlacionados = as.character(unlist(correlations[,1:2]))
-          regulators = colnames(data)
-          keep = sample(correlacionados, 1)
-          remove = setdiff(correlacionados, keep)
-          regulators = setdiff(regulators, remove)  # all regulators to keep
-          data = as.matrix(data[ ,regulators])
-          colnames(data) = regulators
-          index.reg = which(colnames(data) == as.character(keep))
-          colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
-
-          reg.table = rbind(reg.table, reg.table[keep,])
-          reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
-          reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
-          rownames(reg.table) = reg.table[ ,"regulator"]
-
-          if(correlations[,3] > 0){
-            index = as.character(correlations[1, which(with(correlations, correlations[1,c(1,2)] != keep))])
-            reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "P", sep = "_")
-          } else{
-            index = as.character(correlations[1, which(with(correlations, correlations[1,c(1,2)] != keep))])
-            reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "N", sep = "_")
-          }
-
-        }
-
-        if (nrow(correlations) >= 2) {   ### more than 2 regulators might be correlated in this omic
-
-          mygraph = graph.data.frame(correlations, directed=F)
-          mycomponents = clusters(mygraph)
-
-          for (i in 1:mycomponents$no) {
-            correlacionados = names(mycomponents$membership[mycomponents$membership == i])
-            regulators = colnames(data)
-
-            keep = sample(correlacionados, 1)  # mantiene uno al azar
-            reg.remove = setdiff(correlacionados, keep) # correlated regulator to remove
-            regulators = setdiff(regulators, reg.remove)  # all regulators to keep
-            data = as.matrix(data[ ,regulators])
-            colnames(data) = regulators
-            index.reg = which(colnames(data) == as.character(keep))
-            colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
-
-            reg.table = rbind(reg.table, reg.table[keep,])
-            reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
-            reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
-            rownames(reg.table) = reg.table[ ,"regulator"]
-
-            actual.couple = as.data.frame(t(combn(correlacionados,2)))
-            colnames(actual.couple) = colnames(mycorrelations[,c(1,2)])
-
-            actual.correlation = NULL
-            for(k in 1:nrow(actual.couple)){
-              if (any(actual.couple[k,c(1,2)] == keep)){
-                actual.correlation = rbind(actual.correlation, actual.couple[k,])
-              }
-            }
-
-            actual.correlation = merge(actual.correlation[,c(1,2)],mycorrelations)
-
-            for(k in 1:nrow(actual.correlation)){
-              if(actual.correlation[k,3] > 0){
-                index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
-                reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "P", sep = "_")
-              } else{
-                index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
-                reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "N", sep = "_")
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  resultado = list(RegulatorMatrix = data, SummaryPerGene = reg.table)
-  rownames(resultado$SummaryPerGene) = resultado$SummaryPerGene[,"regulator"]
-  return(resultado)
-}
+# 
+# CollinearityFilter = function(data, reg.table, correlation = 0.8, omic.type) {
+# 
+#   ## data = Regulator data matrix for all omics where missing values and regulators with low variation have been filtered out
+#   #         (regulators must be in columns)
+#   ## reg.table = Table with "gene", "regulator", "omic", "area", filter" where omics with no regulators have been removed
+# 
+#   row.names(reg.table) = reg.table[,"regulator"]
+#   #resultado = list(RegulatorMatrix = data, SummaryPerGene = reg.table)
+# 
+#   for (j in 1:length(omic.type)){
+# 
+#     if(omic.type[[j]] == 0){  # continuous variable
+# 
+#       # Initial regulators
+#       myreg = reg.table[which(reg.table[,"omic"] == names(omic.type)[[j]]), ,drop=FALSE]
+#       myreg = as.character(myreg[which(myreg[,"filter"] == "Model"),"regulator"])
+# 
+#       if (length(myreg) > 1) {  # if there is more than one regulator for this omic:
+# 
+#         # Dejo la matriz original para poder tomar luego las correlaciones de la red.
+#         mycorrelations = data.frame(t(combn(myreg,2)), as.numeric(as.dist(cor(data[,myreg]))), stringsAsFactors = FALSE)
+#         mycor = mycorrelations[abs(mycorrelations[,3]) >= correlation,]
+# 
+#         if (nrow(mycor) == 1) {  ### only 2 regulators are correlated in this omic
+# 
+#           correlacionados = unlist(mycor[,1:2])
+#           regulators = colnames(data)
+#           keep = sample(correlacionados, 1) # Regulador al azar de la pareja
+# 
+#           ## Lo siguiente elimina el no representante de la matriz de reguladores. Al regulador escogido como representante,
+#           ## le cambia el nombre por "mc_1_R" para que despues pase la seleccion de variables y asi, en reg.table se conserva
+#           ## la info de que fue escogido como representante.
+# 
+#           remove = setdiff(correlacionados, keep)
+#           regulators = setdiff(regulators, remove)
+#           data = as.matrix(data[ ,regulators])
+#           colnames(data) = regulators
+#           index.reg = which(colnames(data) == as.character(keep))
+#           colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+# 
+#           # Cambio en reg.table. Asignacion de los nombres segun sea representante,
+#           # correlacion positiva o negativa. Creacion de una nueva fila con el representante
+#           # para la seleccion de variables y asi, no perder la info del representante.
+# 
+#           reg.table = rbind(reg.table, reg.table[keep,])
+#           reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+#           reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+#           rownames(reg.table) = reg.table[ ,"regulator"]
+# 
+#           if(mycor[,3] > 0){
+#             index = mycor[1, which(with(mycor, mycor[1 ,c(1,2)] != keep))]
+#             reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "P", sep = "_")
+#           } else{
+#             index = mycor[1, which(with(mycor, mycor[1, c(1,2)] != keep))]
+#             reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "N", sep = "_")
+#           }
+#         }
+# 
+#         if (nrow(mycor) >= 2) {   ### more than 2 regulators might be correlated in this omic
+# 
+#           mygraph = graph.data.frame(mycor, directed=F)
+#           mycomponents = clusters(mygraph)
+# 
+#           for (i in 1:mycomponents$no) {
+#             correlacionados = names(mycomponents$membership[mycomponents$membership == i])
+#             regulators = colnames(data)
+# 
+#             ## Escoge un regulador al azar como representante de cada componente conexa. Para cada componente conexa elimina aquellos reguladores
+#             ## que no han sido escogidos como representante.
+#             keep = sample(correlacionados, 1)  # mantiene uno al azar
+#             reg.remove = setdiff(correlacionados, keep) # correlated regulator to remove
+#             regulators = setdiff(regulators, reg.remove)  # all regulators to keep
+#             data = as.matrix(data[ ,regulators])
+#             colnames(data) = regulators
+#             index.reg = which(colnames(data) == as.character(keep))
+#             colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+# 
+#             # Asignacion de nombre al representante y nueva fila para el filtro de
+#             # seleccion de variables (asi no se pierde la info del representante).
+#             reg.table = rbind(reg.table, reg.table[keep,])
+#             reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+#             reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+#             rownames(reg.table) = reg.table[ ,"regulator"]
+# 
+#             # Matriz que recoge los reguladores correlacionados con el representante: actual.correlation. Asi se puede ver si la correlacion es
+#             # positiva o negativa y asignar el nombre. Intente hacer merge(), expand.grid(), pero no daba las mismas combinaciones que combn(), por lo que
+#             # vi necesario hacer un bucle para quedarme con aquellas parejas que interesan (representante - resto de reguladores).
+#             actual.couple = data.frame(t(combn(correlacionados,2)), stringsAsFactors = FALSE)
+#             colnames(actual.couple) = colnames(mycorrelations[,c(1,2)])
+# 
+#             actual.correlation = NULL
+#             for(k in 1:nrow(actual.couple)){
+#               if (any(actual.couple[k,c(1,2)] == keep)){
+#                 actual.correlation = rbind(actual.correlation, actual.couple[k,])
+#               }
+#             }
+# 
+#             actual.correlation = merge(actual.correlation[,c(1,2)],mycorrelations)
+# 
+#             # Uso la matriz anterior para recorrer las correlaciones y segun sea positiva
+#             # o negativa, asigno un nombre.
+#             for(k in 1:nrow(actual.correlation)){
+#               if(actual.correlation[k,3] > 0){
+#                 index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
+#                 reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "P", sep = "_")
+#               } else{
+#                 index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
+#                 reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "N", sep = "_")
+#               }
+#             }
+#           }
+#         }
+#       }
+#     } else {
+# 
+#       # Variables categoricas. El procedimiento es analogo, solo que las correlaciones
+#       # se obtienen mediante tablas de contingencia 2 a 2. Se usa el coeficiente de correlacion phi.
+#       myreg = reg.table[which(reg.table[,"omic"] == names(omic.type)[[j]]), ,drop=FALSE]
+#       myreg = as.character(myreg[which(myreg[,"filter"] == "Model"),"regulator"])
+# 
+#       if (length(myreg) > 1){
+# 
+#         # Phi. Contingency table.
+#         couple = t(combn(myreg,2))
+#         categorical.correlation = NULL
+# 
+#         # Aqui hago las tablas de contingencia y almaceno en la matriz categorical.correlation las correlaciones por
+#         # parejas de reguladores.
+#         for (k in 1:nrow(couple)){
+#           contingency.table = table(data[,couple[k,1]], data[,couple[k,2]])
+#           categorical.correlation = rbind(categorical.correlation, phi(contingency.table))
+#         }
+# 
+#         # He creido conveniente tomar una correlacion de 0.6 por defecto para las variables
+#         # cualitativas, ya que con ejemplos he visto que 0.6 ya presenta un alto numero de
+#         # valores iguales en mismas posiciones.
+#         mycorrelations = data.frame(couple, categorical.correlation)
+#         correlations = mycorrelations[abs(mycorrelations[,3]) >= correlation,]
+# 
+# 
+#         if (nrow(correlations) == 1) { ### only 2 regulators are correlated in this omic
+# 
+#           correlacionados = as.character(unlist(correlations[,1:2]))
+#           regulators = colnames(data)
+#           keep = sample(correlacionados, 1)
+#           remove = setdiff(correlacionados, keep)
+#           regulators = setdiff(regulators, remove)  # all regulators to keep
+#           data = as.matrix(data[ ,regulators])
+#           colnames(data) = regulators
+#           index.reg = which(colnames(data) == as.character(keep))
+#           colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+# 
+#           reg.table = rbind(reg.table, reg.table[keep,])
+#           reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+#           reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "R", sep = "_")
+#           rownames(reg.table) = reg.table[ ,"regulator"]
+# 
+#           if(correlations[,3] > 0){
+#             index = as.character(correlations[1, which(with(correlations, correlations[1,c(1,2)] != keep))])
+#             reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "P", sep = "_")
+#           } else{
+#             index = as.character(correlations[1, which(with(correlations, correlations[1,c(1,2)] != keep))])
+#             reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", 1, sep = ""), "N", sep = "_")
+#           }
+# 
+#         }
+# 
+#         if (nrow(correlations) >= 2) {   ### more than 2 regulators might be correlated in this omic
+# 
+#           mygraph = graph.data.frame(correlations, directed=F)
+#           mycomponents = clusters(mygraph)
+# 
+#           for (i in 1:mycomponents$no) {
+#             correlacionados = names(mycomponents$membership[mycomponents$membership == i])
+#             regulators = colnames(data)
+# 
+#             keep = sample(correlacionados, 1)  # mantiene uno al azar
+#             reg.remove = setdiff(correlacionados, keep) # correlated regulator to remove
+#             regulators = setdiff(regulators, reg.remove)  # all regulators to keep
+#             data = as.matrix(data[ ,regulators])
+#             colnames(data) = regulators
+#             index.reg = which(colnames(data) == as.character(keep))
+#             colnames(data)[index.reg] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+# 
+#             reg.table = rbind(reg.table, reg.table[keep,])
+#             reg.table[nrow(reg.table), "regulator"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+#             reg.table[keep, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "R", sep = "_")
+#             rownames(reg.table) = reg.table[ ,"regulator"]
+# 
+#             actual.couple = as.data.frame(t(combn(correlacionados,2)))
+#             colnames(actual.couple) = colnames(mycorrelations[,c(1,2)])
+# 
+#             actual.correlation = NULL
+#             for(k in 1:nrow(actual.couple)){
+#               if (any(actual.couple[k,c(1,2)] == keep)){
+#                 actual.correlation = rbind(actual.correlation, actual.couple[k,])
+#               }
+#             }
+# 
+#             actual.correlation = merge(actual.correlation[,c(1,2)],mycorrelations)
+# 
+#             for(k in 1:nrow(actual.correlation)){
+#               if(actual.correlation[k,3] > 0){
+#                 index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
+#                 reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "P", sep = "_")
+#               } else{
+#                 index = as.character(actual.correlation[k, which(with(actual.correlation, actual.correlation[k,c(1,2)] != keep))])
+#                 reg.table[index, "filter"] = paste(names(omic.type)[[j]], paste("mc", i, sep = ""), "N", sep = "_")
+#               }
+#             }
+#           }
+#         }
+#       }
+#     }
+#   }
+#   resultado = list(RegulatorMatrix = data, SummaryPerGene = reg.table)
+#   rownames(resultado$SummaryPerGene) = resultado$SummaryPerGene[,"regulator"]
+#   return(resultado)
+# }
 
 ## Multicollinearity filter taking into account correlation of different omics. Method 'COR'
 
