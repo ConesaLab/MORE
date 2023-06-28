@@ -104,7 +104,7 @@ library(irlba)
 #' with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso
 #' penalty). The default is 0.5, which gives equal weight to ridge and lasso.
 #' @param omic.type 0 = numerical variable (default), 1 = binary (categorical) variable. It should be a vector with length the number of omic types or a number (0 or 1) if all the omics are of the same type.
-#' @param filter  cor= takes into account the possible multicollinearity between omics. pcor = computes the partial correlation to take into account the possible multicollinearity between omics.
+#' @param col.filter  cor= takes into account the possible multicollinearity between omics. pcor = computes the partial correlation to take into account the possible multicollinearity between omics.
 #'
 #' @return
 #' @export
@@ -124,7 +124,7 @@ GetGLM = function(GeneExpression,
                   correlation = 0.9,
                   min.obs = 10,
                   omic.type = 0,
-                  filter = 'cor'){
+                  col.filter = 'cor'){
 
 
   cont.var = NULL
@@ -487,11 +487,11 @@ GetGLM = function(GeneExpression,
           #   res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
           #                            correlation = correlation, omic.type = omic.type)
           # }
-          if(filter=='cor'){
+          if(col.filter=='cor'){
             res = CollinearityFilter1(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
                                       correlation = correlation, omic.type = omic.type)
           }
-          if(filter=='pcor'){
+          if(col.filter=='pcor'){
             res = CollinearityFilter2(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
                                       correlation = correlation, omic.type = omic.type)
           }
