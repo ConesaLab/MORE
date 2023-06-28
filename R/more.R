@@ -104,7 +104,8 @@ suppressMessages(source("ComputeGLM_function.R"))
 #' @param omic.type 0 = numerical variable (default), 1 = binary (categorical) variable. It should be a vector with length the number of omic types or a number (0 or 1) if all the omics are of the same type.
 #' @param edesign.type 0 = numerical variable (default), 1 = binary (categorical) variable. It should be a vector with length the number of experimental design variables or a number (0 or 1) if all the experimental design variables are of the same type.
 #' @param method 'GLM' = Apply a GLM with ElasticNet regularization. 'PLS' = Apply PLS model
-#' @param filter '1' = Applies MORE original multicollinearity filter method. '2' = Applies MORE multicollinearity filter method based on correlations between different omics (COR). '3' = Applies multicollinearity filter method based on Partial Correlation (PC).
+#' @param filter cor= takes into account the possible multicollinearity between omics. pcor = computes the partial correlation to take into account the possible multicollinearity between omics.
+#' @param scaletype 'auto' = Applies the autoscaling 'pareto'= Applies the pareto scaling to the omics 'block' = Applies the block scaling to the omics
 #' @return
 #' @export
 #'
@@ -125,7 +126,7 @@ more <-function(GeneExpression,
                 min.obs = 10,
                 omic.type = 0,
                 filter = 'cor',
-                scaletype = 1,
+                scaletype = 'auto',
                 edesign.type= 0,
                 p.method = 'jack',
                 all_settings,
