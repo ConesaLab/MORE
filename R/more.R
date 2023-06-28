@@ -129,7 +129,6 @@ more <-function(GeneExpression,
                 scaletype = 'auto',
                 edesign.type= 0,
                 p.method = 'jack',
-                all_settings,
                 method  ='glm'){
   
   if(method=='glm'){
