@@ -22,9 +22,6 @@ library(Hmisc)
 library(ropls)
 library(fastDummies)
 
-suppressMessages(source("auxFunctions.R"))
-suppressMessages(source("MORE_GLM.R"))
-suppressMessages(source("ComputeGLM_function.R"))
 # Generalized Lineal Model  -----------------------------------------------
 # DETAILS
 # In the case that the data matrix contains more variables than samples, a stepwise forward is applied, but the experimental
