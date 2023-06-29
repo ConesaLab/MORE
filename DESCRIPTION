@@ -2,10 +2,10 @@ Package: MORE
 Type: Package
 Title: Multi-Omics REgulation (MORE)
 Version: 0.1.0
-Author: Sonia Tarazona, Blanca Tom·s Riquelme
-Depends: igraph, MASS, glmnet, car, psych
-Maintainer: Sonia Tarazona <starazona@cipf.es>
-Description: MORE is a method which facilitate the task of applying GLMs models to multi-omic data. The goal of MORE is to model gene expression as a function of experimental variables, such as treatment, and the potential regulators of a given gene. MORE has a several functionalities to filter regulator: variable selection (Lasso, ridge regression and ElasticNet), filter for regulators with low variation, for missing data, for correlated regulators and stepwise methods.
-License: GPL-2
 Encoding: UTF-8
+Author: Sonia Tarazona, Blanca Tom√°s Riquelme, Maider Aguerralde Martin
+Depends: igraph, MASS, glmnet, car, psych, ropls, fastDummies
+Maintainer: Sonia Tarazona <starazona@cipf.es>
+Description: MORE is a method which facilitate the task of applying regression models to multi-omic data. The goal of MORE is to model gene expression as a function of experimental variables, such as treatment, and the potential regulators of a given gene. MORE has a several functionalities to filter regulators: variable selection (Lasso, ridge regression and ElasticNet), filter for regulators with low variation, for missing data, for correlated regulators and stepwise methods.
+License: GPL-2
 LazyData: true
