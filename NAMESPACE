@@ -4,6 +4,11 @@ import(igraph)
 import(MASS)
 import(glmnet)
 import(car)
+import(ltm)
+import(Hmisc)
+import(ropls)
+import(fastDummies)
+
 importFrom("grDevices", "colors")
 importFrom("graphics", "abline", "arrows", "axis", "box", "lines",
              "mtext", "par", "plot", "points")
