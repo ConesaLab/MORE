@@ -716,8 +716,8 @@ GetAllReg=function(gene, associations, data.omics){
 
       myregulators=associations[[ov]][associations[[ov]]$gene==gene, ,drop=FALSE] ## "regulator" with Area--> Matrix
 
-      if(length(myregulators)==0){
-        ov.nr=length(myregulators) ## regulators nr per omic --> It could be 0
+      if(nrow(myregulators)==0){
+        ov.nr=nrow(myregulators) ## regulators nr per omic --> It could be 0
         myregulators=c("No-regulator","")
         myregulators=t(as.matrix(myregulators))
 
