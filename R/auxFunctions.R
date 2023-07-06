@@ -297,7 +297,7 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
 
 # ElasticNet variable selection -------------------------------------------
 
-ElasticNet = function (family2, des.mat2, epsilon, elasticnet, Res.df) {
+ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
 
   if (!is.null(elasticnet) && (ncol(des.mat2) > 2)) {  # Variable selection with ElasticNet
 
@@ -306,7 +306,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet, Res.df) {
       if (nrow(des.mat2) > 200) { mynfolds =  ceiling(nrow(des.mat2)/20) } else { mynfolds = nrow(des.mat2) }  # for CV
 
       cvEN = cv.glmnet(x = as.matrix(des.mat2[,-1]),
-                       y = des.mat2[,1], dfmax = nrow(des.mat2) - 1 - Res.df,
+                       y = des.mat2[,1], 
                        nfolds = mynfolds, alpha = elasticnet, standardize = FALSE, thres = epsilon,
                        family = family2, grouped = FALSE)
 

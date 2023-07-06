@@ -80,11 +80,7 @@ library(fastDummies)
 #' @param cont.var Name of the column in edesign that is to be considered as a continuous
 #' explanatory variable in the regression model. NULL if edesign does not contain any continuous
 #' variables. By default, "Time".
-#' @param Res.df Number of degrees of freedom in the residuals. By default, 5. Increasing
-#' Res.df will increase the power of the statistical model.
 #' @param alfa Significance level. By default, 0.05.
-#' @param MT.adjust Multiple testing correction method to be used within the stepwise variable
-#' selection procedure. By default, "none". See the different options in ?\code{p.adjust}.
 #' @param interactions.exp If TRUE (default), interactions among the experimental variables
 #' are included in the model.
 #' @param interactions.reg If TRUE (default), interactions between regulators and experimental
@@ -112,9 +108,9 @@ more <-function(GeneExpression,
                 data.omics,
                 edesign = NULL,
                 center = TRUE, scale = FALSE,
-                Res.df = 5, epsilon = 0.00001,
-                alfa = 0.05, MT.adjust = "none",
-                family = negative.binomial(theta=10),
+                epsilon = 0.00001,
+                alfa = 0.05, 
+                family = gaussian(),
                 elasticnet = 0.5,
                 interactions.reg = TRUE,
                 min.variation = 0,
@@ -134,8 +130,8 @@ more <-function(GeneExpression,
                   data.omics,
                   edesign = edesign,
                   center = center, scale = scale,
-                  Res.df = Res.df, epsilon = epsilon,
-                  alfa = alfa, MT.adjust = MT.adjust,
+                  epsilon = epsilon,
+                  alfa = alfa, 
                   family = family,
                   elasticnet = elasticnet,
                   interactions.reg = interactions.reg,
@@ -155,7 +151,7 @@ more <-function(GeneExpression,
            edesign = edesign,
            center = center, scale = scale,
            epsilon = epsilon,
-           alfa = alfa, MT.adjust = MT.adjust,
+           alfa = alfa, 
            interactions.reg = interactions.reg,
            min.variation = min.variation,
            min.obs = min.obs,

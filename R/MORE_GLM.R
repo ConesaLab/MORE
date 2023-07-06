@@ -82,8 +82,6 @@ library(irlba)
 #' @param degree If cont.var is not NULL, non-linear (polynomial) relationships between the cont.var
 #' and the gene expression must be studied. By default, degree = 1 and must be an integer.
 #' A higher number will allow for in quadratic, cubic, etc. terms for cont.var in the model.
-#' @param Res.df Number of degrees of freedom in the residuals. By default, 5. Increasing
-#' Res.df will increase the power of the statistical model.
 #' @param alfa Significance level. By default, 0.05.
 #' @param MT.adjust Multiple testing correction method to be used within the stepwise variable
 #' selection procedure. By default, "none". See the different options in ?\code{p.adjust}.
@@ -114,10 +112,10 @@ GetGLM = function(GeneExpression,
                   associations = NULL,
                   data.omics,
                   edesign = NULL,
-                  center = TRUE, scale = FALSE,
-                  Res.df = 5, epsilon = 0.00001,
-                  alfa = 0.05, MT.adjust = "none",
-                  family = negative.binomial(theta=10),
+                  center = TRUE, scale = TRUE,
+                  epsilon = 0.00001,
+                  alfa = 0.05, 
+                  family = gaussian(),
                   elasticnet = 0.5,
                   interactions.reg = TRUE,
                   min.variation = 0,
@@ -139,7 +137,7 @@ GetGLM = function(GeneExpression,
   }
 
   # Checking that Res.df is coherent with the number of samples
-  if (Res.df >= (ncol(GeneExpression)-1)) stop("ERROR: You must decrease the Res.df so that a model can be computed.")
+  #if (Res.df >= (ncol(GeneExpression)-1)) stop("ERROR: You must decrease the Res.df so that a model can be computed.")
 
 
   # Checking that the number of samples per omic is equal to number of samples for gene expression and the number of samples for edesign
@@ -530,7 +528,7 @@ GetGLM = function(GeneExpression,
         des.mat2EN = na.omit(des.mat2EN)
 
         ###  Variable selection --> Elasticnet
-        tmp = ElasticNet(family2, des.mat2EN, epsilon, elasticnet, Res.df)
+        tmp = ElasticNet(family2, des.mat2EN, epsilon, elasticnet)
         regulatorcoef = tmp[['coefficients']]
         isModel = tmp[['isModel']]
         m = tmp[['m']]
@@ -644,10 +642,10 @@ GetGLM = function(GeneExpression,
   genessig = setdiff(rownames(GlobalSummary$GoodnessOfFit), genesNosig)
   GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,]
 
-  myarguments = list(edesign = edesign, finaldesign = des.mat, Res.df = Res.df, groups = Group, alfa = alfa, family = family,
+  myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, family = family,
                      stepwise = 'none', center = center, scale = scale, elasticnet = elasticnet,
                      min.variation = min.variation, correlation = correlation,
-                     MT.adjust = MT.adjust, min.obs = min.obs, epsilon = epsilon,
+                     min.obs = min.obs, epsilon = epsilon,
                      GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type)
 
   return(list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments))
