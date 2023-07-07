@@ -533,7 +533,7 @@ GetGLM = function(GeneExpression,
         isModel = tmp[['isModel']]
         m = tmp[['m']]
         des.mat2 = as.data.frame(des.mat2EN[,colnames(tmp[["des.mat2"]]),drop = FALSE])
-        ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
+        ResultsPerGene[[i]]$X = des.mat2EN[,-1, drop = FALSE]
         rm(des.mat2EN); gc()
         
         if (ncol(des.mat2) == 1 || is.null(isModel)) {
