@@ -72,7 +72,7 @@
 
 LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, Allgenes, omic.type) {
 
-  if (is.null(min.variation)){
+  if (all(is.na(min.variation))){
     
     for (ov in names(associations)){
       if(!is.null(associations[[ov]])){
@@ -172,23 +172,32 @@ LowVariationRegu = function(min.variation, data.omics, ExpGroups, associations, 
 ## percVar: percentage of variation defined by the user
 
 LowVariatFilter=function(data, method, percVar, omic.type){
-
+  
   SummaryRes = LV.reg = vector("list", length=length(data))
   names(SummaryRes) = names(LV.reg) = names(data)
-
+  
   for (ov in names(data)) {
-
+    if(is.na(percVar[ov])){
+      method.low="sd"
+      if(omic.type[ov]==0){
+        percVar[ov]=10
+      }else{
+        percVar[ov]==0.1
+      }
+    }else{
+      method.low =method
+    }
     if (omic.type[ov] == 0) {  # numerical regulators
-
-      if (method=="sd") {
+      
+      if (method.low=="sd") {
         met=apply(data[[ov]], 1, sd, na.rm=TRUE)  ## Compute standard deviation between conditions
         maxMet=max(met)*(percVar[ov]/100)  ## Compute minimum variation allowed
         myreg=met[met>maxMet]  # Regulators to be kept
         LV.reg[[ov]]=names(met[met<=maxMet]) ## Keep names of removed regulators
         data[[ov]]=data[[ov]][names(myreg), ,drop=FALSE]
       }
-
-      if(method=="user") {
+      
+      if(method.low=="user") {
         if (min(dim(data[[ov]])) > 0) {
           met = apply(data[[ov]], 1, function(x) max(x, na.rm=TRUE)-min(x, na.rm=TRUE) )
           maxMet = percVar[ov] ## We don't consider the max, just the percentage defined by the user
@@ -198,10 +207,10 @@ LowVariatFilter=function(data, method, percVar, omic.type){
         }
       }
     }
-
+    
     if (omic.type[ov] == 1) {  # binary categorical regulators
       
-      if(method=='sd'){
+      if(method.low=='sd'){
         met = apply(data[[ov]], 1, function (x) { max(x, na.rm = TRUE)-min(x, na.rm = TRUE) })  ## Compute maximun variation between groups
         maxMet=max(met)/10 ## Compute the minimum variation allowed
         myreg = met[met > maxMet]  # Regulators to be kept
@@ -209,7 +218,7 @@ LowVariatFilter=function(data, method, percVar, omic.type){
         data[[ov]] = data[[ov]][names(myreg), ,drop=FALSE]
       }
       
-      if(method == 'user'){ 
+      if(method.low == 'user'){ 
         met = apply(data[[ov]], 1, function (x) { max(x, na.rm = TRUE)-min(x, na.rm = TRUE) })  ## Compute maximun variation between groups
         myreg = met[met > percVar[ov]]  # Regulators to be kept
         LV.reg[[ov]] = names(met[met <= percVar[ov]]) ## Keep names of removed regulators
@@ -217,12 +226,12 @@ LowVariatFilter=function(data, method, percVar, omic.type){
       }
     }
   }
-
+  
   results=vector("list", length=2)
   results[[1]]=data
   results[[2]]=LV.reg
   names(results)=c("data", "LV.reg")
-
+  
   return(results)
 }
 
