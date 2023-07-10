@@ -324,6 +324,8 @@ GetGLM = function(GeneExpression,
   associations = tmp[["associations"]]
   myregLV = tmp[["myregLV"]]
   rm("tmp"); gc()
+  
+  if(all(lapply(data.omics, function(x)nrow(x)==0))) stop("ERROR: No regulators left after LowVariation filter. Consider being less restrictive.")
 
 
   ## Centering/Scaling quantitative predictors
@@ -622,7 +624,7 @@ GetGLM = function(GeneExpression,
       ResultsPerGene[[i]]$Y = GeneExpression[i,]
       ResultsPerGene[[i]]$coefficients = NULL
       
-      GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[rownames(GlobalSummary$GoodnessOfFit) != gene,]
+      GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[rownames(GlobalSummary$GoodnessOfFit) != gene,,drop=FALSE]
       
       
     } else {
@@ -640,7 +642,7 @@ GetGLM = function(GeneExpression,
   
   genesNosig = names(which(GlobalSummary$GoodnessOfFit[,4]==0))
   genessig = setdiff(rownames(GlobalSummary$GoodnessOfFit), genesNosig)
-  GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,]
+  GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,,drop=FALSE]
 
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, family = family,
                      stepwise = 'none', center = center, scale = scale, elasticnet = elasticnet,
