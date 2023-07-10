@@ -155,20 +155,26 @@ GetGLM = function(GeneExpression,
   ## Checking that samples are in the same order in GeneExpressionDE, data.omics and edesign
   orderproblem<-FALSE
   if(is.null(edesign)){
-    orderproblem<-all(sapply(data.omics, function(x) isTRUE(all.equal(sort(names(x)),sort(names(GeneExpression))))))
-    if(orderproblem){
-      data.omics<-lapply(data.omics, function(x) x[,order(colnames(GeneExpression))])
-    }
-    else{
+    nameproblem<-!all(sapply(data.omics, function(x) length(intersect(colnames(x),colnames(GeneExpression))==ncol(GeneExpression))))
+    if(nameproblem){
       cat('Warning. GeneExpression and data.omics samples have not same names. We assume that they are ordered.\n')
+    }else{
+      orderproblem<-!all(sapply(data.omics, function(x) identical(colnames(x),colnames(GeneExpression))))
+      if(orderproblem){
+        data.omics<-lapply(data.omics, function(x) x[,colnames(GeneExpression)])
+      }
     }
+    
   } else{
-    orderproblem<-all(c(sapply(data.omics, function(x) isTRUE(all.equal(sort(names(x)),sort(names(GeneExpression))))), isTRUE(all.equal(sort(rownames(edesign)),sort(names(GeneExpression))))))
-    if(orderproblem){
-      data.omics<-lapply(data.omics, function(x) x[,sort(colnames(GeneExpression))])
-      edesign<-edesign[sort(colnames(GeneExpression)), , drop=FALSE]
-    } else{
+    nameproblem<-!all(c(sapply(data.omics, function(x) length(intersect(colnames(x),colnames(GeneExpression)))==ncol(GeneExpression)), length(intersect(rownames(edesign),colnames(GeneExpression)))==ncol(GeneExpression)))
+    if(nameproblem){
       cat('Warning. GeneExpression, edesign and data.omics samples have not same names. We assume that they are ordered.\n')
+    } else{
+      orderproblem<-!all(c(sapply(data.omics, function(x) identical(colnames(x),colnames(GeneExpression))), identical(colnames(GeneExpression),rownames(edesign))))
+      if(orderproblem){
+        data.omics<-lapply(data.omics, function(x) x[,colnames(GeneExpression)])
+        edesign<-edesign[colnames(GeneExpression), , drop=FALSE]
+      }
     }
   }
 
@@ -325,7 +331,7 @@ GetGLM = function(GeneExpression,
   myregLV = tmp[["myregLV"]]
   rm("tmp"); gc()
   
-  if(all(lapply(data.omics, function(x)nrow(x)==0))) stop("ERROR: No regulators left after LowVariation filter. Consider being less restrictive.")
+  if(all(sapply(data.omics, function(x)nrow(x)==0))) stop("ERROR: No regulators left after LowVariation filter. Consider being less restrictive.")
 
 
   ## Centering/Scaling quantitative predictors
