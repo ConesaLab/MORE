@@ -273,7 +273,9 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
                          collapse = "+"))
 
       fff = as.formula(fff)
-      des.mat2 = cbind(des.mat2, model.matrix(fff, des.mat2)[,-1, drop = FALSE])
+      inter.var = model.matrix(fff, des.mat2)[,-1, drop = FALSE]
+      colnames(inter.var) = strsplit(as.character(fff),"\\s*\\+\\s*")[-1][[1]]
+      des.mat2 = cbind(des.mat2, inter.var)
 
       des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
       colnames(des.mat2)[1] = "response"
