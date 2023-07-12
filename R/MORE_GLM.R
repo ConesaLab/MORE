@@ -651,7 +651,7 @@ GetGLM = function(GeneExpression,
   GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,,drop=FALSE]
 
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, family = family,
-                     stepwise = 'none', center = center, scale = scale, elasticnet = elasticnet,
+                     center = center, scale = scale, elasticnet = elasticnet,
                      min.variation = min.variation, correlation = correlation,
                      min.obs = min.obs, epsilon = epsilon,
                      GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type)
