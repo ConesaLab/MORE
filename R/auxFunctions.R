@@ -236,11 +236,6 @@ LowVariatFilter=function(data, method, percVar, omic.type){
 }
 
 
-
-
-
-
-
 # Adding interations with regulators -------------------------------------
 
 RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.var, GeneExpression, gene) {
@@ -302,10 +297,6 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, cont.v
 }
 
 
-
-
-
-
 # ElasticNet variable selection -------------------------------------------
 
 ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
@@ -357,4 +348,220 @@ modelcharac = function(fitted.glm,s, y, y.fitted){
   cvRMSE= sqrt(sum((y-y.fitted)^2)/n)/mean(y)
   
   return(list('R.squared'=R2, 'RMSE' = RMSE ,'cvRMSE'=cvRMSE))
+}
+
+# Functions needed for PLS
+
+
+# Adding interations with regulators -------------------------------------
+
+RegulatorsInteractionsPLS = function (interactions.reg, reguValues, des.mat, clinic.type, cont.var, GeneExpression, gene, regu, omic.type) {
+  
+  # Adding regulators
+  if (is.null(des.mat)) {
+    des.mat2 = data.frame(reguValues, check.names = FALSE)
+    des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
+    colnames(des.mat2)[1] = "response"
+  } else {
+    res.mat = NULL
+    for (i in 1:ncol(des.mat)) {
+      res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat[,i, drop = FALSE])[,-1]))
+    }
+    colnames(res.mat) = sub('.*_','Group_',colnames(res.mat))
+    rownames(res.mat) = rownames(des.mat)
+    des.mat = res.mat
+    
+    res.mat = NULL
+    for (ov in names(regu)){
+      if (ov =='clinic'){
+        des.mat2 = as.data.frame(reguValues[, regu[[ov]],drop =FALSE])
+        for (i in 1:length(clinic.type)) {
+          if(clinic.type[i]==1){
+            res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat2[,i,drop=FALSE])[,-1, drop=FALSE]))
+          }else{
+            res.mat = cbind(res.mat,as.matrix(des.mat2[,i,drop=FALSE]))
+          }
+        }
+      }else{
+        des.mat2 = as.data.frame(reguValues[, regu[[ov]],drop =FALSE])
+        if (ncol(des.mat2!=0)){
+          if (omic.type[ov] == 1){
+            des.mat2 = apply(des.mat2, 2, factor)
+            res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat2)[,-c(1:ncol(des.mat2)), drop=FALSE]))
+          } else{
+            res.mat = cbind(res.mat,as.matrix(des.mat2))
+          } 
+        }
+      }
+    }
+    
+    rownames(res.mat) = rownames(reguValues)
+    reguValues = res.mat
+    rm(res.mat);rm(des.mat2);gc();
+    des.mat2 = data.frame(des.mat, reguValues, check.names = FALSE)
+    ### WITH INTERACTIONS with regulators
+    if (interactions.reg > 0) {
+      expcond = colnames(des.mat)
+      
+      if (interactions.reg == 1) {  # Max order of interaction = 2 & Interactions with cont.var not allowed
+        if (length(grep(":", expcond, fixed = TRUE)))  expcond = expcond[-grep(":", expcond, fixed = TRUE)]
+        if (!is.null(cont.var)) {
+          if (length(grep(cont.var, expcond)))  expcond = expcond[-grep(cont.var, expcond)]
+        }
+      }
+      
+      if (interactions.reg == 2) { # Max order of interaction = 2
+        if (length(grep(":", expcond, fixed = TRUE)))  expcond = expcond[-grep(":", expcond, fixed = TRUE)]
+      }
+      
+      fff = paste0("~ ",
+                   paste(sapply(colnames(reguValues),
+                                function (x) paste(expcond, sprintf("`%s`", x), sep = ":")),
+                         collapse = "+"))
+      
+      fff = as.formula(fff)
+      inter.var = model.matrix(fff, des.mat2)[,-1, drop = FALSE]
+      colnames(inter.var) = strsplit(as.character(fff),"\\s*\\+\\s*")[-1][[1]]
+      des.mat2 = cbind(des.mat2, inter.var)
+      
+      des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
+      colnames(des.mat2)[1] = "response"
+      
+      colnames(des.mat2) = gsub("\`", "", colnames(des.mat2))
+      
+      
+      ## PUEDE OCURRIR QUE AL METER LAS INTERACCIONES TODA LA COLUMNA SEA 0. HAGO UN FILTRO PREVIO
+      sd.regulators = apply(des.mat2[,-1, drop = FALSE], 2, sd, na.rm=TRUE)
+      regulators0 = names(sd.regulators[sd.regulators==0])
+      if (length(regulators0)>0) des.mat2 = des.mat2[, setdiff(colnames(des.mat2), regulators0), drop=FALSE]
+      
+      
+    } else  {    ### WITHOUT INTERACTIONS
+      
+      des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
+      colnames(des.mat2)[1] = "response"
+      
+    }
+  }
+  
+  return(des.mat2)
+  
+}
+
+# Scale for PLS models -------------------------------
+
+ScalePLSdesmat = function(des.mat2, scaletype, center, scale){
+  
+  res.mat = NULL
+  for (i in 1:ncol(des.mat2)) {
+    res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat2[i])[,-1]))
+  }
+  #Change the name to avoid conflicts with RegulationPerCondition
+  colnames(res.mat) = sub('.*_','Group_',colnames(res.mat))
+  if(scaletype=='auto'){
+    #Autoescalado: todas las variables tienen el mismo peso en el modelo, indiferentemente del modelo
+    res.mat = scale(res.mat, center = center, scale = scale)
+  }
+  if(scaletype=='pareto'){
+    #Escalado tipo pareto
+    res.mat = scale(res.mat, center = center, scale = scale) / (ncol(des.mat2)^(1/4))
+  }
+  if(scaletype=='block'){
+    #Cada bloque de variables tiene el mismo peso total en el modelo
+    res.mat = scale(res.mat, center = center, scale = scale) / (ncol(des.mat2)^(1/2))
+  }
+  rownames(res.mat) = rownames(des.mat2)
+  return(res.mat)
+}
+
+ScalePLS= function(reguVal, regu, omic.type, scaletype, center, scale){
+  res.mat = NULL
+  for (ov in names(regu)){
+    des.mat2 = as.data.frame(reguVal[, regu[[ov]],drop =FALSE])
+    
+    if(scaletype=='auto'){
+      #Autoescalado: todas las variables tienen el mismo peso en el modelo, indiferentemente del modelo
+      des.mat2 = scale(des.mat2, center = center, scale = scale)
+    }
+    if(scaletype=='pareto'){
+      #Escalado tipo pareto
+      des.mat2 = scale(des.mat2, center = center, scale = scale) / (ncol(des.mat2)^(1/4))
+    }
+    if(scaletype=='block'){
+      #Cada bloque de variables tiene el mismo peso total en el modelo
+      des.mat2 = scale(des.mat2, center = center, scale = scale) / (ncol(des.mat2)^(1/2))
+    }
+    
+    res.mat = cbind(res.mat,des.mat2)
+    
+  }
+  
+  rownames(res.mat) = rownames(reguVal)
+  
+  return(res.mat)
+}
+
+# p-values for PLS models ------------------------------------------------
+
+p.coef<-function(pls,R, datospls){
+  #pls: modelo PLS generado con la libreria ropls
+  #R: número de veces a repetir la prueba
+  #datospls: matriz de datos utilizada para crear el modelo
+  k=pls@summaryDF$pre
+  coefmod<-pls@coefficientMN
+  Y=datospls[,1]
+  a<-NULL
+  for (i in 1:R){
+    Yperm=sample(Y, replace=FALSE)
+    plsda.opls<-opls(datospls[,-1], scale(Yperm), scaleC='none', predI=k,
+                     info.txtC='none', fig.pdfC='none', crossvalI=1,permI = 0)
+    a<-cbind(a,plsda.opls@coefficientMN)
+  }
+  p.coefs<-matrix(2, nrow=nrow(a), ncol=1)
+  for(i in 1:nrow(a)){
+    coefs<-a[i,]
+    pvalor = ifelse(coefmod[i] > 0, (sum(coefs > coefmod[i]) + sum(coefs < -coefmod[i]) )/ R, (sum(coefs < coefmod[i]) + sum(coefs > -coefmod[i])) / R)
+    p.coefs[i,1]<-pvalor
+  }
+  rownames(p.coefs)<-rownames(coefmod)
+  return(p.coefs)
+}
+
+
+p.valuejack<-function(pls, datospls,alfa){
+  
+  #pls: modelo PLS generado con la libreria ropls
+  #datospls: matriz de datos utilizada para crear el modelo
+  
+  #Caso de Leave-one-out
+  k=pls@summaryDF$pre
+  coefmod=pls@coefficientMN
+  a=NULL
+  
+  for (i in 1: nrow(datospls)) {
+    
+    pls.opls=suppressWarnings(opls(datospls[-i,-1], scale(datospls[-i,1]), scaleC='none', predI=k,
+                                   info.txtC='none', fig.pdfC='none', crossvalI=1, permI = 0))
+    
+    if(length(pls.opls)<length(coefmod)){
+      exclvar=setdiff(rownames(coefmod),rownames(pls.opls@coefficientMN))
+      b<-matrix(0,ncol=1,nrow = length(exclvar))
+      rownames(b)<-exclvar
+      pls.opls@coefficientMN=rbind(pls.opls@coefficientMN,b)
+      
+    }
+    order <- match(rownames(coefmod), rownames(pls.opls@coefficientMN))
+    plscoefficientMN <- pls.opls@coefficientMN[order, ]
+    a=cbind(a,plscoefficientMN)
+  }
+  
+  est = (a-matrix(rep(coefmod, ncol(a)), ncol = ncol(a)))^2
+  estjack = sqrt(((nrow(datospls)-1)/nrow(datospls)) * rowSums(est))
+  
+  pvalor = 2*pt(abs(coefmod/estjack), df = nrow(datospls)-1, lower.tail = FALSE)
+  #calculo de los intervalos de confianza para ver que todo va bien, aún y todo podemos ahorrar esto no es necesario en nuestro caso
+  #res =cbind(pvalor, paste('(',coefmod- qt(1 - (alfa)/ 2, df = nrow(datospls)-1)* estjack,'-', coefmod+ qt(1 - (alfa)/ 2, df = nrow(datospls)-1)* estjack,')' ))
+  #colnames(res) = c('pvalue', 'CI')
+  colnames(pvalor) = c('pvalue')
+  return(pvalor)
 }
