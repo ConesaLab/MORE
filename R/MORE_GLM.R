@@ -654,7 +654,7 @@ GetGLM = function(GeneExpression,
                      center = center, scale = scale, elasticnet = elasticnet,
                      min.variation = min.variation, correlation = correlation,
                      min.obs = min.obs, epsilon = epsilon,
-                     GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type)
+                     GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type, method ='glm')
 
   return(list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments))
 
