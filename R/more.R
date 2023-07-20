@@ -107,6 +107,7 @@ more <-function(GeneExpression,
                 associations,
                 data.omics,
                 edesign = NULL,
+                clinic = NULL,
                 center = TRUE, scale = FALSE,
                 epsilon = 0.00001,
                 alfa = 0.05, 
@@ -119,8 +120,9 @@ more <-function(GeneExpression,
                 omic.type = 0,
                 col.filter = 'cor',
                 scaletype = 'auto',
-                edesign.type= 0,
+                clinic.type= 0,
                 p.method = 'jack',
+                vip = vip,
                 method  ='glm'){
   
   if(method=='glm'){
@@ -148,6 +150,7 @@ more <-function(GeneExpression,
     return(GetPLS(GeneExpression,
            associations,
            data.omics,
+           clinic = clinic,
            edesign = edesign,
            center = center, scale = scale,
            epsilon = epsilon,
@@ -156,9 +159,10 @@ more <-function(GeneExpression,
            min.variation = min.variation,
            min.obs = min.obs,
            omic.type = omic.type,
-           edesign.type = edesign.type,
+           clinic.type = clinic.type,
            scaletype = scaletype,
-           p.method =p.method))
+           p.method =p.method, 
+           vip = vip))
   }
   
 }
