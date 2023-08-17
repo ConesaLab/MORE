@@ -543,7 +543,7 @@ p.valuejack<-function(pls, datospls,alfa){
     pls.opls=suppressWarnings(opls(datospls[-i,-1], scale(datospls[-i,1]), scaleC='none', predI=k,
                                    info.txtC='none', fig.pdfC='none', crossvalI=1, permI = 0))
     
-    if(length(pls.opls)<length(coefmod)){
+    if(nrow(pls.opls@coefficientMN)<nrow(coefmod)){
       exclvar=setdiff(rownames(coefmod),rownames(pls.opls@coefficientMN))
       b<-matrix(0,ncol=1,nrow = length(exclvar))
       rownames(b)<-exclvar
