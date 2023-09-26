@@ -334,11 +334,9 @@ GetGLM = function(GeneExpression,
   if(all(sapply(data.omics, function(x)nrow(x)==0))) stop("ERROR: No regulators left after LowVariation filter. Consider being less restrictive.")
 
 
-  ## Centering/Scaling quantitative predictors
+  ## Centering/Scaling predictors
   for (i in 1:length(omic.type)){
-    if (omic.type[[i]] == 0){
-      data.omics[[i]] = t(scale(t(data.omics[[i]]), center = center, scale = scale))
-    }
+    data.omics[[i]] = t(scale(t(data.omics[[i]]), center = center, scale = scale))
   }
 
 
@@ -516,11 +514,7 @@ GetGLM = function(GeneExpression,
                                                 des.mat, cont.var, GeneExpression, gene)
           } else {
             ScaleMatrix = res$RegulatorMatrix
-            for(k in 1:ncol(ScaleMatrix)){
-              if(any(res$RegulatorMatrix[,k] != 1 & res$RegulatorMatrix[,k] != 0)){
-                ScaleMatrix[,k] = scale(ScaleMatrix[,k])
-              }
-            }
+            ScaleMatrix = scale(ScaleMatrix)
 
             des.mat2EN = RegulatorsInteractions(interactions.reg,
                                                 reguValues = ScaleMatrix,
