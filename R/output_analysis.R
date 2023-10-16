@@ -4,7 +4,7 @@
 #########################################
 
 ## By Sonia, Monica, Maider
-## 20-Jul-2023
+## 15-Oct-2023
 
 # Function to obtain all significant pairs gene-regulator per omic --------
 
@@ -26,7 +26,7 @@ GetPairs1GeneAllReg = function (gene, output) {
     }
     
   }
-  if(output$arguments$method=='pls'){
+  if(output$arguments$method=='pls1' || output$arguments$method=='pls2'){
     
     reguSignif = output$ResultsPerGene[[gene]]$significantRegulators
     
@@ -55,6 +55,15 @@ GetPairsGeneRegulator = function (genes = NULL, output) {
   #   colnames(myresults) = c("gene", "regulator", "omic", "area")
   return(myresults)
 }
+
+#' RegulationPerCondition
+#'
+#' \code{RegulationPerCondition} Function to be applied to more main function output.
+#' 
+#' @param output Output object of MORE main function.
+#' 
+#' @return Summary table containing all the relevant/significant regulators. Moreover, it provides the regression coefficient that relates the gene and the regulator for each experimental condition after testing if this coefficient is relevant/significant or not.
+#'
 
 
 RegulationPerCondition = function(output){
@@ -240,7 +249,7 @@ RegulationPerCondition = function(output){
     myresults[,6:ncol(myresults)] = signif(myresults[,6:ncol(myresults)], digits = 4) # Para que no salgan los numeros en diferentes notaciones
     
   }
-  if(method=='pls'){
+  if(method=='pls1' || method=='pls2'){
     design = output$arguments$finaldesign
     Group = output$arguments$groups
     
@@ -526,9 +535,30 @@ plot.y2 <- function(x, yright, yleft, yrightlim = range(yright, na.rm = TRUE),
   
 }
 
+#' plotmore
+#'
+#' \code{plotmore} Graphical representation of the relationship between genes and regulators.
+#' 
+#' @param output Output object of MORE main function.
+#' 
+#' @param gene ID of the gene to be plotted.
+#' @param regulator ID of the regulator to be plotted. If NULL (default), all regulators of the gene are plotted.
+#' @param reguValues Vector containing the values of a regulator. If NULL (default), these values are taken from the output object as long as they are available. 
+#' @param plotPerOmic If TRUE, all the relevant/significant regulators of the given gene and the same omic are plotted in the same graph. If FALSE (default), each regulator is plotted in a separate plot.
+#' @param gene.col Color to plot the gene. By default, 1 (black). 
+#' @param regul.col  Color to plot the regulator. If NULL (default), a color will be assigned by the function, that will be different for each regulatory omic.
+#' @param order If TRUE (default), the values in X-axis are ordered.
+#' @param xlab Label for the X-axis.
+#' @param cont.var  Vector with length equal to the number of observations in data, which optionally may contain the values of the numerical variable (e.g. time) to be plotted on the X-axis. By default, NULL.
+#' @param cond2plot Vector or factor indicating the experimental group of each value to represent. If NULL (default), the labels are taken from the experimental design matrix. 
+#' 
+#' @return Graphical representation of the relationship between genes and regulators.
+#'
+
+
 plotmore = function(output, gene, regulator = NULL, reguValues = NULL, plotPerOmic = FALSE,
-                     gene.col = 1, regu.col = NULL, order = TRUE,
-                     xlab = "", cont.var = NULL, cond2plot = NULL,...) {
+                    gene.col = 1, regu.col = NULL, order = TRUE,
+                    xlab = "", cont.var = NULL, cond2plot = NULL,...) {
   
   if(output$arguments$method=='glm'){
     
@@ -537,7 +567,7 @@ plotmore = function(output, gene, regulator = NULL, reguValues = NULL, plotPerOm
                    xlab = "", cont.var = NULL, cond2plot = NULL,...))
   }
   
-  if(output$arguments$method=='pls'){
+  if(output$arguments$method=='pls1'||output$arguments$method=='pls2'){
     
     return(plotPLS(output, gene, regulator = NULL, reguValues = NULL, plotPerOmic = FALSE,
                    gene.col = 1, regu.col = NULL, order = TRUE,
@@ -550,7 +580,7 @@ plotmore = function(output, gene, regulator = NULL, reguValues = NULL, plotPerOm
 
 plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPerOmic = FALSE,
                     gene.col = 1, regu.col = NULL, order = TRUE,
-                    xlab = "", cont.var = NULL, cond2plot = NULL,...) {
+                    xlab = "", cont.var = NULL, cond2plot = NULL, verbose =TRUE, ...) {
   
   # Colors for omics
   omic.col = colors()[c(554,89,111,512,17,586,132,428,601,568,86,390,
@@ -663,7 +693,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
       SigReg = GLMgene$allRegulators
       SigReg = SigReg[SigReg$Rel == 1, c("regulator", "omic", "area", "filter")]
       
-      SigReg = SigReg[GLMgene$significantRegulators,,drop = FALSE]
+      SigReg = SigReg[GLMgene$relevantRegulators,,drop = FALSE]
       
       cat(paste(nrow(SigReg), "relevant regulators are to be plotted for gene", gene)); cat("\n")
       
@@ -794,7 +824,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
       }
       
       numGenes = length(SigniReguGene$gene)
-      cat(paste(numGenes, "genes are regulated by", regulator)); cat("\n")
+      if(verbose) {cat(paste(numGenes, "genes are regulated by", regulator)); cat("\n")}
       
       if (length(reguValues) > 0) {  # reguValues are available (recovered or given by user)
         
@@ -927,7 +957,7 @@ plotGLM = function (GLMoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 
 plotPLS = function (PLSoutput, gene, regulator = NULL, reguValues = NULL, plotPerOmic = FALSE,
                     gene.col = 1, regu.col = NULL, order = TRUE,
-                    xlab = "", cont.var = NULL, cond2plot = NULL,...) {
+                    xlab = "", cont.var = NULL, cond2plot = NULL, verbose = TRUE,...) {
   
   # Colors for omics
   omic.col = colors()[c(554,89,111,512,17,586,132,428,601,568,86,390,
@@ -1171,7 +1201,7 @@ plotPLS = function (PLSoutput, gene, regulator = NULL, reguValues = NULL, plotPe
       }
       
       numGenes = length(SigniReguGene$gene)
-      cat(paste(numGenes, "genes are regulated by", regulator)); cat("\n")
+      if(verbose) {cat(paste(numGenes, "genes are regulated by", regulator)); cat("\n")}
       
       if (length(reguValues) > 0) {  # reguValues are available (recovered or given by user)
         
@@ -1302,5 +1332,86 @@ plotPLS = function (PLSoutput, gene, regulator = NULL, reguValues = NULL, plotPe
   
 }
 
+## Summary ------------
 
-
+summary.MORE <-function(object, plot.more=FALSE){
+  
+  cat('A model was computed for',length(object$ResultsPerGene), 'genes.' ,'\n')
+  cat(nrow(object$GlobalSummary$GenesNoregulators), 'genes had no intial regulators.' ,'\n')
+  
+  if(object$arguments$method == 'glm'){
+    cat('For', ifelse(is.null(object$GlobalSummary$GenesNOmodel),0,object$GlobalSummary$GenesNOmodel), 'genes, the final GLM model could not be obtained.','\n')
+    cat('Genes presented a mean of ',mean(object$GlobalSummary$GoodnessOfFit[,'relReg']),'relevant regulators.','\n')
+    
+    #Top hub genes
+    relevant_regulators<-object$GlobalSummary$ReguPerGene[,c(grep('-Rel$',colnames(object$GlobalSummary$ReguPerGene)))]
+    #globally
+    
+    s_rel_reg<-apply(relevant_regulators, 1, sum)
+    cat('These are the top 10 hub genes and the number of relevant regulators for each:\n')
+    print(s_rel_reg[rev(tail(order(s_rel_reg),10))])
+    
+    cat('The top 10 hub genes by omics:\n')
+    
+    for (i in 1:ncol(relevant_regulators)){
+      cat('These are the top 10 hub genes for ',gsub('-Rel$','',colnames(relevant_regulators)[i]) ,'and the number of relevant regulators for each in this omic:\n')
+      print(relevant_regulators[rev(tail(order(relevant_regulators[,i]),10)),i])
+    }
+    
+    #Master regulators
+    
+    m_rel_reg<-lapply(object$ResultsPerGene, function(x) x$relevantRegulators)
+    m_rel_reg <- unlist(m_rel_reg)
+    
+    ## Count occurrences
+    mrel_vector <- table(m_rel_reg)
+    cat('These are the top 10 master regulators and the number of genes that they regulate:\n')
+    mreg<-mrel_vector[rev(tail(order(mrel_vector),10))]
+    for (i in 1:10) {
+      cat(names(mreg)[i], 'relevantly regulates', mreg[i][[1]], 'genes. \n')
+      if(plot.more){
+        par(mfrow=c(2,4))
+        plotGLM(object, gene = NULL, regulator = names(msig)[i], plotPerOmic = FALSE ,order = FALSE, gene.col = 'skyblue', regu.col = 'tan1', verbose = FALSE)
+      }
+    }
+    
+  }
+  else{
+    cat('Genes presented a mean of ',mean(object$GlobalSummary$GoodnessOfFit[,'sigReg']),'significant regulators.','\n')
+    
+    #Top hub genes
+    significant_regulators<-object$GlobalSummary$ReguPerGene[,c(grep('-Sig$',colnames(object$GlobalSummary$ReguPerGene)))]
+    #globally
+    
+    s_sig_reg<-apply(significant_regulators, 1, sum)
+    cat('These are the top 10 hub genes and the number of significant regulators for each:\n')
+    print(s_rel_reg[tail(order(s_sig_reg),10)])
+    
+    cat('The top 10 hub genes by omics:\n')
+    
+    for (i in 1:ncol(significant_regulators)){
+      cat('These are the top 10 hub genes for ',gsub('-Rel$','',colnames(significant_regulators)[i]) ,'and the number of relevant regulators for each in this omic:\n')
+      print(significant_regulators[rev(tail(order(significant_regulators[,i]),10)),i])
+    }
+    
+    #Master regulators
+    
+    m_sig_reg<-lapply(object$ResultsPerGene, function(x) x$significantRegulators)
+    m_sig_reg <- unlist(m_sig_reg)
+    
+    ## Count occurrences
+    msig_vector <- table(m_sig_reg)
+    cat('These are the top 10 master regulators and the genes that they significantly regulate:\n')
+    msig<-msig_vector[rev(tail(order(msig_vector),10))]
+    for (i in 1:10) {
+      cat(names(msig)[i], 'significantly regulates', msig[i][[1]], 'genes. \n')
+      if(plot.more){
+        par(mfrow=c(2,4))
+        plotPLS(object, gene = NULL, regulator = names(msig)[i], plotPerOmic = FALSE ,order = FALSE, gene.col = 'skyblue', regu.col = 'tan1', verbose = FALSE)
+        
+      }
+    }
+    
+  }
+  
+}
