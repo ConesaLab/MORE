@@ -185,7 +185,7 @@ more <-function(GeneExpression,
     
   }
   
-  if (method == 'pls'){
+  else {
     
     return(GetPLS(GeneExpression,
                   data.omics,
@@ -202,7 +202,8 @@ more <-function(GeneExpression,
                   min.obs = min.obs,
                   scaletype = scaletype,
                   p.method =p.method, 
-                  vip = vip))
+                  vip = vip,
+                  method = method))
 
 
   }
