@@ -797,7 +797,8 @@ GetPLS = function(GeneExpression,
   
   # Create the results for the scale filter check
   
-  return(list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments))
-  
+  result <- list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments) 
+  class(result) <- "MORE"
+  return(result)
 }
 
