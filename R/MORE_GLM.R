@@ -388,146 +388,167 @@ GetGLM = function(GeneExpression,
   pap = c(1, 1:round(nGenes/100) * 100, nGenes)
 
   for (i in 1:nGenes) {
-
+    
     gene=Allgenes[i]
-
+    
     ResultsPerGene[[i]] = vector("list", length = 5)
     names(ResultsPerGene[[i]]) = c("Y", "X", "coefficients", "allRegulators", "relevantRegulators")
-
+    
     if (is.element(i, pap)) cat(paste("Fitting model for gene", i, "out of", nGenes, "\n"))
-
+    
     RetRegul = GetAllReg(gene=gene, associations=associations, data.omics = data.omics)
     RetRegul.gene = RetRegul$Results  ## RetRegul$TableGene: nr reg per omic
     ## Some of these reg will be removed, because they are not in data.omics
-
-
+    
+    
     # RetRegul.gene--> gene/regulator/omic/area
     RetRegul.gene=RetRegul.gene[RetRegul.gene[,"regulator"]!= "No-regulator", ,drop=FALSE] ## Remove rows with no-regulators
-
-
+    
+    
     ### NO INITIAL REGULATORS
-    if(length(RetRegul.gene)==0){ ## En el caso de que no hayan INICIALMENTE reguladores -> Calcular modelo con variables experiment
-
+    if(length(RetRegul.gene)==0){ ## En el caso de que no hayan INICIALMENTE reguladores -> Calcular modelo con variables experimentales o clinicas.
+      
       if (is.null(edesign)) {
         ResultsPerGene[[i]]$X = NULL
         ResultsPerGene[[i]]$relevantRegulators = NULL
         ResultsPerGene[[i]]$allRegulators = NULL
         isModel = NULL
-
+        
       } else {
         des.mat2 = cbind(t(GeneExpression[gene,]), des.mat)
         colnames(des.mat2)[1] = "response"
         des.mat2 = na.omit(des.mat2)
-
+        
         # Removing predictors with constant values
         sdNo0 = apply(des.mat2, 2, sd)
         sdNo0 = names(sdNo0)[sdNo0 > 0]
         des.mat2 = des.mat2[,sdNo0]
-
+        
         isModel =NULL
-
+        #Create the model only for experimental design variables
+        tmp = ElasticNet(family2, des.mat2, epsilon, elasticnet)
+        regulatorcoef = tmp[['coefficients']]
+        
+        ResultsPerGene[[i]]$coefficients = regulatorcoef
+        colnames(ResultsPerGene[[i]]$coefficients) = c('coefficient')
         ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
         ResultsPerGene[[i]]$relevantRegulators = NULL
         ResultsPerGene[[i]]$allRegulators = NULL
       }
-
-
+      
+      
       # GlobalSummary$ReguPerGene  # this is initially set to 0 so no need to modify it
-
-
+      
+      
       ### WITH INITIAL REGULATORS
     }
     else { ## There are regulators for this gene at the beginning
-
+      
       ResultsPerGene[[i]]$allRegulators = data.frame(RetRegul.gene, rep("Model",nrow(RetRegul.gene)), stringsAsFactors = FALSE)
       colnames(ResultsPerGene[[i]]$allRegulators) = c("gene","regulator","omic","area","filter")
-
+      
       GlobalSummary$ReguPerGene[gene, grep("-Ini", colnames(GlobalSummary$ReguPerGene))] = as.numeric(RetRegul$TableGene[-1])
       # the rest of columns remain 0
-
+      
       ## Identify which regulators where removed because of missing values or low variation
       res = RemovedRegulators(RetRegul.gene = ResultsPerGene[[i]]$allRegulators,
                               myregLV=myregLV, myregNA=myregNA, data.omics=data.omics)
-
+      
       if(length(res$RegulatorMatrix)==0){ ## No regulators left after the filtering to compute the model
-
+        
         if (is.null(edesign)) {
           ResultsPerGene[[i]]$X = NULL
           ResultsPerGene[[i]]$relevantRegulators = NULL
           ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
           isModel = NULL
-
+          
         } else {
           des.mat2 = cbind(t(GeneExpression[gene,]), des.mat)
           colnames(des.mat2)[1] = "response"
           des.mat2 = na.omit(des.mat2)
-
+          
           # Removing predictors with constant values
           sdNo0 = apply(des.mat2, 2, sd)
           sdNo0 = names(sdNo0)[sdNo0 > 0]
           des.mat2 = des.mat2[,sdNo0]
-
+          
           isModel = NULL
           
           GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
                                              data.frame("gene" = gene,
                                                         "problem" = 'No regulators left after NA/LowVar filtering'))
-    
-
+          
+          tmp = ElasticNet(family2, des.mat2, epsilon, elasticnet)
+          regulatorcoef = tmp[['coefficients']]
+          
+          ResultsPerGene[[i]]$coefficients = regulatorcoef
+          colnames(ResultsPerGene[[i]]$coefficients) = c('coefficient')
           ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
           ResultsPerGene[[i]]$relevantRegulators = NULL
           ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
-
+          
         }
-
+        
       }
       else {  ## Regulators for the model!!
-
+        
         ## Apply multicollinearity filter only if there is more than one regulator for a gene
         
         if (ncol(res$RegulatorMatrix)>1){
-          # if(filter==1){
-          #   res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
-          #                            correlation = correlation, omic.type = omic.type)
-          # }
           if(col.filter=='cor'){
             res = CollinearityFilter1(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
                                       correlation = correlation, omic.type = omic.type)
           }
           if(col.filter=='pcor'){
             res = CollinearityFilter2(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
-                                      correlation = correlation, omic.type = omic.type)
+                                      correlation = correlation, omic.type = omic.type, epsilon = epsilon)
           }
           
         }
-
-        ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
-
-
-        ## Creating data matrix with regulators and with/without interactions
-
-        ## Scaling predictors for ElasticNet only in case they were not already scaled
-        if (!is.null(elasticnet)) {
+        
+        if(is.null(res)){
+          des.mat2EN = cbind(t(GeneExpression[gene,]), des.mat)
+          colnames(des.mat2EN)[1] = "response"
+          
+          colnames(des.mat2EN) = gsub("\`", "", colnames(des.mat2EN))
+          
+          GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
+                                             data.frame("gene" = gene,
+                                                        "problem" = 'Problem with Partial Correlation calculus'))
+          
+        } else{
+          ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
+          
+          regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
+          names(regupero) = unique(res$SummaryPerGene[,'omic'])
+          
+          ## Scaling predictors for ElasticNet only in case they were not already scaled
           if (scale) {
             des.mat2EN = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
-                                                des.mat, cont.var, GeneExpression, gene)
+                                                des.mat, GeneExpression, gene)
           } else {
             ScaleMatrix = res$RegulatorMatrix
-            ScaleMatrix = scale(ScaleMatrix)
-
+            for(k in 1:ncol(ScaleMatrix)){
+              if(any(res$RegulatorMatrix[,k] != 1 & res$RegulatorMatrix[,k] != 0)){
+                ScaleMatrix[,k] = scale(ScaleMatrix[,k])
+              }
+            }
+            
             des.mat2EN = RegulatorsInteractions(interactions.reg,
                                                 reguValues = ScaleMatrix,
-                                                des.mat, cont.var, GeneExpression, gene)
+                                                des.mat, GeneExpression, gene)
           }
-        } else {
-          des.mat2EN = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
-                                              des.mat, cont.var, GeneExpression, gene)
+          
         }
-
-
+        
         # Removing observations with missing values
         des.mat2EN = na.omit(des.mat2EN)
-
+        
+        ##Scale if needed to block scaling or pareto scaling
+        regupero = filter_columns_by_regexp(regupero, des.mat2EN,res)
+        
+        des.mat2EN = data.frame(des.mat2EN[,1,drop=FALSE], des.mat,ScaleGLM(des.mat2EN[,-1,drop=FALSE], regupero, scaletype),check.names = FALSE)
+        
         ###  Variable selection --> Elasticnet
         tmp = ElasticNet(family2, des.mat2EN, epsilon, elasticnet)
         regulatorcoef = tmp[['coefficients']]
@@ -615,9 +636,9 @@ GetGLM = function(GeneExpression,
           
         }
       }
-
-      } ## Close "else" --> None regulators from begining
-
+      
+    } ## Close "else" --> None regulators from begining
+    
     if (is.null(isModel)) {
       
       ResultsPerGene[[i]]$Y = GeneExpression[i,]
@@ -630,11 +651,11 @@ GetGLM = function(GeneExpression,
       ResultsPerGene[[i]]$Y = data.frame("y" = des.mat2[,1], "fitted.y" = tmp[['fitted.values']],
                                          "residuals" = des.mat2[,1] - tmp[['fitted.values']], check.names = FALSE)
       colnames(ResultsPerGene[[i]]$Y) <- c("y", "fitted.y", "residuals")
-      GlobalSummary$GoodnessOfFit[gene,] = c(m$R.squared, m$RMSE, m$cvRMSE,as.character(length(ResultsPerGene[[gene]]$relevantRegulators)))
+      GlobalSummary$GoodnessOfFit[gene,] = c(m$R.squared, m$RMSE, m$cvRMSE,length(ResultsPerGene[[gene]]$relevantRegulators))
       
       
     }  
-
+    
   }  ## At this point the loop for all genes is finished
   
   # Remove from GoodnessOfFit genes with no significant regulators
@@ -642,14 +663,32 @@ GetGLM = function(GeneExpression,
   genesNosig = names(which(GlobalSummary$GoodnessOfFit[,4]==0))
   genessig = setdiff(rownames(GlobalSummary$GoodnessOfFit), genesNosig)
   GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,,drop=FALSE]
+  
+  #Calculate MasterRegulators
+  m_rel_reg<-lapply(ResultsPerGene, function(x) x$relevantRegulators)
+  m_rel_reg <- unlist(m_rel_reg)
+  mrel_vector <- table(m_rel_reg)
+  mreg<-mrel_vector[rev(tail(order(mrel_vector),10))]
+  
+  GlobalSummary$MasterRegulators = names(mreg)
+  
+  #Calculate HubGenes
+  relevant_regulators<-GlobalSummary$ReguPerGene[,c(grep('-Rel$',colnames(GlobalSummary$ReguPerGene)))]
+  s_rel_reg<-apply(relevant_regulators, 1, sum)
+  
+  GlobalSummary$HubGenes = s_rel_reg[rev(tail(order(s_rel_reg),10))]
 
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, family = family,
                      center = center, scale = scale, elasticnet = elasticnet,
                      min.variation = min.variation, correlation = correlation,
                      min.obs = min.obs, epsilon = epsilon,
-                     GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type, method ='glm')
+                     GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type,
+                     clinic = clinic, clinic.type=clinic.type,method ='glm')
+  
+  result <- list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments) 
+  class(result) <- "MORE"
+  return(result)
 
-  return(list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments))
 
 }
 
