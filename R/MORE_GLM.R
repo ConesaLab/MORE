@@ -3,58 +3,16 @@
 #########################################################################################
 
 
-## By Sonia & Monica
+## By Sonia, Maider & Monica
 ## 07-July-2016
-## Last modified: August 2022
+## Last modified: October 2023
 
 
 options(stringsAsFactors = FALSE)
 
-# library(maSigPro)  ### ver que pasa si no cargamos maSigPro
-library(igraph)
-library(MASS)
-library(glmnet)
-library(psych)
-library(car)
-library(irlba)
+library(ltm)
 
-
-
-# Generalized Lineal Model  -----------------------------------------------
-# DETAILS
-# In the case that the data matrix contains more variables than samples, a stepwise forward is applied, but the experimental
-# design variables are kept.
-#
-# VALUE
-# A list with 3 objects:
-# - Arguments
-# - SummaryTable: A data.frame with one row for each gene supplied for the user. The data.frame has 4 columns:
-#   - gene: gene IDs
-#   - RP: A tag with 3 possibles values. If the gene is classified corretly in a regulatory program, the RP name,
-#     if the gene is wrong classified, "WC", and if the gene is not classified in any of the regulatory program, "NC".
-# - FinalResults: A list with one element for each gene studied. Each element of the list is also a list containing:
-#  - GLMfinal: an object of class glm  with the best model obtained
-#  - GLMorigen: an object of class glm with the starting model if we have enough df for performing at generalized linear models.
-#    In other case, GLMfinal=GLMorigen
-#  - SummaryStepwise: A named (by methologies stepwise applied) list. The list names could be one or some of the following
-#    "stepfor","two.ways.stepfor" or "two.ways.stepback“. It depends on "stepwise" selection. Each one of these objects contain
-#    a list with some summary parameters, "sol","coefficients","t.score","variables" and "edesign"
-#    - sol, matrix for summary results of the stepwise regression. The following values are given:
-#    p-value of the regression ANOVA, R-squared of the model, AIC of the model and p-value of the regression coefficients
-#    of the selected variables.
-#    - coefficients, regression coefficients for significant regulators
-#    - t.score, value of the t statistics of significant regulators
-#    - variables: variables in the final model
-#    - edesign: matrix of experimental design. ¿LO QUITAMOS DE AQUI?
-#  - RegulOrig: a list with 3 objects, with some summary information about original regulators in the model.
-#    - OrigRegulators: The start regulators of the model (previous to make any stepwise). Ponemos los mismos que en RegulatorsValue??
-#    - RegulatorsValue: The start regulators value of the model after applying CleanPredictors (previous to make any stepwise)
-#    - edesign: matrix of experimental design
-#    - cor.max: Correlation value to decide when multicollinearity is present.
-#    - action: Action to perform when regulators are correlated. If "mean" (default), the average of the correlated regulators is
-#              computed. If "random", one of the correlated regulators is randomly selected and the others are discarded.
-
-#' Genome-wide Generalized Linear Models
+#' Generalized Linear Models
 #'
 #'\code{GetGLM} fits a regression model for all the genes in the data set to identify
 #' the experimental variables and potential regulators that show a significant effect on
@@ -62,73 +20,103 @@ library(irlba)
 #'
 #' @param GeneExpression Data frame containing gene expression data with genes in rows and
 #' experimental samples in columns. Row names must be the gene IDs.
-#' @param associations List where each element correspond to a different omic data type (miRNAs,
-#' transcription factors, methylation, etc.). The names of the list will be the omics. Each element
-#' is a data frame with 2 columns (optionally 3) describing the potential interactions between genes
+#' @param data.omics List where each element corresponds to a different omic data type to be considered (miRNAs,
+#' transcription factors, methylation, etc.). The names of the list will represent the omics, and each element in 
+#' the list should be a data matrix with omic regulators in rows and samples in columns.
+#' @param associations List where each element corresponds to a different omic data type (miRNAs,
+#' transcription factors, methylation, etc.). The names of the list will represent the omics. Each element in 
+#' the list should be a data frame with 2 columns (optionally 3), describing the potential interactions between genes
 #' and regulators for that omic. First column must contain the genes (or features in
-#' GeneExpression object), second column must contain the regulators, and an additional column can
+#' GeneExpression object), second column must contain the regulators, and an optional third column can
 #' be added to describe the type of interaction (e.g., for methylation, if a CpG site is located in
-#' the promoter region of the gene, in the first exon, etc.).
-#   (optional).
-#' @param data.omics List where each element correspond to a different omic data type (miRNAs,
-#' transcription factors, methylation, etc.). The names of the list will be the omics. Each element
-#' is a data matrix with omic regulators in rows and samples in columns.
+#' the promoter region of the gene, in the first exon, etc.). If the user lacks prior knowledge of the potential regulators, they can set the parameter to NULL. 
+#' In this case, all regulators in \code{\link{data.omics}} will be treated as potential regulators for all genes. In this case, for computational efficiency, it is recommended to use pls2 \code{\link{method}}.
+#' Additionally, if the users have prior knowledge for certain omics and want to set other omics to NULL, they can do so.
 #' @param edesign Data frame describing the experimental design. Rows must be the samples (columns
-#' in GeneExpression) and columns must be the experimental variables to be included in the model
-#' (e.g. time, treatment, etc.).
-#' @param cont.var Name of the column in edesign that is to be considered as a continuous
-#' explanatory variable in the regression model. NULL if edesign does not contain any continuous
-#' variables. By default, "Time".
-#' @param degree If cont.var is not NULL, non-linear (polynomial) relationships between the cont.var
-#' and the gene expression must be studied. By default, degree = 1 and must be an integer.
-#' A higher number will allow for in quadratic, cubic, etc. terms for cont.var in the model.
-#' @param alfa Significance level. By default, 0.05.
-#' @param MT.adjust Multiple testing correction method to be used within the stepwise variable
-#' selection procedure. By default, "none". See the different options in ?\code{p.adjust}.
-#' @param family Error distribution and link function to be used in the model (see ?\code{glm}
-#' for more information). By default, negative.binomial(theta=10).
-#' @param stepwise Stepwise variable selection method to be applied. It can be one of: "none", "backward"
-#' (default), "forward", "two.ways.backward" or "two.ways.forward".
-#' @param interactions.exp If TRUE (default), interactions among the experimental variables
-#' are included in the model.
-#' @param interactions.reg If TRUE (default), interactions between regulators and experimental
-#' variables are included in the model.
-#' @param min.variation  For numerical regulators, the minimum change that a regulator must present across conditions
-#' to keep it in the regression models. For binary regulators, if the proportion of the most repeated value equals or exceeds this value,
-#' the regulator will be considered to have low variation and removed from the regression models.
-#' @param correlation
-#' @param min.obs
-#' @param elasticnet  ElasticNet mixing parameter. NULL = No ElasticNet variable selection. A number between 0 and 1 = ElasticNet is applied
-#' with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso
-#' penalty). The default is 0.5, which gives equal weight to ridge and lasso.
-#' @param omic.type 0 = numerical variable (default), 1 = binary (categorical) variable. It should be a vector with length the number of omic types or a number (0 or 1) if all the omics are of the same type.
-#' @param col.filter  cor= takes into account the possible multicollinearity between omics. pcor = computes the partial correlation to take into account the possible multicollinearity between omics.
-#'
-#' @return
-#' @export
+#' in \code{\link{GeneExpression}}) and columns must be the experimental variables to be included in the model (e.g. treatment, etc.).
+#' @param clinic Data.frame with all clinical variables to consider,with samples in rows and variables in columns.
+#' @param clinic.type Vector which indicates the type of data of variables introduced in \code{\link{clinic}}. The user should code as 0 numeric variables and as 1 categorical or binary variables. 
+#' By default is set to NULL. In this case, the data type will be predicted automatically. However, the user must verify the prediction and manually input the vector if incorrect.
+#' @param center By default TRUE. It determines whether centering is applied to \code{\link{data.omics}}.
+#' @param scale By default TRUE. It determines whether scaling is applied to \code{\link{data.omics}}.
+#' @param epsilon Convergence threshold for coordinate descent algorithm in elasticnet. Default value, 1e-5.
+#' @param alfa Significance level for variable selection in pls1and pls2 \code{\link{method}}. By default, 0.05.
+#' @param family Error distribution and link function to be used in the model when \code{\link{method}} glm. By default, gaussian().
+#' @param elasticnet ElasticNet mixing parameter. There are three options:
+#' - NULL : The parameter is selected from a grid of values ranging from 0 to 1 with 0.1 increments. The chosen value optimizes the mean cross-validated error when optimizing the lambda values.
+#' - A number between 0 and 1 : ElasticNet is applied with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso penalty). 
+#' - A vector with the mixing parameters to try. The one that optimizes the mean cross-validated error when optimizing the lambda values will be used.
+#' By default, NULL.
+#' @param interactions.reg If TRUE, the model includes interactions between regulators and experimental variables. By default, TRUE.
+#' @param min.variation  For numerical regulators, it specifies the minimum change required across conditions to retain the regulator in 
+#' the regression models. In the case of binary regulators, if the proportion of the most common value is equal to or inferior this value, 
+#' the regulator is considered to have low variation and will be excluded from the regression models. The user has the option to set a single 
+#' value to apply the same filter to all omics, provide a vector of the same length as omics if they want to specify different levels for each omics, 
+#' or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.
+#' @param min.obs Minimum number of counts required for a gene to be considered. Only applied when \code{\link{GeneExpression}} is a non-normalized count matrix. 
+#' @param col.filter Type of correlation coefficients to use when applying the multicollinearity filter when glm \code{\link{method}} is used. 
+#' - cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
+#' - pcor : Computes the partial correlation.
+#' @param correlation  Value to determine the presence of collinearity between two regulators when using the glm \code{\link{method}}. By default, 0.7.
+#' @param scaletype Type of scaling to be applied. Three options:
+#' - auto : Applies the autoscaling. 
+#' - pareto : Applies the pareto scaling. \[ \frac{X_k}{s_k \sqrt[4]{m_b}} \]
+#' - block : Applies the block scaling. \[ \frac{X_k}{s_k \sqrt{m_b}} \]
+#' considering \(m_b\) the number of variables of the block. By default, auto.
+#' @param method Model to be fitted. Two options:
+#' - glm : Applies a Generalized Linear Model (GLM) with ElasticNet regularization.
+#' - pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.
+#' - pls2 : Applies a PLS model to all genes at the same time, only possible when \code{\link{associations}}= NULL.
+#' By default, glm.
+#' @return List containing the following elements:
+#' - ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
+#'                    detailed information about all regulators, and regulators identified as relevant.
+#' - GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
+#' - Arguments : List containing all the arguments used to generate the models.
 #'
 #' @examples
+#' 
+#' more(GeneExpression, associations, data.omics, center = TRUE, scale = TRUE, epsilon = 0.00001, family = gaussian(), elasticnet = NULL, interactions.reg = TRUE,
+#'  min.variation = 0,  min.obs = 10, col.filter = 'cor', correlation = 0.7, method  ='glm')
+#' 
+#' @export
+
 GetGLM = function(GeneExpression,
-                  associations = NULL,
                   data.omics,
+                  associations = NULL,
+                  omic.type = 0,
                   edesign = NULL,
+                  clinic = NULL,
+                  clinic.type =NULL,
                   center = TRUE, scale = TRUE,
                   epsilon = 0.00001,
                   alfa = 0.05, 
                   family = gaussian(),
-                  elasticnet = 0.5,
+                  elasticnet = NULL,
                   interactions.reg = TRUE,
                   min.variation = 0,
-                  correlation = 0.9,
                   min.obs = 10,
-                  omic.type = 0,
-                  col.filter = 'cor'){
+                  col.filter = 'cor'
+                  correlation = 0.7,
+                  scaletype = 'auto'){
 
 
-  cont.var = NULL
   # Converting matrix to data.frame
   GeneExpression = as.data.frame(GeneExpression)
   data.omics = lapply(data.omics, as.data.frame)
+  
+  if(!is.null(clinic)){
+    data.omics = c(list(clinic =  as.data.frame(t(clinic))),data.omics)
+    
+    #Add in associations clinic to consider all the clinical variables in all genes
+    if(!is.null(associations)){associations = c(list(clinic = NULL),associations)}
+    
+    #Add information to omic.type even if it is not relevant
+    omic.type = c(0,omic.type)
+    names(omic.type)[1] = 'clinic'
+    om= 2
+    
+  }else{clinic.type=NULL; om =1}
   
   # If associations is NULL create a list of associations NULL
   if (is.null(associations)){

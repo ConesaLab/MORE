@@ -120,7 +120,7 @@ isBinclinic <-function(x){
 
 more <-function(GeneExpression,
                 data.omics,
-                associations,
+                associations = NULL,
                 omic.type = NULL,
                 edesign = NULL,
                 clinic = NULL,
