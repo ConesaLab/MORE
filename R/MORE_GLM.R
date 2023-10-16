@@ -112,21 +112,26 @@ GetGLM = function(GeneExpression,
     if(!is.null(associations)){associations = c(list(clinic = NULL),associations)}
     
     #Add information to omic.type even if it is not relevant
+    ## Omic types
+    if (length(omic.type) == 1) omic.type = rep(omic.type, length(data.omics))
+    names(omic.type) = names(data.omics)
+    
     omic.type = c(0,omic.type)
     names(omic.type)[1] = 'clinic'
     om= 2
     
-  }else{clinic.type=NULL; om =1}
+  }else{
+    clinic.type=NULL
+    ## Omic types
+    if (length(omic.type) == 1) omic.type = rep(omic.type, length(data.omics))
+    names(omic.type) = names(data.omics)
+    om =1}
   
   # If associations is NULL create a list of associations NULL
   if (is.null(associations)){
     associations=vector('list',length(data.omics))
     names(associations)=names(data.omics)
   }
-
-  # Checking that Res.df is coherent with the number of samples
-  #if (Res.df >= (ncol(GeneExpression)-1)) stop("ERROR: You must decrease the Res.df so that a model can be computed.")
-
 
   # Checking that the number of samples per omic is equal to number of samples for gene expression and the number of samples for edesign
   for (i in 1:length(names(data.omics))){
@@ -183,6 +188,9 @@ GetGLM = function(GeneExpression,
     #Change the name in the association matrix only if associations is not NULL
     if(!is.null(associations[[i]])){
       associations[[i]][[2]]=gsub(':', '-', associations[[i]][[2]])
+      associations[[i]][[2]] = gsub('_R$', '-R', associations[[i]][[2]])
+      associations[[i]][[2]] = gsub('_P$', '-P', associations[[i]][[2]])
+      associations[[i]][[2]] = gsub('_N$', '-N', associations[[i]][[2]])
     }
 
     if(length(problemas) > 0) {
@@ -241,15 +249,15 @@ GetGLM = function(GeneExpression,
 
   #Checking there are not -Inf/Inf values and eliminate genes/regulator that contain them
   infproblemgene<-is.infinite(rowSums(GeneExpression))
-  infproblemreg<-lapply(data.omics, function(x) is.infinite(rowSums(x)))
+  infproblemreg<-lapply(data.omics[om:length(data.omics)], function(x) is.infinite(rowSums(x)))
   if(any(infproblemgene)){
     genesInf<-rownames(GeneExpression)[infproblemgene]
     GeneExpression<-GeneExpression[!infproblemgene,]
   }else{genesInf <-NULL}
-  for (i in 1:length(names(data.omics))){
+  for (i in 1:(length(names(data.omics))-(om-1))){
     if(any(infproblemreg[[i]])){
-      cat(rownames(data.omics[[i]])[infproblemreg[[i]]], 'regulators of the omic', names(data.omics)[i] ,'have been deleted due to -Inf/Inf values. \n')
-      data.omics[[i]]<-data.omics[[i]][!infproblemreg[[i]],]
+      cat(rownames(data.omics[[i + (om-1)]])[infproblemreg[[i]]], 'regulators of the omic', names(data.omics)[i +(om-1)] ,'have been deleted due to -Inf/Inf values. \n')
+      data.omics[[i + (om-1)]]<-data.omics[[i + (om-1)]][!infproblemreg[[i]],]
     }
   }
 
@@ -285,17 +293,9 @@ GetGLM = function(GeneExpression,
     des.mat = NULL
   } else {
     Group = apply(edesign, 1, paste, collapse = "_")
-    ## Experimental design matrix (with polynomial terms for cont.var, dummies for factors and interactions)
-    # des.mat = GenerateDesignMatrix(interactions.exp, degree, edesign, cont.var)
     des.mat = model.matrix(~Group)[, -1, drop = FALSE]
     rownames(des.mat) = colnames(GeneExpression)
   }
-
-
-  ## Omic types
-  if (length(omic.type) == 1) omic.type = rep(omic.type, length(data.omics))
-  names(omic.type) = names(data.omics)
-
 
   ## Remove regulators with NA
   cat("Removing regulators with missing values...\n")
@@ -313,26 +313,37 @@ GetGLM = function(GeneExpression,
   ## Remove regulators with Low Variability
   cat("Removing regulators with low variation...\n")
 
-  tmp = LowVariationRegu(min.variation, data.omics, Group, associations, Allgenes, omic.type)
+  tmp = LowVariationRegu(min.variation, data.omics, Group, associations, Allgenes, omic.type, clinic.type)
   data.omics = tmp[["data.omics"]]
   associations = tmp[["associations"]]
   myregLV = tmp[["myregLV"]]
   rm("tmp"); gc()
   
   if(all(sapply(data.omics, function(x)nrow(x)==0))) stop("ERROR: No regulators left after LowVariation filter. Consider being less restrictive.")
-
-
-  ## Centering/Scaling predictors
-  for (i in 1:length(omic.type)){
-    data.omics[[i]] = t(scale(t(data.omics[[i]]), center = center, scale = scale))
+  
+  ##Create dummy variables associated to factors clinical variables
+  
+  if(!is.null(clinic)){
+    
+    catvar <- which(clinic.type == 1)
+    dummy_vars <- model.matrix(~ . , data = as.data.frame(t(data.omics$clinic[catvar, ,drop=FALSE])))[,-1,drop=FALSE]
+    data.omics$clinic <- data.omics$clinic[-catvar, ,drop=FALSE]
+    data.omics$clinic <- rbind(data.omics$clinic, t(dummy_vars))
+    
   }
 
+  if(scale){
+    ## Centering/Scaling quantitative predictors
+    for (i in 1:length(omic.type)){
+      data.omics[[i]] = t(scale(t(data.omics[[i]]), center = center, scale = scale))
+    }
+  }
 
   ### Results objects
 
   ## Global summary for all genes
-  GlobalSummary = vector("list", length = 4)
-  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators")
+  GlobalSummary = vector("list", length = 6)
+  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators", "MasterRegulators", "HubGenes")
 
   GlobalSummary$GenesNOmodel = NULL
   if (length(genesNA) > 0) {
