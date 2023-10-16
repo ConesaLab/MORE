@@ -93,34 +93,83 @@ library(fastDummies)
 
 setClass("MORE")
 
+isBin <-function(x){
+  if(length(unique(x[,1]))==2){
+    return(1)
+  }
+  else if(length(unique(x[1,]))==2){
+    return(1)
+  }
+  else{
+    return(0)
+  }
+}
+
+isBinclinic <-function(x){
+  
+  if(class(x)=='character'){
+    return(1)
+  }
+  else if(length(unique(x))==2){
+    return(1)
+  }
+  else{
+    return(0)
+  }
+}
+
 more <-function(GeneExpression,
-                associations,
                 data.omics,
+                associations,
+                omic.type = NULL,
                 edesign = NULL,
                 clinic = NULL,
-                center = TRUE, scale = FALSE,
+                clinic.type = NULL,
+                center = TRUE, scale = TRUE,
                 epsilon = 0.00001,
                 alfa = 0.05, 
                 family = gaussian(),
-                elasticnet = 0.5,
+                elasticnet = NULL,
                 interactions.reg = TRUE,
                 min.variation = 0,
-                correlation = 0.9,
                 min.obs = 10,
-                omic.type = 0,
                 col.filter = 'cor',
+                correlation = 0.7,
                 scaletype = 'auto',
-                clinic.type= 0,
                 p.method = 'jack',
-                vip = vip,
+                vip = 0.8,
                 method  ='glm'){
+  
+  if(is.null(omic.type)){
+    #Create internally omic.type vector
+    omic.type = sapply(data.omics, function(x) isBin(x)) #We assume that all regulators are of the same type in the same omic
+    
+    cat('Considering that we codify by 1 binary omics and by 0 numeric omics, we consider the following nature of the omics: \n')
+    print(omic.type)
+    
+    cat('Please if it is incorrect stop the generation of the models and introduce omic.type manually \n')
+  }
+  
+  if(!is.null(clinic)){
+    if(is.null(clinic.type)){
+      clinic.type = sapply(clinic, function(x) isBinclinic(x))
+      
+      cat('Considering that we codify by 1 binary/categorical features and by 0 numeric features, we consider the following nature of the clinical features:\n')
+      print(clinic.type)
+      
+      cat('Please if it is incorrect stop the generation of the models and introduce clinic.type manually \n')
+    }
+  }
   
   if(method=='glm'){
     
     return(GetGLM(GeneExpression,
-                  associations,
                   data.omics,
+                  associations,
+                  omic.type = omic.type,
                   edesign = edesign,
+                  clinic = clinic,
+                  clinic.type = clinic.type,
                   center = center, scale = scale,
                   epsilon = epsilon,
                   alfa = alfa, 
@@ -128,31 +177,34 @@ more <-function(GeneExpression,
                   elasticnet = elasticnet,
                   interactions.reg = interactions.reg,
                   min.variation = min.variation,
+                  min.obs = min.obs,
+                  col.filter = col.filter,
                   correlation = correlation,
                   min.obs = min.obs,
-                  omic.type = omic.type,
-                  col.filter = col.filter))
+                  scaletype = scaletype))
     
   }
   
   if (method == 'pls'){
     
     return(GetPLS(GeneExpression,
-           associations,
-           data.omics,
-           clinic = clinic,
-           edesign = edesign,
-           center = center, scale = scale,
-           epsilon = epsilon,
-           alfa = alfa, 
-           interactions.reg = interactions.reg,
-           min.variation = min.variation,
-           min.obs = min.obs,
-           omic.type = omic.type,
-           clinic.type = clinic.type,
-           scaletype = scaletype,
-           p.method =p.method, 
-           vip = vip))
+                  data.omics,
+                  associations,
+                  omic.type = omic.type,
+                  edesign = edesign,
+                  clinic = clinic,
+                  clinic.type = clinic.type,
+                  center = center, scale = scale,
+                  epsilon = epsilon,
+                  alfa = alfa, 
+                  interactions.reg = interactions.reg,
+                  min.variation = min.variation,
+                  min.obs = min.obs,
+                  scaletype = scaletype,
+                  p.method =p.method, 
+                  vip = vip))
+
+
   }
   
 }
