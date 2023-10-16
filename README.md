@@ -15,15 +15,14 @@ Currently, the package can be installed directly from GitHub using the `devtools
 
 Before installation, it might be necessary to install the required dependencies:
 
-* pbapply
 * glmnet
 * igraph
 * MASS
-* parallel
 * psych
 * car
 * ltm
 * ropls
+* stringr
 * fastDummies
 
 ## Usage

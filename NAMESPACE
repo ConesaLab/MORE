@@ -5,14 +5,14 @@ import(MASS)
 import(glmnet)
 import(car)
 import(ltm)
-import(Hmisc)
 import(ropls)
 import(fastDummies)
+import(stringr)
 
 importFrom("grDevices", "colors")
 importFrom("graphics", "abline", "arrows", "axis", "box", "lines",
              "mtext", "par", "plot", "points")
 importFrom("stats", "aggregate", "anova", "as.dist", "as.formula",
              "coef", "cor", "glm", "model.matrix", "na.omit", "p.adjust",
-             "residuals", "sd", "supsmu")
+             "residuals", "sd", "supsmu","cov2cor")
 importFrom("utils", "combn")
