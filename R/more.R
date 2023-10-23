@@ -94,10 +94,10 @@ library(fastDummies)
 setClass("MORE")
 
 isBin <-function(x){
-  if(length(unique(x[,1]))==2){
+  if(length(unique(x[!is.na(x[, 1]), 1]))==2){
     return(1)
   }
-  else if(length(unique(x[1,]))==2){
+  else if(length(unique(x[1,!is.na(x[1,]),drop=TRUE]))==2){
     return(1)
   }
   else{
