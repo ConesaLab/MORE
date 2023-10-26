@@ -553,7 +553,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
     else{ removedCoefs = NULL; selcoef=NULL;y.fitted = NULL; m = list('AICc'=NULL,'R.squared'=NULL,'cvRMSE'=NULL ); isModel = NULL}}
   
   
-  return(list("des.mat2" = des.mat2, "removedCoefs" = removedCoefs, "coefficients" = selcoef, 'fitted.values' = y.fitted, 'm' = m, 'isModel'=isModel))
+  return(list("des.mat2" = des.mat2, "removedCoefs" = removedCoefs, "coefficients" = selcoef, 'fitted.values' = y.fitted, 'm' = m, 'isModel'=isModel, 'elasticnet'=elasticnet))
 }
 
 modelcharac = function(fitted.glm,s, y, y.fitted){

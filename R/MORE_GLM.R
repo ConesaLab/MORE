@@ -425,12 +425,6 @@ GetGLM = function(GeneExpression,
         des.mat2 = des.mat2[,sdNo0]
         
         isModel =NULL
-        #Create the model only for experimental design variables
-        tmp = ElasticNet(family2, des.mat2, epsilon, elasticnet)
-        regulatorcoef = tmp[['coefficients']]
-        
-        ResultsPerGene[[i]]$coefficients = regulatorcoef
-        colnames(ResultsPerGene[[i]]$coefficients) = c('coefficient')
         ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
         ResultsPerGene[[i]]$relevantRegulators = NULL
         ResultsPerGene[[i]]$allRegulators = NULL
@@ -478,11 +472,6 @@ GetGLM = function(GeneExpression,
                                              data.frame("gene" = gene,
                                                         "problem" = 'No regulators left after NA/LowVar filtering'))
           
-          tmp = ElasticNet(family2, des.mat2, epsilon, elasticnet)
-          regulatorcoef = tmp[['coefficients']]
-          
-          ResultsPerGene[[i]]$coefficients = regulatorcoef
-          colnames(ResultsPerGene[[i]]$coefficients) = c('coefficient')
           ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
           ResultsPerGene[[i]]$relevantRegulators = NULL
           ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
@@ -680,7 +669,7 @@ GetGLM = function(GeneExpression,
   GlobalSummary$HubGenes = s_rel_reg[rev(tail(order(s_rel_reg),10))]
 
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, family = family,
-                     center = center, scale = scale, elasticnet = elasticnet,
+                     center = center, scale = scale, elasticnet = tmp[['elasticnet']],
                      min.variation = min.variation, correlation = correlation,
                      min.obs = min.obs, epsilon = epsilon,
                      GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type,
