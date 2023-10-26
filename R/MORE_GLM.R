@@ -918,7 +918,7 @@ cor2pcor<-function(m,tol){
   return(-cov2cor(m))
 }
 
-partialcorrelation <- function(data,reg.table, omic.type,epsilon){
+partialcorrelation <- function(data,reg.table,myreg, omic.type,epsilon){
   
   data<-as.matrix(data)
   pairs<-combn(ncol(data),2)
@@ -953,7 +953,7 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
   
   myreg = as.character(reg.table[which(reg.table[,"filter"] == "Model"),"regulator"])
   data<-data[,myreg]
-  mycorrelations2 = suppressWarnings(partialcorrelation(data, reg.table, omic.type, epsilon))
+  mycorrelations2 = suppressWarnings(partialcorrelation(data, reg.table,myreg, omic.type, epsilon))
   
   if(any(is.na(mycorrelations[,3]))){
     return(NULL)
