@@ -903,9 +903,13 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type) {
 
 
 cor2pcor<-function(m,tol){
-  m = ginv(m, tol = tol)
-  diag(m) = diag(m)
-  return(-cov2cor(m))
+  m1 = try(ginv(m, tol = tol),silent=TRUE)
+  if (class(m1)[1]=='try-error'){
+    return(matrix(NA, ncol = ncol(m),nrow=nrow(m)))
+  } else{
+    diag(m1) = diag(m1)
+    return(-cov2cor(m1))
+  }
 }
 
 partialcorrelation <- function(data,reg.table,myreg, omic.type,epsilon){
