@@ -77,7 +77,7 @@ library(ropls)
 GetPLS = function(GeneExpression,
                   data.omics,
                   associations =NULL,
-                  omic.type = NULL,
+                  omic.type = 0,
                   edesign = NULL,
                   clinic = NULL,
                   clinic.type = NULL,
