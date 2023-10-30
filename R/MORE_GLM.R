@@ -96,7 +96,7 @@ GetGLM = function(GeneExpression,
                   interactions.reg = TRUE,
                   min.variation = 0,
                   min.obs = 10,
-                  col.filter = 'cor'
+                  col.filter = 'cor',
                   correlation = 0.7,
                   scaletype = 'auto'){
 
