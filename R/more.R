@@ -160,9 +160,9 @@ more <-function(GeneExpression,
   
   if(method=='glm'){
     
-    return(GetGLM(GeneExpression,
-                  data.omics,
-                  associations,
+    return(GetGLM(GeneExpression=GeneExpression,
+                  data.omics=data.omics,
+                  associations=associations,
                   omic.type = omic.type,
                   edesign = edesign,
                   clinic = clinic,
@@ -183,9 +183,9 @@ more <-function(GeneExpression,
   
   else {
     
-    return(GetPLS(GeneExpression,
-                  data.omics,
-                  associations,
+    return(GetPLS(GeneExpression=GeneExpression,
+                  data.omics=data.omics,
+                  associations=associations,
                   omic.type = omic.type,
                   edesign = edesign,
                   clinic = clinic,
