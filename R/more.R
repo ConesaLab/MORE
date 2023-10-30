@@ -177,7 +177,6 @@ more <-function(GeneExpression,
                   min.obs = min.obs,
                   col.filter = col.filter,
                   correlation = correlation,
-                  min.obs = min.obs,
                   scaletype = scaletype))
     
   }
