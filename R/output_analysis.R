@@ -562,16 +562,16 @@ plotmore = function(output, gene, regulator = NULL, reguValues = NULL, plotPerOm
   
   if(output$arguments$method=='glm'){
     
-    return(plotGLM(output, gene, regulator = NULL, reguValues = NULL, plotPerOmic = FALSE,
-                   gene.col = 1, regu.col = NULL, order = TRUE,
-                   xlab = "", cont.var = NULL, cond2plot = NULL,...))
+    return(plotGLM(output, gene, regulator = regulator, reguValues = reguValues, plotPerOmic = plotPerOmic,
+                   gene.col = gene.col, regu.col = regu.col, order = order,
+                   xlab = xlab, cont.var = cont.var, cond2plot = cond2plot,...))
   }
   
   if(output$arguments$method=='pls1'||output$arguments$method=='pls2'){
     
-    return(plotPLS(output, gene, regulator = NULL, reguValues = NULL, plotPerOmic = FALSE,
-                   gene.col = 1, regu.col = NULL, order = TRUE,
-                   xlab = "", cont.var = NULL, cond2plot = NULL,...))
+    return(plotPLS(output, gene, regulator = regulator, reguValues = reguValues, plotPerOmic = plotPerOmic,
+                   gene.col = gene.col, regu.col = regu.col, order = order,
+                   xlab = xlab, cont.var = cont.var, cond2plot = cond2plot,...))
   }
 }
 
