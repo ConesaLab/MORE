@@ -580,10 +580,9 @@ GetPLS = function(GeneExpression,
           
           GlobalSummary$GoodnessOfFit[gene,] = c(myPLS@modelDF[,'R2Y(cum)'][myPLS@summaryDF[,'pre']],
                                                  myPLS@modelDF[,'Q2(cum)'][myPLS@summaryDF[,'pre']],
-                                                 myPLS@summaryDF[,'RMSEE'][myPLS@summaryDF[,'pre']],
-                                                 round(abs(myPLS@summaryDF[,'RMSEE'][myPLS@summaryDF[,'pre']]/mean(myPLS@suppLs$y)),6),
+                                                 myPLS@summaryDF[,'RMSEE'],
+                                                 round(abs(myPLS@summaryDF[,'RMSEE']/mean(myPLS@suppLs$y)),6),
                                                  as.integer(length(ResultsPerGene[[i]]$significantRegulators)))
-          
           
         }
         
@@ -750,7 +749,7 @@ GetPLS = function(GeneExpression,
         
         GlobalSummary$GoodnessOfFit[gene,] = c(myPLS@modelDF[,'R2Y(cum)'][myPLS@summaryDF[,'pre']],
                                                myPLS@modelDF[,'Q2(cum)'][myPLS@summaryDF[,'pre']],
-                                               myPLS@summaryDF[,'RMSEE'][myPLS@summaryDF[,'pre']],
+                                               myPLS@summaryDF[,'RMSEE'],
                                                as.integer(length(ResultsPerGene[[i]]$significantRegulators)))
         
       }
