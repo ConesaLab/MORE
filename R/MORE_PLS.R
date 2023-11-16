@@ -518,7 +518,7 @@ GetPLS = function(GeneExpression,
             
             #Tratar como significativas tan solo las que cumplan ambas condiciones
             sigvariables = intersect(names(myPLS@vipVn[which(myPLS@vipVn>vip)]), rownames(pval)[which(pval<alfa)])
-            ResultsPerGene[[i]]$coefficients = data.frame('coefficient' = myPLS@coefficientMN[sigvariables,], 'p-value' = pval[sigvariables,])
+            ResultsPerGene[[i]]$coefficients = data.frame('coefficient' = myPLS@coefficientMN[sigvariables,], 'pvalue' = pval[sigvariables,,drop=FALSE])
             rows_to_remove = rownames(ResultsPerGene[[i]]$coefficients)[grepl("_0$", rownames(ResultsPerGene[[i]]$coefficients)) & !rownames(ResultsPerGene[[i]]$coefficients) %in% colnames(des.mat)]
             ResultsPerGene[[i]]$coefficients = ResultsPerGene[[i]]$coefficients[!rownames(ResultsPerGene[[i]]$coefficients) %in% rows_to_remove, ]
             
@@ -695,7 +695,7 @@ GetPLS = function(GeneExpression,
         
         #Tratar como significativas tan solo las que cumplan ambas condiciones
         sigvariables = intersect(names(myPLS@vipVn[which(myPLS@vipVn>vip)]), rownames(pval[,i,drop=FALSE])[which(pval[,i,drop=FALSE]<alfa)])
-        ResultsPerGene[[i]]$coefficients = data.frame('coefficient' = myPLS@coefficientMN[sigvariables,i], 'p-value' = pval[sigvariables,i])
+        ResultsPerGene[[i]]$coefficients = data.frame('coefficient' = myPLS@coefficientMN[sigvariables,i], 'pvalue' = pval[sigvariables,i,drop=FALSE])
         rows_to_remove = rownames(ResultsPerGene[[i]]$coefficients)[grepl("_0$", rownames(ResultsPerGene[[i]]$coefficients)) & !rownames(ResultsPerGene[[i]]$coefficients) %in% colnames(des.mat)]
         ResultsPerGene[[i]]$coefficients = ResultsPerGene[[i]]$coefficients[!rownames(ResultsPerGene[[i]]$coefficients) %in% rows_to_remove, ]
         
