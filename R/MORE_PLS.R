@@ -472,9 +472,9 @@ GetPLS = function(GeneExpression,
           quito = setdiff(quito, sdNo0)
           ResultsPerGene[[i]]$allRegulators[quito,"filter"] = "Constant"
           
-          #Include the gene expression information. Necesario cuando no considerabamos RegulatorsInteractions. Pero lo hace internamente no es neceario en este caso
-          #des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
-          #colnames(des.mat2)[1] = 'response'
+          #Save X matrix
+          
+          ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
           
           ## Computing GLM model
           if (nrow(des.mat2)<7){cross = nrow(des.mat)-2}else{cross =7}
