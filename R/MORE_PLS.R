@@ -395,11 +395,6 @@ GetPLS = function(GeneExpression,
           
           myPLS = NULL
           
-          tmp = ElasticNet(family2, des.mat2, epsilon, elasticnet)
-          regulatorcoef = tmp[['coefficients']]
-          
-          ResultsPerGene[[i]]$coefficients = regulatorcoef
-          colnames(ResultsPerGene[[i]]$coefficients) = c('coefficient')
           ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
           ResultsPerGene[[i]]$significantRegulators = NULL
           ResultsPerGene[[i]]$allRegulators = NULL
@@ -443,11 +438,6 @@ GetPLS = function(GeneExpression,
             GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
                                                data.frame("gene" = gene,
                                                           "problem" = 'No regulators left after NA/LowVar filtering'))
-            tmp = ElasticNet(family2, des.mat2, epsilon, elasticnet)
-            regulatorcoef = tmp[['coefficients']]
-            
-            ResultsPerGene[[i]]$coefficients = regulatorcoef
-            colnames(ResultsPerGene[[i]]$coefficients) = c('coefficient')
             ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
             ResultsPerGene[[i]]$significantRegulators = NULL
             ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
