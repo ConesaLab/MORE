@@ -323,9 +323,6 @@ RegulationPerCondition = function(output){
       rownames(conditions) = rownames(myresults)
       myresults = cbind(myresults, conditions)
       
-      # Tomo el primer grupo como el de referencia dado que en PLS se incluyen todos los grupos y no se toma ninguno de referencia como en GLM
-      ref = names.groups[1]
-      
       for(k in unique(myresults[,"gene"])){
         significant.regulators = output$ResultsPerGene[[k]]$significantRegulators                    # Reguladores significativos.
         model.variables = gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients))           # Reguladores e interacciones en el modelo.
