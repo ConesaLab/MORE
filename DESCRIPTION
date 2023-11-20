@@ -8,5 +8,6 @@ License: GPL-2
 Encoding: UTF-8
 LazyData: true
 Imports: igraph, MASS, glmnet, car, psych, ltm, fastDummies, stringr
-Remotes: github::cytoscape/RCy3, BiocManager::ropls
+BiocImports: ropls
+Remotes: github::cytoscape/RCy3
 Maintainer: Sonia Tarazona <starazona@cipf.es>
