@@ -4,7 +4,6 @@ Title: Multi-Omics REgulation (MORE)
 Version: 0.1.0
 Author: Sonia Tarazona, Blanca Tomás Riquelme, Maider Aguerralde Martin
 Description: MORE is a method which facilitate the task of applying regression models to multi-omic data. The goal of MORE is to model gene expression as a function of experimental variables, such as treatment, and the potential regulators of a given gene. MORE has a several functionalities to filter regulators: variable selection (Lasso, ridge regression and ElasticNet), filter for regulators with low variation, for missing data and for correlated regulators.
-Depends: R (>=4.0)
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
