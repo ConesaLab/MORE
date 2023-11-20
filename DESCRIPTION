@@ -7,6 +7,7 @@ Description: MORE is a method which facilitate the task of applying regression m
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
-Imports: igraph, MASS, glmnet, car, psych, ltm, fastDummies, stringr
-Remotes: github::cytoscape/RCy3, BiocManager::install('ropls')
+biocViews: Software, TimeCourse, ExperimentalDesign
+Imports: igraph, MASS, glmnet, car, psych, ltm, fastDummies, stringr, ropls
+Remotes: github::cytoscape/RCy3
 Maintainer: Sonia Tarazona <starazona@cipf.es>
