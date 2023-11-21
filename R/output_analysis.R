@@ -1412,3 +1412,89 @@ summary.MORE <-function(object, plot.more=FALSE){
   }
   
 }
+
+
+summary_plot<-function(output, output_regpcond, by_genes =TRUE){
+  
+  #output should by a MORE object
+  #output_regpcond should by the output of calculating RegulationPerCondition to a MORE object
+  #by_genes by default TRUE calculates the percentage of genes with significant regulators globally and per omic. FALSE to calculate the percentage of significant regulations globally and per omic.
+  
+  if(by_genes){
+    #Calculate the vector with % of significant regulators by condition and globally
+    
+    ngroups = length(unique(output$arguments$groups))
+    omics = names(output$arguments$dataOmics)
+    totalgenes = length(output$ResultsPerGene)
+    
+    #Create all the counts needed globally and per groups
+    
+    cts = matrix(NA, nrow=(ngroups)+1,ncol=length(omics)+1)
+    
+    for (i in 1:((ngroups)+1)){
+      #Create the global values
+      for (j in 1:((length(omics))+1)){
+        if (i==1 && j==1){
+          cts[i,j]= length(unique(output_regpcond$gene))
+        }else if(i==1){
+          cts[i,j]= length(unique(output_regpcond[output_regpcond$omic==omics[j-1],]$gene))
+        }else if(j==1){
+          cts[i,j] = length(unique(output_regpcond[output_regpcond[,5+(i-1)]!=0,]$gene))
+        }else{
+          cts[i,j] = length(unique(output_regpcond[intersect(which(output_regpcond[,5+(i-1)]!=0),which(output_regpcond$omic==omics[j-1])),]$gene))
+        }
+        
+      }
+    }
+    
+    #Convert to percentage
+    
+    cts<-cts/totalgenes
+    
+    #Create a df with the percentage of genes with significant regulators by omic and condition
+    df <- data.frame(Group=rep(c('Global',unique(output$arguments$groups)), times=length(omics) +1),
+                     omic=rep(c('Any',names(output$arguments$dataOmics)),each = ngroups+1),
+                     genes=as.vector(cts))
+    
+    
+    ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
+      geom_bar(stat="identity", position=position_dodge()) +
+      scale_fill_conesa(palette = "complete")+  ylim(0,1)+
+      labs(x="Omic", y = "% genes with significant regulators") +
+      theme(legend.text = element_text(size = 12)) 
+    
+  } else{
+    #Calculate the vector with % of significant regulations by condition in each omic
+    
+    ngroups = length(unique(output$arguments$groups))
+    omics = names(output$arguments$dataOmics)
+    
+    #Create all the counts needed globally and per groups
+    
+    cts = matrix(NA, nrow=(ngroups),ncol=length(omics))
+    
+    for (i in 1:ngroups){
+      #Create the global values
+      for (j in 1:length(omics)){
+        cat('i:',i,'j:',j,'\n')
+        cts[i,j] = length(output_regpcond[intersect(which(output_regpcond[,5+i]!=0),which(output_regpcond$omic==omics[j])),]$regulator)/ nrow(output$arguments$associations[[omics[j]]])
+        
+      }
+    }
+    
+    
+    #Create a df with the percentage of genes with significant regulators by omic and condition
+    df <- data.frame(Group=rep(unique(output$arguments$groups)[-3], times=length(omics)),
+                     omic=rep(names(output$arguments$dataOmics),each = ngroups),
+                     genes=as.vector(cts))
+    
+    
+    ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
+      geom_bar(stat="identity", position=position_dodge()) +
+      scale_fill_conesa(palette = "complete")+  ylim(0,1)+
+      labs(x="Omic", y = "% significant regulations") +
+      theme(legend.text = element_text(size = 12)) 
+    
+  }
+  
+}
