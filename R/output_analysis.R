@@ -1476,7 +1476,6 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     for (i in 1:ngroups){
       #Create the global values
       for (j in 1:length(omics)){
-        cat('i:',i,'j:',j,'\n')
         cts[i,j] = length(output_regpcond[intersect(which(output_regpcond[,5+i]!=0),which(output_regpcond$omic==omics[j])),]$regulator)/ nrow(output$arguments$associations[[omics[j]]])
         
       }
