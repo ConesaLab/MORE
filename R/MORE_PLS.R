@@ -779,7 +779,7 @@ GetPLS = function(GeneExpression,
   
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, 
                      center = center, scale = scale, clinic.type = clinic.type,
-                     min.variation = min.variation, 
+                     min.variation = min.variation, associations = associations,
                      min.obs = min.obs, epsilon = epsilon, vip = vip,
                      GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type,
                      clinic = clinic, clinic.type = clinic.type, scaletype =scaletype, p.method=p.method, method =method)

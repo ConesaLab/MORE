@@ -671,7 +671,7 @@ GetGLM = function(GeneExpression,
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, family = family,
                      center = center, scale = scale, elasticnet = tmp[['elasticnet']],
                      min.variation = min.variation, correlation = correlation,
-                     min.obs = min.obs, epsilon = epsilon,
+                     min.obs = min.obs, epsilon = epsilon, associations = associations,
                      GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type,
                      clinic = clinic, clinic.type=clinic.type,method ='glm')
   
