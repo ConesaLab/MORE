@@ -799,24 +799,26 @@ ScalePLSdesmat = function(des.mat2, scaletype, center, scale){
 
 ScalePLS= function(reguVal, regu, omic.type, scaletype, center, scale){
   res.mat = NULL
-  for (ov in names(regu)){
-    des.mat2 = as.data.frame(reguVal[, regu[[ov]],drop =FALSE])
+  if(scaletype=='auto'){
+    #Autoescalado: todas las variables tienen el mismo peso en el modelo, indiferentemente del modelo
+    res.mat = scale(reguVal, center = center, scale = scale)
+  } else{
     
-    if(scaletype=='auto'){
-      #Autoescalado: todas las variables tienen el mismo peso en el modelo, indiferentemente del modelo
-      des.mat2 = scale(des.mat2, center = center, scale = scale)
+    for (ov in names(regu)){
+      des.mat2 = as.data.frame(reguVal[, regu[[ov]],drop =FALSE])
+      
+      if(scaletype=='pareto'){
+        #Escalado tipo pareto
+        des.mat2 = scale(des.mat2, center = center, scale = scale) / (ncol(des.mat2)^(1/4))
+      }
+      if(scaletype=='block'){
+        #Cada bloque de variables tiene el mismo peso total en el modelo
+        des.mat2 = scale(des.mat2, center = center, scale = scale) / (ncol(des.mat2)^(1/2))
+      }
+      
+      res.mat = cbind(res.mat,des.mat2)
+      
     }
-    if(scaletype=='pareto'){
-      #Escalado tipo pareto
-      des.mat2 = scale(des.mat2, center = center, scale = scale) / (ncol(des.mat2)^(1/4))
-    }
-    if(scaletype=='block'){
-      #Cada bloque de variables tiene el mismo peso total en el modelo
-      des.mat2 = scale(des.mat2, center = center, scale = scale) / (ncol(des.mat2)^(1/2))
-    }
-    
-    res.mat = cbind(res.mat,des.mat2)
-    
   }
   
   rownames(res.mat) = rownames(reguVal)
