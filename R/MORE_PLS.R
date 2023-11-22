@@ -454,13 +454,26 @@ GetPLS = function(GeneExpression,
           des.mat2 = RegulatorsInteractionsPLS(interactions.reg, reguValues = res$RegulatorMatrix,
                                                edesign, clinic.type, GeneExpression, gene, regupero, omic.type)
           
-          #Add the ones related to the interactions
-          regupero = filter_columns_by_regexp(regupero, des.mat2,res)
-          
-          res$RegulatorMatrix = ScalePLS(des.mat2[,-1,drop=FALSE], regupero, omic.type, scaletype, center, scale)
-          
-          #Use them jointly
-          des.mat2 = data.frame(des.mat2[,1,drop=FALSE], des.mat, res$RegulatorMatrix,check.names = FALSE)
+          if (scaletype!='auto'){
+            #It does not work in case of really huge amount of data
+            regupero = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2[,grep(paste(x, collapse = "|"), colnames(des.mat2))]))),silent = TRUE)
+            if(class(regupero)=='try-error'){
+              #Add the ones related to the interactions
+              regupero = filter_columns_by_regexp(regupero, des.mat2,res)
+            }
+            res$RegulatorMatrix = ScalePLS(des.mat2[,-1,drop=FALSE], regupero, omic.type, scaletype, center, scale)
+            
+            #Use them jointly
+            des.mat2 = data.frame(des.mat2[,1,drop=FALSE], des.mat, res$RegulatorMatrix,check.names = FALSE)
+            
+          } else{
+            regupero = NULL
+            res$RegulatorMatrix = ScalePLS(des.mat2[,-1,drop=FALSE], regupero, omic.type, scaletype, center, scale)
+            
+            #Use them jointly
+            des.mat2 = data.frame(des.mat2[,1,drop=FALSE], res$RegulatorMatrix,check.names = FALSE)
+            
+          }
           
           # Removing predictors with constant values
           sdNo0 = apply(des.mat2, 2, sd)
