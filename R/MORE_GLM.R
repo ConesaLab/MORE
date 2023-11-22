@@ -527,17 +527,22 @@ GetGLM = function(GeneExpression,
                                                 reguValues = ScaleMatrix,
                                                 des.mat, GeneExpression, gene)
           }
-          
-          ##Scale if needed to block scaling or pareto scaling
-          regupero = filter_columns_by_regexp(regupero, des.mat2EN,res)
-          
-          des.mat2EN = data.frame(des.mat2EN[,1,drop=FALSE], des.mat,ScaleGLM(des.mat2EN[,-1,drop=FALSE], regupero, scaletype),check.names = FALSE)
-          
+
         }
         
         # Removing observations with missing values
         des.mat2EN = na.omit(des.mat2EN)
         
+        ##Scale if needed to block scaling or pareto scaling
+        if (scaletype!='auto'){
+          #It does not work in case of really huge amount of data
+          regupero = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2EN[,grep(paste(x, collapse = "|"), colnames(des.mat2))]))),silent = TRUE)
+          if(class(regupero)=='try-error'){
+            #Add the ones related to the interactions
+            regupero = filter_columns_by_regexp(regupero, des.mat2EN,res)
+            des.mat2EN = data.frame(des.mat2EN[,1,drop=FALSE], des.mat,ScaleGLM(des.mat2EN[,-1,drop=FALSE], regupero, scaletype),check.names = FALSE)
+          }
+        }
         
         ###  Variable selection --> Elasticnet
         tmp = ElasticNet(family2, des.mat2EN, epsilon, elasticnet)
