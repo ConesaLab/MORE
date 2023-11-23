@@ -17,6 +17,7 @@ library(psych)
 library(car)
 library(stringr)
 library(fastDummies)
+library(RColorConesa)
 
 #' more: Multi-Omics Regulation
 #'
