@@ -351,7 +351,7 @@ RemovedRegulators = function(RetRegul.gene, myregLV, myregNA, data.omics){
 filter_columns_by_regexp <- function(regupero, des.mat2, res) {
   filtered_columns <- lapply(regupero, function(x) if (length(x) != 0) {
     pat <- paste(x, collapse = "|")
-    logical_indices <- str_detect(colnames(des.mat2), regex(pat, ignore_case = TRUE))
+    logical_indices <- stringi::str_detect(colnames(des.mat2), stringr::regex(pat, ignore_case = TRUE))
     colnames(des.mat2)[logical_indices]
   })
   names(filtered_columns) <- unique(res$SummaryPerGene[, 'omic'])
@@ -424,13 +424,13 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       
       if (nrow(des.mat2) > 200) { mynfolds =  ceiling(nrow(des.mat2)/20) } else { mynfolds = nrow(des.mat2) }  # for CV
       
-      cvEN = cv.glmnet(x = as.matrix(des.mat2[,-1]),
+      cvEN = glmnet::cv.glmnet(x = as.matrix(des.mat2[,-1]),
                        y = des.mat2[,1], 
                        nfolds = mynfolds, alpha = elasticnet, standardize = FALSE, thres = epsilon,
                        family = family2, grouped = FALSE)
       
       myS = cvEN$lambda.min  # optimum penalization parameter
-      y.fitted = predict(cvEN, s = myS, newx = as.matrix(des.mat2[,-1]))
+      y.fitted = glmnet::predict.glmnet(cvEN, s = myS, newx = as.matrix(des.mat2[,-1]))
       
       if (length(myS) > 1) {  # more than 1 values for lambda
         myCVerror = cvEN$cvm[sapply(myS, function (i) which(cvEN$lambda == i))]
@@ -459,7 +459,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       #cv for lambda optimization for each alpha of the grid
       
       cvs <- lapply(alphas, function(x) {
-        cv.glmnet(x = as.matrix(des.mat2[,-1]), y = des.mat2[,1], nfolds = mynfolds,
+        glmnet::cv.glmnet(x = as.matrix(des.mat2[,-1]), y = des.mat2[,1], nfolds = mynfolds,
                   alpha = x, standardize = FALSE, thres = epsilon,
                   family = family2, grouped = FALSE)})
       
@@ -478,7 +478,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       }
       
       # optimum penalization parameters
-      y.fitted = predict(cvEN, s = lambdamin, newx = as.matrix(des.mat2[,-1]))
+      y.fitted = glmnet::predict.glmnet(cvEN, s = lambdamin, newx = as.matrix(des.mat2[,-1]))
       
       if (length(lambdamin) > 1) {  # more than 1 values for lambda
         myCVerror = cvEN$cvm[sapply(lambdamin, function (i) which(cvEN$lambda == i))]
@@ -487,8 +487,8 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       
       if (length(lambdamin) == 1) {
         x = des.mat2[,-1]
-        sel = colnames(x)[which(coef(cvEN, s = lambdamin)[-1,1] != 0)] # selected coefficients without intercept
-        selcoef = as.data.frame(as.matrix(coef(cvEN, s = lambdamin)[which(coef(cvEN, s = lambdamin)[,1] != 0),,drop=FALSE]))
+        sel = colnames(x)[which(glmnet::coef.glmnet(cvEN, s = lambdamin)[-1,1] != 0)] # selected coefficients without intercept
+        selcoef = as.data.frame(as.matrix(glmnet::coef.glmnet(cvEN, s = lambdamin)[which(glmnet::coef.glmnet(cvEN, s = lambdamin)[,1] != 0),,drop=FALSE]))
         mycoef = c(colnames(des.mat2)[1], sel)
         
         removedCoefs = setdiff(colnames(des.mat2), mycoef)
@@ -510,7 +510,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       #cv for lambda optimization for each alpha of the grid
       
       cvs <- lapply(alphas, function(x) {
-        cv.glmnet(x = as.matrix(des.mat2[,-1]), y = des.mat2[,1], nfolds = mynfolds,
+        glmnet::cv.glmnet(x = as.matrix(des.mat2[,-1]), y = des.mat2[,1], nfolds = mynfolds,
                   alpha = x, standardize = FALSE, thres = epsilon,
                   family = family2, grouped = FALSE)})
       
@@ -529,7 +529,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       }
       
       # optimum penalization parameters
-      y.fitted = predict(cvEN, s = lambdamin, newx = as.matrix(des.mat2[,-1]))
+      y.fitted = glmnet::predict.glmnet(cvEN, s = lambdamin, newx = as.matrix(des.mat2[,-1]))
       
       if (length(lambdamin) > 1) {  # more than 1 values for lambda
         myCVerror = cvEN$cvm[sapply(lambdamin, function (i) which(cvEN$lambda == i))]
@@ -538,8 +538,8 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       
       if (length(lambdamin) == 1) {
         x = des.mat2[,-1]
-        sel = colnames(x)[which(coef(cvEN, s = lambdamin)[-1,1] != 0)] # selected coefficients without intercept
-        selcoef = as.data.frame(as.matrix(coef(cvEN, s = lambdamin)[which(coef(cvEN, s = lambdamin)[,1] != 0),,drop=FALSE]))
+        sel = colnames(x)[which(glmnet::coef.glmnet(cvEN, s = lambdamin)[-1,1] != 0)] # selected coefficients without intercept
+        selcoef = as.data.frame(as.matrix(glmnet::coef.glmnet(cvEN, s = lambdamin)[which(glmnet::coef.glmnet(cvEN, s = lambdamin)[,1] != 0),,drop=FALSE]))
         mycoef = c(colnames(des.mat2)[1], sel)
         
         removedCoefs = setdiff(colnames(des.mat2), mycoef)
@@ -583,7 +583,7 @@ RegulatorsInteractionsPLS = function (interactions.reg, reguValues, des.mat, cli
     #Assign _ to avoid conflicts
     colnames(des.mat) = paste0(colnames(des.mat),'_')
     for (i in 1:ncol(des.mat)) {
-      res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat[,i, drop = FALSE])[,-1]))
+      res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat[,i, drop = FALSE])[,-1]))
     }
     colnames(res.mat) = sub('.*_','Group_',colnames(res.mat))
     rownames(res.mat) = rownames(des.mat)
@@ -595,7 +595,7 @@ RegulatorsInteractionsPLS = function (interactions.reg, reguValues, des.mat, cli
         des.mat2 = as.data.frame(reguValues[, regu[[ov]],drop =FALSE])
         for (i in 1:length(clinic.type)) {
           if(clinic.type[i]==1){
-            res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat2[,i,drop=FALSE])[,-1, drop=FALSE]))
+            res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat2[,i,drop=FALSE])[,-1, drop=FALSE]))
           }else{
             res.mat = cbind(res.mat,as.matrix(des.mat2[,i,drop=FALSE]))
           }
@@ -605,7 +605,7 @@ RegulatorsInteractionsPLS = function (interactions.reg, reguValues, des.mat, cli
         if (ncol(des.mat2)!=0){
           if (omic.type[ov] == 1){
             des.mat2 = apply(des.mat2, 2, factor)
-            res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat2)[,-c(1:ncol(des.mat2)), drop=FALSE]))
+            res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat2)[,-c(1:ncol(des.mat2)), drop=FALSE]))
           } else{
             res.mat = cbind(res.mat,as.matrix(des.mat2))
           } 
@@ -671,7 +671,7 @@ RegulatorsInteractionsPLS2 = function (interactions.reg, reguValues, des.mat, cl
   } else {
     res.mat = NULL
     for (i in 1:ncol(des.mat)) {
-      res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat[,i, drop = FALSE])[,-1]))
+      res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat[,i, drop = FALSE])[,-1]))
     }
     colnames(res.mat) = sub('.*_','Group_',colnames(res.mat))
     rownames(res.mat) = rownames(des.mat)
@@ -683,7 +683,7 @@ RegulatorsInteractionsPLS2 = function (interactions.reg, reguValues, des.mat, cl
         des.mat2 = as.data.frame(reguValues[, regu[[ov]],drop =FALSE])
         for (i in 1:length(clinic.type)) {
           if(clinic.type[i]==1){
-            res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat2[,i,drop=FALSE])[,-1, drop=FALSE]))
+            res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat2[,i,drop=FALSE])[,-1, drop=FALSE]))
           }else{
             res.mat = cbind(res.mat,as.matrix(des.mat2[,i,drop=FALSE]))
           }
@@ -693,7 +693,7 @@ RegulatorsInteractionsPLS2 = function (interactions.reg, reguValues, des.mat, cl
         if (ncol(des.mat2)!=0){
           if (omic.type[ov] == 1){
             des.mat2 = apply(des.mat2, 2, factor)
-            res.mat = cbind(res.mat,as.matrix(dummy_cols(des.mat2)[,-c(1:ncol(des.mat2)), drop=FALSE]))
+            res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat2)[,-c(1:ncol(des.mat2)), drop=FALSE]))
           } else{
             res.mat = cbind(res.mat,as.matrix(des.mat2))
           } 
@@ -866,7 +866,7 @@ p.coef<-function(pls,R, datospls){
   a<-NULL
   for (i in 1:R){
     Yperm=sample(Y, replace=FALSE)
-    plsda.opls<-opls(datospls[,-1], scale(Yperm), scaleC='none', predI=k,
+    plsda.opls<-ropls::opls(datospls[,-1], scale(Yperm), scaleC='none', predI=k,
                      info.txtC='none', fig.pdfC='none', crossvalI=1,permI = 0)
     a<-cbind(a,plsda.opls@coefficientMN)
   }
@@ -892,7 +892,7 @@ p.valuejack<-function(pls, datospls,alfa){
   
   for (i in 1: nrow(datospls)) {
     
-    pls.opls=suppressWarnings(opls(datospls[-i,-1], scale(datospls[-i,1]), scaleC='none', predI=k,
+    pls.opls=suppressWarnings(ropls::opls(datospls[-i,-1], scale(datospls[-i,1]), scaleC='none', predI=k,
                                    info.txtC='none', fig.pdfC='none', crossvalI=1, permI = 0))
     
     if(nrow(pls.opls@coefficientMN)<nrow(coefmod)){
@@ -930,7 +930,7 @@ p.coef.pls2<-function(pls,R, datospls, Y){
   for (i in 1:R){
     rows_ord = sample(nrow(Y), replace = FALSE)
     Yperm=Y[rows_ord,]
-    pls.opls<-opls(datospls, Yperm, scaleC='none', predI=k,
+    pls.opls<-ropls::opls(datospls, Yperm, scaleC='none', predI=k,
                    info.txtC='none', fig.pdfC='none', crossvalI=1,permI = 0)
     a<-cbind(a,pls.opls@coefficientMN)
   }
@@ -962,7 +962,7 @@ p.valuejack.pls2<-function(pls, datospls, Y,alfa){
   pvalores = data.frame()
   for (i in 1: nrow(datospls)) {
     
-    pls.opls=suppressWarnings(opls(datospls[-i, , drop =FALSE], Y[-i,], scaleC='none', predI=k,
+    pls.opls=suppressWarnings(ropls::opls(datospls[-i, , drop =FALSE], Y[-i,], scaleC='none', predI=k,
                                    info.txtC='none', fig.pdfC='none', crossvalI=1, permI = 0))
     
     if(nrow(pls.opls@coefficientMN)<nrow(coefmod)){
