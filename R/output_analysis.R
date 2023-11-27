@@ -1462,7 +1462,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     ggplto2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
       theme_minimal()+
-      scale_fill_conesa(palette = "complete")+  
+      RColorConesa::scale_fill_conesa(palette = "complete")+  
       labs(x="Omic", y = "% genes with significant regulators") +
       theme(legend.text = element_text(size = 12)) 
     
@@ -1494,7 +1494,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
       theme_minimal()+
-      scale_fill_conesa(palette = "complete")+
+      RColorConesa::scale_fill_conesa(palette = "complete")+
       labs(x="Omic", y = "% significant regulations") +
       theme(legend.text = element_text(size = 12)) 
     
