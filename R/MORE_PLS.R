@@ -483,10 +483,10 @@ GetPLS = function(GeneExpression,
           
           ## Computing GLM model
           if (nrow(des.mat2)<7){cross = nrow(des.mat)-2}else{cross =7}
-          myPLS = try(suppressWarnings( opls(des.mat2[,-1], scale(des.mat2[,1], center = center,scale=scale), info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0)),silent = TRUE)
+          myPLS = try(suppressWarnings(ropls::opls(des.mat2[,-1], scale(des.mat2[,1], center = center,scale=scale), info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0)),silent = TRUE)
           
           if(class(myPLS)=='try-error' || length(myPLS@modelDF)==0){
-            myPLS = try(suppressWarnings( opls(des.mat2[,-1], scale(des.mat2[,1], center =center, scale = scale), info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=1)), silent = TRUE)
+            myPLS = try(suppressWarnings(ropls::opls(des.mat2[,-1], scale(des.mat2[,1], center =center, scale = scale), info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=1)), silent = TRUE)
           }
           
           if (class(myPLS)=='try-error' || length(myPLS@modelDF)==0){
@@ -644,10 +644,10 @@ GetPLS = function(GeneExpression,
     
     ## Computing GLM model
     if (nrow(des.mat2)<7){cross = nrow(des.mat)-2}else{cross =7}
-    myPLS = try(suppressWarnings( opls(des.mat2, Y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0)),silent = TRUE)
+    myPLS = try(suppressWarnings( ropls::opls(des.mat2, Y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0)),silent = TRUE)
     
     if(class(myPLS)=='try-error' || length(myPLS@modelDF)==0){
-      myPLS = try(suppressWarnings( opls(des.mat2, Y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=1)), silent = TRUE)
+      myPLS = try(suppressWarnings( ropls::opls(des.mat2, Y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=1)), silent = TRUE)
     }
     
     if (class(myPLS)=='try-error' || length(myPLS@modelDF)==0){
