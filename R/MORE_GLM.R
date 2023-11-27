@@ -703,12 +703,12 @@ correlations<- function(v, data, reg.table, omic.type){
   if(omic1 == 0 & omic2 == 0){
     correlation = cor(data[, v[1]], data[, v[2]])
   } else if(omic1 == 0 & omic2 == 1){
-    correlation = biserial.cor(data[, v[1]], data[, v[2]])
+    correlation = ltm::biserial.cor(data[, v[1]], data[, v[2]])
   } else if(omic1 == 1 & omic2 == 0){
-    correlation = biserial.cor(data[, v[2]], data[, v[1]])
+    correlation = ltm::biserial.cor(data[, v[2]], data[, v[1]])
   } else{
     contingency.table = table(data[,v[1]], data[,v[2]])
-    correlation = phi(contingency.table)
+    correlation = psych::phi(contingency.table)
   }
   
   return(correlation)
@@ -763,16 +763,16 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type) {
   
   if (nrow(mycor) >= 2) {   ### more than 2 regulators might be correlated in this omic
     
-    mygraph = graph.data.frame(mycor, directed=F)
-    mycomponents = clusters(mygraph)
+    mygraph = igraph::graph.data.frame(mycor, directed=F)
+    mycomponents = igraph::clusters(mygraph)
     mygraph$community<-mycomponents$membership ##save membership information
     
     for (i in 1:mycomponents$no) {
       
       #create the subgraphs of the clusters
-      mysubgraph = subgraph(mygraph,as.numeric(V(mygraph)[which(mygraph$community==i)]))
+      mysubgraph = igraph::subgraph(mygraph,as.numeric(V(mygraph)[which(mygraph$community==i)]))
       
-      nedges = ecount(mysubgraph)
+      nedges = igraph::ecount(mysubgraph)
       
       ## see if it is a fully connected graph
       if (nedges == ((mycomponents$csize[i]*(mycomponents$csize[i]-1))/2)){
@@ -835,7 +835,7 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type) {
         while(sum(mycomponents2$csize)!=mycomponents2$no){
           
           ## Take the regulator(s) with more edges
-          mynumedges=table(as_edgelist(mysubgraph))
+          mynumedges=table(igraph::as_edgelist(mysubgraph))
           maxcorrelationed = names(which(mynumedges==max(mynumedges)))
           
           if(length(maxcorrelationed)>1){
@@ -851,7 +851,7 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type) {
           } else{
             repre = maxcorrelationed
           }
-          correlacionados = names(which(as_adj(mysubgraph)[,repre]>0))
+          correlacionados = names(which(igraph::as_adj(mysubgraph)[,repre]>0))
           regulators = colnames(data)
           
           regulators = setdiff(regulators, correlacionados)  # all regulators to keep
@@ -889,8 +889,8 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type) {
               reg.table[index, "filter"] = paste(reg.table[repre, 'omic'], paste("mc", i, sep = ""),j, "N", sep = "_")
             }
           }
-          mysubgraph<-delete.vertices(mysubgraph,correlacionados)
-          mycomponents2 = clusters(mysubgraph)
+          mysubgraph<-igraph::delete.vertices(mysubgraph,correlacionados)
+          mycomponents2 = igraph::clusters(mysubgraph)
           j=j+1
           
         }
@@ -911,7 +911,7 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type) {
 
 
 cor2pcor<-function(m,tol){
-  m1 = try(ginv(m, tol = tol),silent=TRUE)
+  m1 = try(MASS::ginv(m, tol = tol),silent=TRUE)
   if (class(m1)[1]=='try-error'){
     return(matrix(NA, ncol = ncol(m),nrow=nrow(m)))
   } else{
@@ -999,16 +999,16 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
   
   if (nrow(mycor) >= 2) {   ### more than 2 regulators might be correlated in this omic
     
-    mygraph = graph.data.frame(mycor, directed=F)
-    mycomponents = clusters(mygraph)
+    mygraph = igraph::graph.data.frame(mycor, directed=F)
+    mycomponents = igraph::clusters(mygraph)
     mygraph$community<-mycomponents$membership ##save membership information
     
     for (i in 1:mycomponents$no) {
       
       #create the subgraphs of the clusters
-      mysubgraph = subgraph(mygraph,as.numeric(V(mygraph)[which(mygraph$community==i)]))
+      mysubgraph = igraph::subgraph(mygraph,as.numeric(V(mygraph)[which(mygraph$community==i)]))
       
-      nedges = ecount(mysubgraph)
+      nedges = igraph::ecount(mysubgraph)
       
       ## see if it is a fully connected graph
       if (nedges == ((mycomponents$csize[i]*(mycomponents$csize[i]-1))/2)){
@@ -1071,7 +1071,7 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
         while(sum(mycomponents2$csize)!=mycomponents2$no){
           
           ## Take the regulator(s) with more edges
-          mynumedges=table(as_edgelist(mysubgraph))
+          mynumedges=table(igraph::as_edgelist(mysubgraph))
           maxcorrelationed = names(which(mynumedges==max(mynumedges)))
           
           if(length(maxcorrelationed)>1){
@@ -1088,7 +1088,7 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
             repre = maxcorrelationed
           }
           
-          correlacionados = names(which(as_adj(mysubgraph)[,repre]>0))
+          correlacionados = names(which(igraph::as_adj(mysubgraph)[,repre]>0))
           regulators = colnames(data)
           
           regulators = setdiff(regulators, correlacionados)  # all regulators to keep
@@ -1126,8 +1126,8 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
               reg.table[index, "filter"] = paste(reg.table[repre, 'omic'], paste("mc", i, sep = ""),j, "N", sep = "_")
             }
           }
-          mysubgraph<-delete.vertices(mysubgraph,correlacionados)
-          mycomponents2 = clusters(mysubgraph)
+          mysubgraph<-igraph::delete.vertices(mysubgraph,correlacionados)
+          mycomponents2 = igraph::clusters(mysubgraph)
           j=j+1
           
         }
