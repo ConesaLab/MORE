@@ -103,10 +103,19 @@ GetPLS = function(GeneExpression,
     if(!is.null(associations)){associations = c(list(clinic = NULL),associations)}
     
     #Add information to omic.type even if it is not relevant
+    ##Omic types
+    if (length(omic.type) == 1) omic.type = rep(omic.type, length(data.omics))
+    names(omic.type) = names(data.omics)
+    
     omic.type = c(0,omic.type)
     names(omic.type)[1] = 'clinic'
     om= 2
-  }else{clinic.type=NULL; om =1}
+  }else{
+    clinic.type=NULL
+    ##Omic types
+    if (length(omic.type) == 1) omic.type = rep(omic.type, length(data.omics))
+    names(omic.type) = names(data.omics)
+    om =1}
   
   # Not possible to apply a PLS2 when associations matrix is provided
   if(!is.null(associations)){
