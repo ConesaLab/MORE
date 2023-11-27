@@ -1331,6 +1331,8 @@ plotPLS = function (PLSoutput, gene, regulator = NULL, reguValues = NULL, plotPe
 
 ## Summary ------------
 
+library(ggplot2)
+
 summary.MORE <-function(object, plot.more=FALSE){
   
   cat('A model was computed for',length(object$ResultsPerGene), 'genes.' ,'\n')
@@ -1457,9 +1459,10 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
                      genes=as.vector(cts))
     
     
-    ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
+    ggplto2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
-      scale_fill_conesa(palette = "complete")+  ylim(0,1)+
+      theme_minimal()+
+      scale_fill_conesa(palette = "complete")+  
       labs(x="Omic", y = "% genes with significant regulators") +
       theme(legend.text = element_text(size = 12)) 
     
@@ -1488,9 +1491,10 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
                      genes=as.vector(cts))
     
     
-    ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
+    ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
-      scale_fill_conesa(palette = "complete")+  ylim(0,1)+
+      theme_minimal()+
+      scale_fill_conesa(palette = "complete")+
       labs(x="Omic", y = "% significant regulations") +
       theme(legend.text = element_text(size = 12)) 
     
