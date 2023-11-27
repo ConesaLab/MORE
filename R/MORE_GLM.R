@@ -90,7 +90,6 @@ GetGLM = function(GeneExpression,
                   clinic.type =NULL,
                   center = TRUE, scale = TRUE,
                   epsilon = 0.00001,
-                  alfa = 0.05, 
                   family = gaussian(),
                   elasticnet = NULL,
                   interactions.reg = TRUE,
@@ -676,7 +675,7 @@ GetGLM = function(GeneExpression,
   
   GlobalSummary$HubGenes = s_rel_reg[rev(tail(order(s_rel_reg),10))]
 
-  myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, family = family,
+  myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, family = family,
                      center = center, scale = scale, elasticnet = tmp[['elasticnet']],
                      min.variation = min.variation, correlation = correlation,
                      min.obs = min.obs, epsilon = epsilon, associations = associations,
