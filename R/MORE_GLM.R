@@ -110,6 +110,14 @@ GetGLM = function(GeneExpression,
   names(omic.type) = names(data.omics)
   
   if(!is.null(clinic)){
+    
+    ##Before introducing variables in data.omics convert them to numeric type
+    ## TO DO: Careful creates k-1 dummies. Is what we want?
+    catvar <- which(clinic.type == 1)
+    dummy_vars <- model.matrix(~ . , data = as.data.frame(clinic[,catvar ,drop=FALSE]))[,-1,drop=FALSE]
+    clinic <-clinic[, -catvar,drop=FALSE]
+    clinic <- cbind(clinic, dummy_vars)
+    
     data.omics = c(list(clinic =  as.data.frame(t(clinic))),data.omics)
     
     #Add in associations clinic to consider all the clinical variables in all genes
