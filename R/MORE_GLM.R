@@ -53,7 +53,6 @@ library(ltm)
 #' the regulator is considered to have low variation and will be excluded from the regression models. The user has the option to set a single 
 #' value to apply the same filter to all omics, provide a vector of the same length as omics if they want to specify different levels for each omics, 
 #' or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.
-#' @param min.obs Minimum number of counts required for a gene to be considered. Only applied when \code{\link{GeneExpression}} is a non-normalized count matrix. 
 #' @param col.filter Type of correlation coefficients to use when applying the multicollinearity filter when glm \code{\link{method}} is used. 
 #' - cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
 #' - pcor : Computes the partial correlation.
@@ -77,7 +76,7 @@ library(ltm)
 #' @examples
 #' 
 #' more(GeneExpression, associations, data.omics, center = TRUE, scale = TRUE, epsilon = 0.00001, family = gaussian(), elasticnet = NULL, interactions.reg = TRUE,
-#'  min.variation = 0,  min.obs = 10, col.filter = 'cor', correlation = 0.7, method  ='glm')
+#'  min.variation = 0, col.filter = 'cor', correlation = 0.7, method  ='glm')
 #' 
 #' @export
 
@@ -94,7 +93,6 @@ GetGLM = function(GeneExpression,
                   elasticnet = NULL,
                   interactions.reg = TRUE,
                   min.variation = 0,
-                  min.obs = 10,
                   col.filter = 'cor',
                   correlation = 0.7,
                   scaletype = 'auto'){
@@ -263,7 +261,8 @@ GetGLM = function(GeneExpression,
     }
   }
 
-  ## Removing genes with too many NAs and keeping track
+  ## Removing genes with NAs and keeping track
+  min.obs = ncol(GeneExpression)
   genesNotNA = apply(GeneExpression, 1, function (x) sum(!is.na(x)))
   genesNotNA = names(which(genesNotNA >= min.obs))
   genesNA = setdiff(rownames(GeneExpression), genesNotNA)
@@ -678,7 +677,7 @@ GetGLM = function(GeneExpression,
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, family = family,
                      center = center, scale = scale, elasticnet = tmp[['elasticnet']],
                      min.variation = min.variation, correlation = correlation,
-                     min.obs = min.obs, epsilon = epsilon, associations = associations,
+                     epsilon = epsilon, associations = associations,
                      GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type,
                      clinic = clinic, clinic.type=clinic.type,method ='glm')
   

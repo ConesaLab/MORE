@@ -59,7 +59,6 @@ library(RColorConesa)
 #' the regulator is considered to have low variation and will be excluded from the regression models. The user has the option to set a single 
 #' value to apply the same filter to all omics, provide a vector of the same length as omics if they want to specify different levels for each omics, 
 #' or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.
-#' @param min.obs Minimum number of observations required for a gene to be considered. Default, 10.
 #' @param col.filter Type of correlation coefficients to use when applying the multicollinearity filter when glm \code{\link{method}} is used. 
 #' - cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
 #' - pcor : Computes the partial correlation.
@@ -88,7 +87,7 @@ library(RColorConesa)
 #' @examples
 #' 
 #' more(GeneExpression, associations, data.omics, center = TRUE, scale = TRUE, epsilon = 0.00001, family = gaussian(), elasticnet = NULL, interactions.reg = TRUE,
-#'  min.variation = 0,  min.obs = 10, col.filter = 'cor', correlation = 0.7, method  ='glm')
+#'  min.variation = 0,  col.filter = 'cor', correlation = 0.7, method  ='glm')
 #' 
 #' @export
 
@@ -127,7 +126,6 @@ more <-function(GeneExpression,
                 scaletype = 'auto',
                 epsilon = 0.00001,
                 min.variation = 0,
-                min.obs = 10,
                 interactions.reg = TRUE,
                 family.glm = gaussian(),
                 elasticnet.glm = NULL,
@@ -174,7 +172,6 @@ more <-function(GeneExpression,
                   elasticnet = elasticnet.glm,
                   interactions.reg = interactions.reg,
                   min.variation = min.variation,
-                  min.obs = min.obs,
                   col.filter = col.filter.glm,
                   correlation = correlation.glm,
                   scaletype = scaletype))
@@ -195,7 +192,6 @@ more <-function(GeneExpression,
                   alfa.pls = alfa, 
                   interactions.reg = interactions.reg,
                   min.variation = min.variation,
-                  min.obs = min.obs,
                   scaletype = scaletype,
                   p.method =p.method.pls, 
                   vip = vip.pls,

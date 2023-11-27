@@ -46,7 +46,6 @@ library(ropls)
 #' the regulator is considered to have low variation and will be excluded from the regression models. The user has the option to set a single 
 #' value to apply the same filter to all omics, provide a vector of the same length as omics if they want to specify different levels for each omics, 
 #' or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.
-#' @param min.obs Minimum number of counts required for a gene to be considered. Only applied when \code{\link{GeneExpression}} is a non-normalized count matrix. 
 #' @param scaletype Type of scaling to be applied. Three options:
 #' - auto : Applies the autoscaling. 
 #' - pareto : Applies the pareto scaling. \[ \frac{X_k}{s_k \sqrt[4]{m_b}} \]
@@ -71,7 +70,7 @@ library(ropls)
 #' @examples
 #' 
 #' more(GeneExpression, associations, data.omics, center = TRUE, scale = TRUE, epsilon = 0.00001, interactions.reg = TRUE,
-#'  min.variation = 0,  min.obs = 10, scaletype = 'auto', p.method = 'jack', vip = 0.8, method  ='pls1')
+#'  min.variation = 0, scaletype = 'auto', p.method = 'jack', vip = 0.8, method  ='pls1')
 #' 
 #' @export
 GetPLS = function(GeneExpression,
@@ -86,7 +85,6 @@ GetPLS = function(GeneExpression,
                   alfa = 0.05, 
                   interactions.reg = TRUE,
                   min.variation = 0,
-                  min.obs = 10,
                   scaletype = 'auto',
                   p.method ='jack',
                   vip = 0.8,
@@ -242,7 +240,8 @@ GetPLS = function(GeneExpression,
     }
   }
   
-  ## Removing genes with too many NAs and keeping track
+  ## Removing genes with more than 20% of NAs and keeping track
+  min.obs = floor( ncol(GeneExpression)*0.8)
   genesNotNA = apply(GeneExpression, 1, function (x) sum(!is.na(x)))
   genesNotNA = names(which(genesNotNA >= min.obs))
   genesNA = setdiff(rownames(GeneExpression), genesNotNA)
@@ -785,7 +784,7 @@ GetPLS = function(GeneExpression,
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, 
                      center = center, scale = scale, clinic.type = clinic.type,
                      min.variation = min.variation, associations = associations,
-                     min.obs = min.obs, epsilon = epsilon, vip = vip,
+                     epsilon = epsilon, vip = vip,
                      GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type,
                      clinic = clinic, clinic.type = clinic.type, scaletype =scaletype, p.method=p.method, method =method)
   
