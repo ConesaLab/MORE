@@ -351,7 +351,7 @@ RemovedRegulators = function(RetRegul.gene, myregLV, myregNA, data.omics){
 filter_columns_by_regexp <- function(regupero, des.mat2, res) {
   filtered_columns <- lapply(regupero, function(x) if (length(x) != 0) {
     pat <- paste(x, collapse = "|")
-    logical_indices <- stringi::str_detect(colnames(des.mat2), stringr::regex(pat, ignore_case = TRUE))
+    logical_indices <- stringr::str_detect(colnames(des.mat2), stringr::regex(pat, ignore_case = TRUE))
     colnames(des.mat2)[logical_indices]
   })
   names(filtered_columns) <- unique(res$SummaryPerGene[, 'omic'])
