@@ -180,21 +180,13 @@ GetPLS = function(GeneExpression,
     rownames(data.omics[[i]]) = gsub('_R$', '-R', rownames(data.omics[[i]]))
     rownames(data.omics[[i]]) = gsub('_P$', '-P', rownames(data.omics[[i]]))
     rownames(data.omics[[i]]) = gsub('_N$', '-N', rownames(data.omics[[i]]))
-    
-    problema_raro = c(grep("e\\+", rownames(data.omics[[i]]), value = TRUE))
-    rownames(data.omics[[i]])[which(rownames(data.omics[[i]]) %in% problema_raro)] <- paste0(names(data.omics)[i], c(1:length(problema_raro)))
-    
+
     #Change the name in the association matrix only if associations is not NULL
     if(!is.null(associations[[i]])){
       associations[[i]][[2]] = gsub(':', '-', associations[[i]][[2]])
       associations[[i]][[2]] = gsub('_R$', '-R', associations[[i]][[2]])
       associations[[i]][[2]] = gsub('_P$', '-P', associations[[i]][[2]])
       associations[[i]][[2]] = gsub('_N$', '-N', associations[[i]][[2]])
-      if(length(problema_raro)>0){
-        for(j in 1:length(problema_raro)){
-          associations[[i]][[2]][which(associations[[i]][[2]] %in% problema_raro[j])] <- paste0(names(data.omics)[i], j)
-        }
-      }
     }
     
     if(length(problemas) > 0) {
@@ -207,10 +199,6 @@ GetPLS = function(GeneExpression,
       cat("Changed identifiers: ", problema, "\n")
     }
     
-    if(length(problema_raro)>0){
-      cat("Some regulators in the omic", names(data.omics)[i],  "have names with e+ that could cause conflict retrieved the original number", "\n")
-      cat("Changed identifiers: ", problema_raro, "\n")
-    }
   }
   
   
