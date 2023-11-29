@@ -1501,3 +1501,152 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
   }
   
 }
+
+## Network creation -------
+
+library(RCy3)
+
+#' network_more
+#'
+#' \code{network_more} Function to be applied to RegulationPerConidtion function output.
+#' 
+#' @param output_regpcond Output object of RegulationPerCondition applied to MORE main function.
+#' @param cytoscape TRUE for plotting the network in Cytoscape. FALSE to plot the network in R. 
+#' @param group1 Name of the group to take as reference in the differential network creation.
+#' @param group2 Name of the group to compare to the reference in the differential network creation. 
+#' 
+#' @return Plot of the network induced from more.
+#'
+
+
+
+network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group2 = NULL) {
+  
+  create_graph <- function(df) {
+    #Remove rows with 0 coef
+    df <- df[df[,4] != 0, ]
+    mygraph <- igraph::graph.data.frame(df, directed = FALSE)
+    mygraph <- igraph::simplify(mygraph)
+    #Add atributtes to the edge and create df with the omic
+    odf <- unique(df[, c(2, 3)])
+    odf <- rbind(odf, data.frame('regulator' = unique(df$gene), 'omic' = rep('gene', length(unique(df$gene)))))
+    rownames(odf) <- odf$regulator
+    
+    mygraph <- igraph::set.vertex.attribute(mygraph, 'omic', index = V(mygraph), value = odf[V(mygraph)$name,]$omic)
+    mygraph <- igraph::set.edge.attribute(mygraph, 'sign', index = E(mygraph), value = df[, 4])
+    
+    return(list('mygraph'=mygraph,'df'=df,'odf'=odf))
+  }
+  
+  create_network <- function(mygraph, df,odf, prefix, group_names,diff) {
+    cy_network <- RCy3::createNetworkFromIgraph(mygraph, paste0(prefix, group_names))
+    
+    edge_names <- gsub(" \\(interacts with\\) ", "--", RCy3::getAllEdges(cy_network))
+    edges_graph <- apply(df[, c(1, 2)], 1, function(row) paste(row, collapse = "--"))
+    #Order modified vector based on the order_index
+    order_index <- match(edge_names, edges_graph)
+    edge_colors <- ifelse(df[order_index, 4] > 0, '#5577FF', '#FF7755')
+    RCy3::setEdgeColorBypass(network = cy_network, edge.names = RCy3::getAllEdges(cy_network), edge_colors)
+    
+    if(diff){
+      edge_lines<-ifelse(df[order_index,5] == 0, 'SOLID', 'DOT')
+      RCy3::setEdgeLineStyleBypass(network= cy_network, edge.names = RCy3::getAllEdges(cy_network),  edge_lines)
+    }
+    #Set node color and generate a color palette
+    omic_c <- factor(odf[RCy3::getAllNodes(cy_network), ]$omic)
+    num_unique <- length(unique(omic_c))
+    color_palette <- colorConesa(num_unique, palette = 'main')
+    node_colors <- color_palette[as.integer(omic_c)]
+    
+    nshaps <-setdiff(RCy3::getNodeShapes(), c("TRIANGLE", "DIAMOND"))[1:num_unique]
+    node_shapes <- nshaps[as.integer(omic_c)]
+    if('TF'%in% omic_c){
+      i=grep('TF', omic_c)
+      node_shapes[i]<-'TRIANGLE'
+    }
+    if('miRNA'%in% omic_c){
+      i=grep('miRNA', omic_c)
+      node_shapes[i]<-'DIAMOND'
+    }
+    RCy3::setNodeColorBypass(network = cy_network, node.names = RCy3::getAllNodes(cy_network), node_colors)
+    RCy3::setNodeShapeBypass(network = cy_network, node.names = RCy3::getAllNodes(cy_network), node_shapes)
+  }
+  
+  if (cytoscape) {
+    
+    if (is.null(group1) && is.null(group2)) {
+      
+      ngroups <- grep('Group', colnames(output_regpcond))
+      #Create as many networks as groups
+      for (i in 1:length(ngroups)) {
+        #Data.frame of that network
+        df <- output_regpcond[, c(1, 2, 3, ngroups[i])]
+        my_graph <- create_graph(df)
+        create_network(my_graph$mygraph, my_graph$df,my_graph$odf, 'mynet', colnames(output_regpcond)[ngroups[i]],diff = FALSE)
+      }
+      
+    } else {
+      #Look for the groups to consider
+      gr1 <- grep(group1, colnames(output_regpcond))
+      gr2 <- grep(group2, colnames(output_regpcond))
+      
+      if (length(gr1) != 1 || length(gr2) != 1 || gr1 == gr2){stop("ERROR: group1 and group2 should be different names of groups to compare")}
+      #Create the differential coefficient and the indicator of sign change
+      df <- output_regpcond[, c(1,2,3,gr1,gr2)]
+      df[, 6] = df[, 4] - df[, 5]
+      df[, 7] = ifelse(sign(df[, 6]) == sign(df[, 4]), 0, 1)
+      df <- df[, -c(4, 5)]
+      names(df)[5] = 'line'
+      
+      my_graph <- create_graph(df)
+      create_network(my_graph$mygraph,my_graph$df,my_graph$odf, 'mynet', paste0(group1,'-', group2),diff = TRUE)
+    }
+    
+  } else {
+    
+    if (is.null(group1) && is.null(group2)) {
+      
+      ngroups <- grep('Group', colnames(output_regpcond))
+      #Create as many networks as groups
+      for (i in 1:length(ngroups)) {
+        #Data.frame of that network
+        df <- output_regpcond[, c(1, 2, 3, ngroups[i])]
+        my_graph <- create_graph(df)
+        
+        E(my_graph$mygraph)$sign<-my_graph$df[,4]
+        
+        igraph::plot(my_graph$mygraph, vertex.label.cex = 0.3, vertex.size = 3, 
+             vertex.color = as.factor(V(my_graph$mygraph)$omic), 
+             edge.color = ifelse(E(my_graph$mygraph)$sign > 0, "blue", "red"))
+        
+        igraph::write.graph(my_graph$mygraph, format = 'gml', file = paste0('mynet', colnames(output_regpcond)[ngroups[i]], '.gml'))
+      }
+      
+    } else {
+      #Look for the groups to consider
+      gr1 <- grep(group1, colnames(output_regpcond))
+      gr2 <- grep(group2, colnames(output_regpcond))
+      
+      if (length(gr1) != 1 || length(gr2) != 1 || gr1 == gr2){stop("ERROR: group1 and group2 should be different names of groups to compare")}
+      #Create the differential coefficient and the indicator of sign change
+      df <- output_regpcond[, c(1,2,3,gr1,gr2)]
+      df[, 6] = df[, 4] - df[, 5]
+      df[, 7] = ifelse(sign(df[, 6]) == sign(df[, 4]), 0, 1)
+      df <- df[, -c(4, 5)]
+      names(df)[5] = 'line'
+      
+      my_graph <- create_graph(df)
+      
+      E(my_graph$mygraph)$sign<-my_graph$df[,4]
+      my_graph$mygraph<-igraph::set.edge.attribute(my_graph$mygraph, 'line', index = igraph::E(my_graph$mygraph), value = my_graph$df[,5])
+      E(my_graph$mygraph)$line<-my_graph$df[,5]
+      
+      igraph::plot(my_graph$mygraph, vertex.label.cex = 0.3, vertex.size = 3, 
+           vertex.color = as.factor(V(my_graph$mygraph)$omic), 
+           edge.color = ifelse(E(my_graph$mygraph)$sign > 0, "blue", "red"), 
+           edge.lty = ifelse(E(my_graph$mygraph)$line == 0, "solid", "dashed"))
+      
+      igraph::write.graph(my_graph$mygraph, format = 'gml', file = paste0('mynet', group1, '-', group2, '.gml'))
+    }
+  }
+}
