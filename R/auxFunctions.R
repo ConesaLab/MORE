@@ -430,7 +430,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
                        family = family2, grouped = FALSE)
       
       myS = cvEN$lambda.min  # optimum penalization parameter
-      y.fitted = glmnet::predict.glmnet(cvEN, s = myS, newx = as.matrix(des.mat2[,-1]))
+      y.fitted = predict(cvEN, s = myS, newx = as.matrix(des.mat2[,-1]))
       
       if (length(myS) > 1) {  # more than 1 values for lambda
         myCVerror = cvEN$cvm[sapply(myS, function (i) which(cvEN$lambda == i))]
@@ -478,7 +478,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       }
       
       # optimum penalization parameters
-      y.fitted = glmnet::predict.glmnet(cvEN, s = lambdamin, newx = as.matrix(des.mat2[,-1]))
+      y.fitted = predict(cvEN, s = lambdamin, newx = as.matrix(des.mat2[,-1]))
       
       if (length(lambdamin) > 1) {  # more than 1 values for lambda
         myCVerror = cvEN$cvm[sapply(lambdamin, function (i) which(cvEN$lambda == i))]
@@ -529,7 +529,7 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       }
       
       # optimum penalization parameters
-      y.fitted = glmnet::predict.glmnet(cvEN, s = lambdamin, newx = as.matrix(des.mat2[,-1]))
+      y.fitted = predict(cvEN, s = lambdamin, newx = as.matrix(des.mat2[,-1]))
       
       if (length(lambdamin) > 1) {  # more than 1 values for lambda
         myCVerror = cvEN$cvm[sapply(lambdamin, function (i) which(cvEN$lambda == i))]
