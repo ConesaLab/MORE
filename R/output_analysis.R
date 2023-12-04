@@ -1336,7 +1336,7 @@ library(ggplot2)
 summary.MORE <-function(object, plot.more=FALSE){
   
   cat('A model was computed for',length(object$ResultsPerGene), 'genes.' ,'\n')
-  cat(nrow(object$GlobalSummary$GenesNoregulators), 'genes had no intial regulators.' ,'\n')
+  cat(ifelse(is.null(object$GlobalSummary$GenesNoregulators),0,nrow(object$GlobalSummary$GenesNoregulators)), 'genes had no intial regulators.' ,'\n')
   
   if(object$arguments$method == 'glm'){
     cat('For', ifelse(is.null(object$GlobalSummary$GenesNOmodel),0,object$GlobalSummary$GenesNOmodel), 'genes, the final GLM model could not be obtained.','\n')
@@ -1350,25 +1350,21 @@ summary.MORE <-function(object, plot.more=FALSE){
     cat('These are the top 10 hub genes and the number of relevant regulators for each:\n')
     print(s_rel_reg[rev(tail(order(s_rel_reg),10))])
     
-    cat('The top 10 hub genes by omics:\n')
-    
-    for (i in 1:ncol(relevant_regulators)){
-      cat('These are the top 10 hub genes for ',gsub('-Rel$','',colnames(relevant_regulators)[i]) ,'and the number of relevant regulators for each in this omic:\n')
-      print(relevant_regulators[rev(tail(order(relevant_regulators[,i]),10)),i])
-    }
-    
-    #Master regulators
+    #Global regulators
     
     m_rel_reg<-lapply(object$ResultsPerGene, function(x) x$relevantRegulators)
     m_rel_reg <- unlist(m_rel_reg)
     
     ## Count occurrences
     mrel_vector <- table(m_rel_reg)
-    cat('These are the top 10 master regulators and the number of genes that they regulate:\n')
-    mreg<-mrel_vector[rev(tail(order(mrel_vector),10))]
-    for (i in 1:10) {
-      cat(names(mreg)[i], 'relevantly regulates', mreg[i][[1]], 'genes. \n')
-      if(plot.more){
+    #Ask to regulate at least 10 genes
+    mrel_vector<-mrel_vector[mrel_vector>10]
+    cat('These are the top 10 global regulators and the number of genes that they regulate:\n')
+    print(mrel_vector[rev(tail(order(mrel_vector),10))])
+    
+    if(plot.more){
+      mreg<-mrel_vector[rev(tail(order(mrel_vector),10))]
+      for (i in 1:10) {
         par(mfrow=c(2,4))
         plotGLM(object, gene = NULL, regulator = names(msig)[i], plotPerOmic = FALSE ,order = FALSE, gene.col = 'skyblue', regu.col = 'tan1', verbose = FALSE)
       }
@@ -1386,25 +1382,21 @@ summary.MORE <-function(object, plot.more=FALSE){
     cat('These are the top 10 hub genes and the number of significant regulators for each:\n')
     print(s_sig_reg[tail(order(s_sig_reg),10)])
     
-    cat('The top 10 hub genes by omics:\n')
-    
-    for (i in 1:ncol(significant_regulators)){
-      cat('These are the top 10 hub genes for ',gsub('-Rel$','',colnames(significant_regulators)[i]) ,'and the number of relevant regulators for each in this omic:\n')
-      print(significant_regulators[rev(tail(order(significant_regulators[,i]),10)),i])
-    }
-    
-    #Master regulators
+    #Global regulators
     
     m_sig_reg<-lapply(object$ResultsPerGene, function(x) x$significantRegulators)
     m_sig_reg <- unlist(m_sig_reg)
     
     ## Count occurrences
     msig_vector <- table(m_sig_reg)
-    cat('These are the top 10 master regulators and the genes that they significantly regulate:\n')
-    msig<-msig_vector[rev(tail(order(msig_vector),10))]
-    for (i in 1:10) {
-      cat(names(msig)[i], 'significantly regulates', msig[i][[1]], 'genes. \n')
-      if(plot.more){
+    #Ask to regulate at least 10 genes
+    msig_vector<-msig_vector[msig_vector>10]
+    cat('These are the top 10 global regulators and the number of genes that they regulate:\n')
+    print(msig_vector[rev(tail(order(msig_vector),10))])
+    
+    if(plot.more){
+      msig<-msig_vector[rev(tail(order(msig_vector),10))]
+      for (i in 1:10) {
         par(mfrow=c(2,4))
         plotPLS(object, gene = NULL, regulator = names(msig)[i], plotPerOmic = FALSE ,order = FALSE, gene.col = 'skyblue', regu.col = 'tan1', verbose = FALSE)
         
