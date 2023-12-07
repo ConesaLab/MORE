@@ -106,6 +106,10 @@ GetGLM = function(GeneExpression,
   if (length(omic.type) == 1) omic.type = rep(omic.type, length(data.omics))
   names(omic.type) = names(data.omics)
   
+  # Creating vector for min.variation
+  if (length(min.variation) == 1) min.variation=rep(min.variation,length(data.omics))
+  names(min.variation)=names(data.omics)
+  
   if(!is.null(clinic)){
     
     ##Before introducing variables in data.omics convert them to numeric type
@@ -120,9 +124,12 @@ GetGLM = function(GeneExpression,
     #Add in associations clinic to consider all the clinical variables in all genes
     if(!is.null(associations)){associations = c(list(clinic = NULL),associations)}
     
-    #Add information to omic.type even if it is not relevant
+    #Add information to omic.type and min.variation even if it is not relevant
     omic.type = c(0,omic.type)
     names(omic.type)[1] = 'clinic'
+    
+    min.variation = c(0,min.variation)
+    names(min.variation)[1] = 'clinic'
     om= 2
     
   }else{clinic.type=NULL; om =1}
@@ -333,18 +340,11 @@ GetGLM = function(GeneExpression,
     
   }
 
-  if(scale){
-    ## Centering/Scaling quantitative predictors
-    for (i in 1:length(omic.type)){
-      data.omics[[i]] = t(scale(t(data.omics[[i]]), center = center, scale = scale))
-    }
-  }
-
   ### Results objects
 
   ## Global summary for all genes
   GlobalSummary = vector("list", length = 6)
-  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators", "MasterRegulators", "HubGenes")
+  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators", "GlobalRegulators", "HubGenes")
 
   GlobalSummary$GenesNOmodel = NULL
   if (length(genesNA) > 0) {
@@ -487,11 +487,11 @@ GetGLM = function(GeneExpression,
         if (ncol(res$RegulatorMatrix)>1){
           if(col.filter=='cor'){
             res = CollinearityFilter1(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
-                                      correlation = correlation, omic.type = omic.type)
+                                      correlation = correlation, omic.type = omic.type, scale = scale, center = center)
           }
           if(col.filter=='pcor'){
             res = CollinearityFilter2(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
-                                      correlation = correlation, omic.type = omic.type, epsilon = epsilon)
+                                      correlation = correlation, omic.type = omic.type, epsilon = epsilon , scale = scale, center = center)
           }
           
         }
@@ -504,45 +504,41 @@ GetGLM = function(GeneExpression,
           
           GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
                                              data.frame("gene" = gene,
-                                                        "problem" = 'Problem with Partial Correlation calculus'))
+                                                        "problem" = 'Problem with Partial Correlation calculation'))
           
         } else{
           ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
           
-          regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
-          names(regupero) = unique(res$SummaryPerGene[,'omic'])
-          
           ## Scaling predictors for ElasticNet only in case they were not already scaled
-          if (scale) {
-            des.mat2EN = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
+          des.mat2EN = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
                                                 des.mat, GeneExpression, gene)
-          } else {
-            ScaleMatrix = res$RegulatorMatrix
-            for(k in 1:ncol(ScaleMatrix)){
-              if(any(res$RegulatorMatrix[,k] != 1 & res$RegulatorMatrix[,k] != 0)){
-                ScaleMatrix[,k] = scale(ScaleMatrix[,k])
-              }
-            }
-            
-            des.mat2EN = RegulatorsInteractions(interactions.reg,
-                                                reguValues = ScaleMatrix,
-                                                des.mat, GeneExpression, gene)
-          }
 
         }
         
         # Removing observations with missing values
         des.mat2EN = na.omit(des.mat2EN)
         
+        #Scale the variables, indispensable for elasticnet application
+        des.mat2EN = data.frame(des.mat2EN[,1,drop=FALSE], scale(des.mat2EN[,-1,drop=FALSE],scale=scale,center=center),check.names = FALSE)
+        
         ##Scale if needed to block scaling or pareto scaling
         if (scaletype!='auto'){
+          ## Make the groups of omics
+          regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
+          names(regupero) = unique(res$SummaryPerGene[,'omic'])
+          #Remove empty omics
+          regupero = regupero[sapply(regupero, function(x) length(x) > 0)]
           #It does not work in case of really huge amount of data
-          regupero = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2EN[,grep(paste(x, collapse = "|"), colnames(des.mat2))]))),silent = TRUE)
+          regupero = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2EN[,grep(paste(x, collapse = "|"), colnames(des.mat2EN))]))),silent = TRUE)
           if(class(regupero)=='try-error'){
             #Add the ones related to the interactions
             regupero = filter_columns_by_regexp(regupero, des.mat2EN,res)
-            des.mat2EN = data.frame(des.mat2EN[,1,drop=FALSE], des.mat,ScaleGLM(des.mat2EN[,-1,drop=FALSE], regupero, scaletype),check.names = FALSE)
           }
+          res$RegulatorMatrix = Scaling.type(des.mat2EN[,-1,drop=FALSE], regupero, scaletype)
+          
+          #Use them jointly
+          des.mat2EN = data.frame(des.mat2EN[,1,drop=FALSE], scale(des.mat,scale=scale,center=center), res$RegulatorMatrix,check.names = FALSE)
+          
         }
         
         ###  Variable selection --> Elasticnet
@@ -660,20 +656,29 @@ GetGLM = function(GeneExpression,
   genessig = setdiff(rownames(GlobalSummary$GoodnessOfFit), genesNosig)
   GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,,drop=FALSE]
   
-  #Calculate MasterRegulators
+  #Calculate GlobalRegulators
   m_rel_reg<-lapply(ResultsPerGene, function(x) x$relevantRegulators)
   m_rel_reg <- unlist(m_rel_reg)
   mrel_vector <- table(m_rel_reg)
-  mreg<-mrel_vector[rev(tail(order(mrel_vector),10))]
-  
-  GlobalSummary$MasterRegulators = names(mreg)
+  #Calculate third quantile
+  q3<-quantile(mrel_vector,0.75)
+  if(length(mrel_vector[mrel_vector>q3])<10){
+    GlobalSummary$GlobalRegulators = intersect(names(mrel_vector[rev(tail(order(mrel_vector),10))]), names(mrel_vector[mrel_vector>10]) )
+  } else{
+    GlobalSummary$GlobalRegulators = intersect(names(mrel_vector[mrel_vector>q3]), names(mrel_vector[mrel_vector>10]) ) 
+  }
   
   #Calculate HubGenes
   relevant_regulators<-GlobalSummary$ReguPerGene[,c(grep('-Rel$',colnames(GlobalSummary$ReguPerGene)))]
   s_rel_reg<-apply(relevant_regulators, 1, sum)
+  #Calculate third quantile
+  q3<-quantile(s_rel_reg,0.75)
+  if(length(s_rel_reg[s_rel_reg>q3])<10){
+    GlobalSummary$HubGenes = names(s_rel_reg[rev(tail(order(s_rel_reg),10))])
+  } else{
+    GlobalSummary$HubGenes = names(s_rel_reg[s_rel_reg>q3])
+  }
   
-  GlobalSummary$HubGenes = s_rel_reg[rev(tail(order(s_rel_reg),10))]
-
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, family = family,
                      center = center, scale = scale, elasticnet = tmp[['elasticnet']],
                      min.variation = min.variation, correlation = correlation,
@@ -712,16 +717,16 @@ correlations<- function(v, data, reg.table, omic.type){
   return(correlation)
 }
 
-CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type) {
+CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type,scale,center) {
   
   ## data = Regulator data matrix for all omics where missing values and regulators with low variation have been filtered out
   #         (regulators must be in columns)
   ## reg.table = Table with "gene", "regulator", "omic", "area", filter" where omics with no regulators have been removed
   row.names(reg.table) = reg.table[,"regulator"]
-  #resultado = list(RegulatorMatrix = data, SummaryPerGene = reg.table)
-  
+  #Scale the data only for correlation calculation
+  data2 = scale(data,scale,center)
   myreg = as.character(reg.table[which(reg.table[,"filter"] == "Model"),"regulator"])
-  mycorrelations = data.frame(t(combn(myreg,2)),combn(myreg, 2, function(x) correlations(x, data, reg.table, omic.type)))
+  mycorrelations = data.frame(t(combn(myreg,2)),combn(myreg, 2, function(x) correlations(x, data2, reg.table, omic.type)))
   
   ## Compute the correlation between all regulators (even if they are of different omics)
   mycor = mycorrelations[abs(mycorrelations[,3]) >= correlation,]
@@ -943,7 +948,7 @@ partialcorrelation <- function(data,reg.table,myreg, omic.type,epsilon){
   return(correlation)
 }
 
-CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,epsilon) {
+CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,epsilon,scale,center) {
   
   ## data = Regulator data matrix for all omics where missing values and regulators with low variation have been filtered out
   #         (regulators must be in columns)
@@ -953,7 +958,9 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
   
   myreg = as.character(reg.table[which(reg.table[,"filter"] == "Model"),"regulator"])
   data<-data[,myreg]
-  mycorrelations = suppressWarnings(partialcorrelation(data, reg.table,myreg, omic.type, epsilon))
+  #Scale only the data for correlation calculation
+  data2 = scale(data,scale,center)
+  mycorrelations = suppressWarnings(partialcorrelation(data2, reg.table,myreg, omic.type, epsilon))
   
   if(any(is.na(mycorrelations[,3]))){
     return(NULL)
