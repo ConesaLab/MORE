@@ -354,7 +354,6 @@ filter_columns_by_regexp <- function(regupero, des.mat2, res) {
     logical_indices <- stringr::str_detect(colnames(des.mat2), stringr::regex(pat, ignore_case = TRUE))
     colnames(des.mat2)[logical_indices]
   })
-  names(filtered_columns) <- unique(res$SummaryPerGene[, 'omic'])
   return(filtered_columns)
 }
 
@@ -826,7 +825,7 @@ ScalePLS= function(reguVal, regu, omic.type, scaletype, center, scale){
   return(res.mat)
 }
 
-ScaleGLM= function(reguVal, regu, scaletype){
+Scaling.type= function(reguVal, regu, scaletype){
   res.mat <- NULL
   regu = Filter(function(x) !is.null(x) && length(x) > 0, regu)
   for (ov in names(regu)){
