@@ -112,6 +112,9 @@ GetGLM = function(GeneExpression,
   
   if(!is.null(clinic)){
     
+    ## Clinic types
+    if (length(clinic.type) == 1) {clinic.type = rep(clinic.type, ncol(clinic)); names(clinic.type) = colnames(clinic)}
+    
     ##Before introducing variables in data.omics convert them to numeric type
     ## TO DO: Careful creates k-1 dummies. Is what we want?
     catvar <- which(clinic.type == 1)
