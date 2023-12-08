@@ -93,22 +93,45 @@ GetPLS = function(GeneExpression,
   # Converting matrix to data.frame
   GeneExpression = as.data.frame(GeneExpression)
   data.omics = lapply(data.omics, as.data.frame)
+
+  #Consider binary variables as k-1 dummy which represent presence
+  omic.type = 0
   
   ##Omic types
   if (length(omic.type) == 1) omic.type = rep(omic.type, length(data.omics))
   names(omic.type) = names(data.omics)
   
+  # Creating vector for min.variation
+  if (length(min.variation) == 1) min.variation=rep(min.variation,length(data.omics))
+  names(min.variation)=names(data.omics)
+  
   if(!is.null(clinic)){
-    data.omics = c(list(clinic = as.data.frame(t(clinic))),data.omics)
+    
+    ## Clinic types
+    if (length(clinic.type) == 1) {clinic.type = rep(clinic.type, ncol(clinic)); names(clinic.type) = colnames(clinic)}
+    
+    ##Before introducing variables in data.omics convert them to numeric type
+    ## TO DO: Careful creates k-1 dummies. Is what we want?
+    catvar <- which(clinic.type == 1)
+    dummy_vars <- model.matrix(~ . , data = as.data.frame(clinic[,catvar ,drop=FALSE]))[,-1,drop=FALSE]
+    clinic <-clinic[, -catvar,drop=FALSE]
+    clinic <- cbind(clinic, dummy_vars)
+    
+    data.omics = c(list(clinic =  as.data.frame(t(clinic))),data.omics)
     
     #Add in associations clinic to consider all the clinical variables in all genes
     if(!is.null(associations)){associations = c(list(clinic = NULL),associations)}
     
-    #Add information to omic.type even if it is not relevant
+    #Add information to omic.type and min.variation even if it is not relevant
     omic.type = c(0,omic.type)
     names(omic.type)[1] = 'clinic'
+    
+    min.variation = c(0,min.variation)
+    names(min.variation)[1] = 'clinic'
     om= 2
+    
   }else{clinic.type=NULL; om =1}
+  
   
   # Not possible to apply a PLS2 when associations matrix is provided
   if(!is.null(associations)){
@@ -178,7 +201,7 @@ GetPLS = function(GeneExpression,
     rownames(data.omics[[i]]) = gsub('_R$', '-R', rownames(data.omics[[i]]))
     rownames(data.omics[[i]]) = gsub('_P$', '-P', rownames(data.omics[[i]]))
     rownames(data.omics[[i]]) = gsub('_N$', '-N', rownames(data.omics[[i]]))
-
+    
     #Change the name in the association matrix only if associations is not NULL
     if(!is.null(associations[[i]])){
       associations[[i]][[2]] = gsub(':', '-', associations[[i]][[2]])
@@ -273,8 +296,10 @@ GetPLS = function(GeneExpression,
     des.mat = NULL
   } else {
     Group = apply(edesign, 1, paste, collapse = "_")
+    des.mat = model.matrix(~0+., data = as.data.frame(Group))
+    #Change the name to avoid conflicts with RegulationPerCondition
+    colnames(des.mat) = sub('Group','Group_',colnames(des.mat))
   }
-  des.mat = ScalePLSdesmat(edesign, scaletype, center, scale)
   
   ## Remove regulators with NA
   cat("Removing regulators with missing values...\n")
@@ -299,12 +324,12 @@ GetPLS = function(GeneExpression,
   rm("tmp"); gc()
   
   if(all(sapply(data.omics, function(x)nrow(x)==0))) stop("ERROR: No regulators left after LowVariation filter. Consider being less restrictive.")
-  
+
   ### Results objects
   
   ## Global summary for all genes
   GlobalSummary = vector("list", length = 6)
-  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators", "MasterRegulators", "HubGenes")
+  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators", "GlobalRegulators", "HubGenes")
   
   GlobalSummary$GenesNOmodel = NULL
   if (length(genesNA) > 0) {
@@ -347,6 +372,7 @@ GetPLS = function(GeneExpression,
   
   pap = c(1, 1:round(nGenes/100) * 100, nGenes)
   
+ 
   if(method=='pls1'){
     for (i in 1:nGenes) {
       
@@ -436,35 +462,31 @@ GetPLS = function(GeneExpression,
           
         } else {  ## Regulators for the model!!
           ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
-          ## Make the groups of omics
-          regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
-          names(regupero) = unique(res$SummaryPerGene[,'omic'])
           
           ## Create the interactions between regulators and edesign 
+          des.mat2 = RegulatorsInteractions(interactions.reg, reguValues = res$RegulatorMatrix,
+                                               des.mat, GeneExpression, gene)
           
-          des.mat2 = RegulatorsInteractionsPLS(interactions.reg, reguValues = res$RegulatorMatrix,
-                                               edesign, clinic.type, GeneExpression, gene, regupero, omic.type)
-          
+          #Scale the variables, indispensable for elasticnet application
+          des.mat2 = data.frame(des.mat2[,1,drop=FALSE], scale(des.mat2[,-1,drop=FALSE],scale=scale,center=center),check.names = FALSE)
+
+          ##Scale if needed to block scaling or pareto scaling
           if (scaletype!='auto'){
+            ## Make the groups of omics
+            regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
+            names(regupero) = unique(res$SummaryPerGene[,'omic'])
             #It does not work in case of really huge amount of data
             regupero = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2[,grep(paste(x, collapse = "|"), colnames(des.mat2))]))),silent = TRUE)
             if(class(regupero)=='try-error'){
               #Add the ones related to the interactions
               regupero = filter_columns_by_regexp(regupero, des.mat2,res)
             }
-            res$RegulatorMatrix = ScalePLS(des.mat2[,-1,drop=FALSE], regupero, omic.type, scaletype, center, scale)
+            res$RegulatorMatrix = Scaling.type(des.mat2[,-1,drop=FALSE], regupero, scaletype)
             
             #Use them jointly
-            des.mat2 = data.frame(des.mat2[,1,drop=FALSE], des.mat, res$RegulatorMatrix,check.names = FALSE)
+            des.mat2 = data.frame(des.mat2[,1,drop=FALSE], scale(des.mat,scale=scale,center=center), res$RegulatorMatrix,check.names = FALSE)
             
-          } else{
-            regupero = NULL
-            res$RegulatorMatrix = ScalePLS(des.mat2[,-1,drop=FALSE], regupero, omic.type, scaletype, center, scale)
-            
-            #Use them jointly
-            des.mat2 = data.frame(des.mat2[,1,drop=FALSE], res$RegulatorMatrix,check.names = FALSE)
-            
-          }
+          } 
           
           # Removing predictors with constant values
           sdNo0 = apply(des.mat2, 2, sd)
@@ -480,7 +502,7 @@ GetPLS = function(GeneExpression,
           
           ResultsPerGene[[i]]$X = des.mat2[,-1, drop = FALSE]
           
-          ## Computing GLM model
+          ## Computing PLS model
           if (nrow(des.mat2)<7){cross = nrow(des.mat)-2}else{cross =7}
           myPLS = try(suppressWarnings(ropls::opls(des.mat2[,-1], scale(des.mat2[,1], center = center,scale=scale), info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0)),silent = TRUE)
           
@@ -517,24 +539,12 @@ GetPLS = function(GeneExpression,
               pval = p.coef(myPLS, 100, des.mat2)
             }
             
-            
-            #ResultsPerGene[[i]]$significantRegulators  = intersect(colnames(res$RegulatorMatrix), colnames(des.mat2[,which(pvalor<alfa & myPLS@vipVn>0.5)]) )
-            
             #Tratar como significativas tan solo las que cumplan ambas condiciones
             sigvariables = intersect(names(myPLS@vipVn[which(myPLS@vipVn>vip)]), rownames(pval)[which(pval<alfa)])
             ResultsPerGene[[i]]$coefficients = data.frame('coefficient' = myPLS@coefficientMN[sigvariables,], 'pvalue' = pval[sigvariables,,drop=FALSE])
-            rows_to_remove = rownames(ResultsPerGene[[i]]$coefficients)[grepl("_0$", rownames(ResultsPerGene[[i]]$coefficients)) & !rownames(ResultsPerGene[[i]]$coefficients) %in% colnames(des.mat)]
-            ResultsPerGene[[i]]$coefficients = ResultsPerGene[[i]]$coefficients[!rownames(ResultsPerGene[[i]]$coefficients) %in% rows_to_remove, ]
-            
-            # Obtain the indices of the rows to modify
-            rows_to_modify = grepl("_1$", rownames(ResultsPerGene[[i]]$coefficients)) & !(rownames(ResultsPerGene[[i]]$coefficients) %in% colnames(des.mat))
-            rownames(ResultsPerGene[[i]]$coefficients)[rows_to_modify] =  gsub("_1$", "", rownames(ResultsPerGene[[i]]$coefficients)[rows_to_modify])
-            
+  
             ## Extracting significant regulators and recovering correlated regulators
             myvariables = unlist(strsplit(sigvariables, ":", fixed = TRUE))
-            #Eliminar _0 y _1 correspondientes a los dummy
-            myvariables = gsub('_0$','',myvariables)
-            myvariables = gsub('_1$','',myvariables)
             myvariables = intersect(myvariables, rownames(ResultsPerGene[[i]]$allRegulators))
             
             ResultsPerGene[[i]]$allRegulators = data.frame(ResultsPerGene[[i]]$allRegulators, "Sig" = 0, stringsAsFactors = FALSE)
@@ -577,6 +587,7 @@ GetPLS = function(GeneExpression,
           
           GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[rownames(GlobalSummary$GoodnessOfFit) != gene,]
           
+          
         } else {
           ResultsPerGene[[i]]$Y = data.frame("y" = myPLS@suppLs$y, "fitted.y" = myPLS@suppLs$yPreMN,
                                              "residuals" = residuals(myPLS))
@@ -587,6 +598,7 @@ GetPLS = function(GeneExpression,
                                                  myPLS@summaryDF[,'RMSEE'],
                                                  round(abs(myPLS@summaryDF[,'RMSEE']/mean(myPLS@suppLs$y)),6),
                                                  as.integer(length(ResultsPerGene[[i]]$significantRegulators)))
+          
           
         }
         
@@ -762,24 +774,33 @@ GetPLS = function(GeneExpression,
     }
     
   } 
-  
-  genesNosig = names(which(GlobalSummary$GoodnessOfFit[,4]==0))
+
+  genesNosig = names(which(GlobalSummary$GoodnessOfFit[,5]==0))
   genessig = setdiff(rownames(GlobalSummary$GoodnessOfFit), genesNosig)
   GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,]
   
-  #Calculate MasterRegulators
+  #Calculate GlobalRegulators
   m_sig_reg<-lapply(ResultsPerGene, function(x) x$significantRegulators)
   m_sig_reg <- unlist(m_sig_reg)
   msig_vector <- table(m_sig_reg)
-  msig<-msig_vector[rev(tail(order(msig_vector),10))]
-  
-  GlobalSummary$MasterRegulators = names(msig)
+  #Calculate third quantile
+  q3<-quantile(msig_vector,0.75)
+  if(length(msig_vector[msig_vector>q3])<10){
+    GlobalSummary$GlobalRegulators = intersect(names(msig_vector[rev(tail(order(msig_vector),10))]), names(msig_vector[msig_vector>10]) )
+  } else{
+    GlobalSummary$GlobalRegulators = intersect(names(msig_vector[msig_vector>q3]), names(msig_vector[msig_vector>10]) ) 
+  }
   
   #Calculate HubGenes
   significant_regulators<-GlobalSummary$ReguPerGene[,c(grep('-Sig$',colnames(GlobalSummary$ReguPerGene)))]
   s_sig_reg<-apply(significant_regulators, 1, sum)
-  
-  GlobalSummary$HubGenes = s_sig_reg[rev(tail(order(s_sig_reg),10))]
+  #Calculate third quantile
+  q3<-quantile(s_sig_reg,0.75)
+  if(length(s_sig_reg[s_sig_reg>q3])<10){
+    GlobalSummary$HubGenes = names(s_sig_reg[rev(tail(order(s_sig_reg),10))])
+  } else{
+    GlobalSummary$HubGenes = names(s_sig_reg[s_sig_reg>q3])
+  }
   
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, 
                      center = center, scale = scale, clinic.type = clinic.type,
@@ -787,7 +808,7 @@ GetPLS = function(GeneExpression,
                      epsilon = epsilon, vip = vip,
                      GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type,
                      clinic = clinic, clinic.type = clinic.type, scaletype =scaletype, p.method=p.method, method =method)
-  
+
   # Create the results for the scale filter check
   
   result <- list("ResultsPerGene" = ResultsPerGene, "GlobalSummary" = GlobalSummary, "arguments" = myarguments) 
