@@ -487,7 +487,7 @@ GetPLS = function(GeneExpression,
             des.mat2 = data.frame(des.mat2[,1,drop=FALSE], scale(des.mat,scale=scale,center=center), res$RegulatorMatrix,check.names = FALSE)
             
           } 
-          
+          rm(regupero);rm(res)
           # Removing predictors with constant values
           sdNo0 = apply(des.mat2, 2, sd)
           sdNo0 = names(sdNo0)[sdNo0 > 0]
@@ -623,24 +623,32 @@ GetPLS = function(GeneExpression,
     res = RemovedRegulators(RetRegul.gene = allRegulators,
                             myregLV=myregLV, myregNA=myregNA, data.omics=data.omics)
     
-    ## Make the groups of omics
-    regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
-    names(regupero) = unique(res$SummaryPerGene[,'omic'])
-    
     ## Create the interactions between regulators and edesign 
     
     des.mat2 = RegulatorsInteractionsPLS2(interactions.reg, reguValues = res$RegulatorMatrix,
-                                          edesign, clinic.type, regupero, omic.type)
+                                          des.mat)
     
-    #Add the ones related to the interactions
-    regupero = lapply(names(regupero), function(x) if(length(regupero[[x]])!=0){colnames(des.mat2)[grepl(paste(regupero[[x]],collapse = "|"), colnames(des.mat2))]})
-    names(regupero) = unique(res$SummaryPerGene[,'omic'])
+    #Scale the variables, indispensable for elasticnet application
+    des.mat2 = scale(des.mat2,scale=scale,center=center)
     
-    res$RegulatorMatrix = ScalePLS(des.mat2, regupero, omic.type, scaletype, center, scale)
-    
-    #Use them jointly
-    des.mat2 = data.frame(des.mat, res$RegulatorMatrix,check.names = FALSE)
-    
+    ##Scale if needed to block scaling or pareto scaling
+    if (scaletype!='auto'){
+      ## Make the groups of omics
+      regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
+      names(regupero) = unique(res$SummaryPerGene[,'omic'])
+      #It does not work in case of really huge amount of data
+      regu = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2[,grep(paste(x, collapse = "|"), colnames(des.mat2))]))),silent = TRUE)
+      if(class(regu)=='try-error'){
+        #Add the ones related to the interactions
+        regupero = filter_columns_by_regexp(regupero, des.mat2,res)
+      }else{regupero = regu}
+      res$RegulatorMatrix = Scaling.type(des.mat2, regupero, scaletype)
+      
+      #Use them jointly
+      des.mat2 = data.frame(des.mat2[,setdiff(colnames(des.mat2),colnames(res$RegulatorMatrix)),drop=FALSE], res$RegulatorMatrix,check.names = FALSE)
+      
+    } 
+    rm(regupero);rm(res); gc()
     # Removing predictors with constant values
     sdNo0 = apply(des.mat2, 2, sd)
     sdNo0 = names(sdNo0)[sdNo0 > 0]
@@ -712,18 +720,9 @@ GetPLS = function(GeneExpression,
         #Tratar como significativas tan solo las que cumplan ambas condiciones
         sigvariables = intersect(names(myPLS@vipVn[which(myPLS@vipVn>vip)]), rownames(pval[,i,drop=FALSE])[which(pval[,i,drop=FALSE]<alfa)])
         ResultsPerGene[[i]]$coefficients = data.frame('coefficient' = myPLS@coefficientMN[sigvariables,i], 'pvalue' = pval[sigvariables,i,drop=FALSE])
-        rows_to_remove = rownames(ResultsPerGene[[i]]$coefficients)[grepl("_0$", rownames(ResultsPerGene[[i]]$coefficients)) & !rownames(ResultsPerGene[[i]]$coefficients) %in% colnames(des.mat)]
-        ResultsPerGene[[i]]$coefficients = ResultsPerGene[[i]]$coefficients[!rownames(ResultsPerGene[[i]]$coefficients) %in% rows_to_remove, ]
-        
-        # Obtain the indices of the rows to modify
-        rows_to_modify = grepl("_1$", rownames(ResultsPerGene[[i]]$coefficients)) & !(rownames(ResultsPerGene[[i]]$coefficients) %in% colnames(des.mat))
-        rownames(ResultsPerGene[[i]]$coefficients)[rows_to_modify] =  gsub("_1$", "", rownames(ResultsPerGene[[i]]$coefficients)[rows_to_modify])
-        
+
         ## Extracting significant regulators and recovering correlated regulators
         myvariables = unlist(strsplit(sigvariables, ":", fixed = TRUE))
-        #Eliminar _0 y _1 correspondientes a los dummy
-        myvariables = gsub('_0$','',myvariables)
-        myvariables = gsub('_1$','',myvariables)
         myvariables = intersect(myvariables, allRegulators[,'regulator'])
         
         ResultsPerGene[[i]]$allRegulators = allRegulators
@@ -766,8 +765,8 @@ GetPLS = function(GeneExpression,
         GlobalSummary$GoodnessOfFit[gene,] = c(myPLS@modelDF[,'R2Y(cum)'][myPLS@summaryDF[,'pre']],
                                                myPLS@modelDF[,'Q2(cum)'][myPLS@summaryDF[,'pre']],
                                                myPLS@summaryDF[,'RMSEE'],
+                                               round(abs(myPLS@summaryDF[,'RMSEE']/mean(myPLS@suppLs$y)),6),
                                                as.integer(length(ResultsPerGene[[i]]$significantRegulators)))
-        
       }
       
       
