@@ -570,47 +570,12 @@ modelcharac = function(fitted.glm,s, y, y.fitted){
 
 # Adding interations with regulators -------------------------------------
 
-RegulatorsInteractionsPLS2 = function (interactions.reg, reguValues, des.mat, clinic.type, regu, omic.type) {
+RegulatorsInteractionsPLS2 = function (interactions.reg, reguValues, des.mat) {
   
   # Adding regulators
   if (is.null(des.mat)) {
     des.mat2 = data.frame(reguValues, check.names = FALSE)
   } else {
-    res.mat = NULL
-    for (i in 1:ncol(des.mat)) {
-      res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat[,i, drop = FALSE])[,-1]))
-    }
-    colnames(res.mat) = sub('.*_','Group_',colnames(res.mat))
-    rownames(res.mat) = rownames(des.mat)
-    des.mat = res.mat
-    
-    res.mat = NULL
-    for (ov in names(regu)){
-      if (ov =='clinic'){
-        des.mat2 = as.data.frame(reguValues[, regu[[ov]],drop =FALSE])
-        for (i in 1:length(clinic.type)) {
-          if(clinic.type[i]==1){
-            res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat2[,i,drop=FALSE])[,-1, drop=FALSE]))
-          }else{
-            res.mat = cbind(res.mat,as.matrix(des.mat2[,i,drop=FALSE]))
-          }
-        }
-      }else{
-        des.mat2 = as.data.frame(reguValues[, regu[[ov]],drop =FALSE])
-        if (ncol(des.mat2)!=0){
-          if (omic.type[ov] == 1){
-            des.mat2 = apply(des.mat2, 2, factor)
-            res.mat = cbind(res.mat,as.matrix(fastDummies::dummy_cols(des.mat2)[,-c(1:ncol(des.mat2)), drop=FALSE]))
-          } else{
-            res.mat = cbind(res.mat,as.matrix(des.mat2))
-          } 
-        }
-      }
-    }
-    
-    rownames(res.mat) = rownames(reguValues)
-    reguValues = res.mat
-    rm(res.mat);rm(des.mat2);gc();
     des.mat2 = data.frame(des.mat, reguValues, check.names = FALSE)
     ### WITH INTERACTIONS with regulators
     if (interactions.reg > 0) {
@@ -825,6 +790,7 @@ p.valuejack.pls2<-function(pls, datospls, Y,alfa){
     }
     order <- match(rownames(coefmod), rownames(pls.opls@coefficientMN))
     plscoefficientMN <- pls.opls@coefficientMN[order, ]
+    rm(pls.opls);gc()
     a=cbind(a,plscoefficientMN)
   }
   
