@@ -6,7 +6,6 @@ import(glmnet)
 import(car)
 import(ltm)
 import(ropls)
-import(fastDummies)
 import(stringr)
 
 importFrom("grDevices", "colors")
