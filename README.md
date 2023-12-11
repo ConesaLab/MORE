@@ -23,7 +23,6 @@ Before installation, it might be necessary to install the required dependencies:
 * ltm
 * ropls
 * stringr
-* fastDummies
 
 ## Usage
 
