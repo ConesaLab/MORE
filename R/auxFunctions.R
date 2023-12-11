@@ -363,6 +363,7 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, GeneEx
   if (is.null(des.mat)) {
     des.mat2 = data.frame(reguValues, check.names = FALSE)
     des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
+    colnames(des.mat2)[1] = "response"
   } else {
     des.mat2 = data.frame(des.mat, reguValues, check.names = FALSE)
     ### WITH INTERACTIONS with regulators
@@ -424,11 +425,11 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, GeneEx
       }
       
       ## PUEDE OCURRIR QUE AL METER LAS INTERACCIONES TODA LA COLUMNA SEA 0. HAGO UN FILTRO PREVIO
-      sd.regulators = apply(des.mat2, 2, sd, na.rm=TRUE)
+      sd.regulators = apply(des.mat2[,-1,drop=FALSE], 2, sd, na.rm=TRUE)
       regulators0 = names(sd.regulators[sd.regulators==0])
       if (length(regulators0)>0) des.mat2 = des.mat2[, setdiff(colnames(des.mat2), regulators0), drop=FALSE]
       
-    } else{
+    } else{  ### WITHOUT INTERACTIONS
       
       des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
       colnames(des.mat2)[1] = "response"
