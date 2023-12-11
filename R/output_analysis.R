@@ -572,13 +572,13 @@ plotmore = function(output, gene, regulator = NULL, simplify = FALSE, reguValues
       output_regpcond = output_regpcond[output_regpcond$gene==gene & output_regpcond$regulator==regulator,]
       coefs<-data.frame(group=unique(output$arguments$groups), intercept =rep(output$ResultsPerGene[[gene]]$coefficients[[1]][1],length(unique(output$arguments$groups))),slope = unlist(output_regpcond[,6:ncol(output_regpcond)] ))
       # Create a scatterplot
-      ggplot2::ggplot(df, aes(x = gen, y = regulador, color = group)) +
+      ggplot2::ggplot(df, aes(x = regulador, y = gen, color = group)) +
         geom_point() + RColorConesa::scale_color_conesa(palette = 'complete')+
         theme_minimal()+
         #geom_abline(intercept = c(coefs[1,2],coefs[2,2],coefs[3,2]),slope = c(coefs[1,3],coefs[2,3],coefs[3,3]),color=c('#15918A','#74CDF0','#EE446F'),linetype=c('solid','solid',"dashed"))+
         #geom_abline(intercept = 0,slope = coefs[2,2],color='#74CDF0')+
         #geom_abline(intercept = 0,slope = coefs[3,2],color='#EE446F',linetype="dashed")+
-        labs(title = "Scatterplot Gen-Regulator values", x = "Gene Expression", y = "Regulator")
+        labs(title = "Scatterplot Gen-Regulator values", x = paste("Regulator\n",regulator), y = paste("Gene Expression\n",gene))
       #geom_smooth(method = "lm", se = FALSE, aes(group = group)) 
       #+geom_abline(intercept = intercept, slope = slope, color="red",  
       #linetype="dashed", size=1.5)+ 
@@ -595,7 +595,7 @@ plotmore = function(output, gene, regulator = NULL, simplify = FALSE, reguValues
       ggplot2::ggplot(df, aes(x = regulador, y = gen,fill=group)) + theme_minimal()+
         geom_boxplot() + RColorConesa::scale_fill_conesa(palette = 'complete')+  RColorConesa::scale_color_conesa(palette = 'complete')+
         scale_x_discrete(labels = c('0','1')) + stat_summary(aes(color = group),fun='median',geom = 'point', position = position_dodge(width = 0.75))+
-      labs(title = "Boxplot Gen-Regulator values", x = "Regulator value", y = "Gene Expression")
+      labs(title = "Boxplot Gen-Regulator values", x = paste("Regulator \n",regulator), y = paste("Gene Expression\n",gene))
       
     }
   } else{
