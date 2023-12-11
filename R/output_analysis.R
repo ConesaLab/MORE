@@ -1419,8 +1419,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     
     ngroups = length(unique(output$arguments$groups))
     omics = names(output$arguments$dataOmics)
-    totalgenes = length(output$ResultsPerGene)
-    
+    totalgenes = length(output$ResultsPerGene)+ifelse(is.null(output$GlobalSummary$GenesNoregulators),0,length(output$GlobalSummary$GenesNoregulators))+ifelse(is.null(output$GlobalSummary$GenesNomodel),0,length(output$GlobalSummary$GenesNomodel))
     #Create all the counts needed globally and per groups
     
     cts = matrix(NA, nrow=(ngroups)+1,ncol=length(omics)+1)
@@ -1451,12 +1450,12 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
                      genes=as.vector(cts))
     
     
-    ggplto2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
+    ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
       theme_minimal()+
-      RColorConesa::scale_fill_conesa(palette = "complete")+  
+      scale_fill_conesa(palette = "complete")+ 
       labs(x="Omic", y = "% genes with significant regulators") +
-      theme(legend.text = element_text(size = 12)) 
+      theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",size = 0.5,linetype = 1)) 
     
   } else{
     #Calculate the vector with % of significant regulations by condition in each omic
@@ -1468,10 +1467,17 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     
     cts = matrix(NA, nrow=(ngroups),ncol=length(omics))
     
+    total_reg_omic <- if (is.null(output$arguments$associations)) {
+      sapply(output$arguments$dataOmics, nrow)
+    } else {
+      sapply(omics, function(x) nrow(output$arguments$associations[[x]][output$arguments$associations[[x]]$ID %in% rownames(output$arguments$dataOmics[[x]]),]))
+    }
+    
     for (i in 1:ngroups){
       #Create the global values
       for (j in 1:length(omics)){
-        cts[i,j] = length(output_regpcond[intersect(which(output_regpcond[,5+i]!=0),which(output_regpcond$omic==omics[j])),]$regulator)/ nrow(output$arguments$associations[[omics[j]]])
+        
+        cts[i,j] = length(output_regpcond[intersect(which(output_regpcond[,5+i]!=0),which(output_regpcond$omic==omics[j])),]$regulator)/ total_reg_omic[j]
         
       }
     }
@@ -1485,10 +1491,10 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     
     ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
-      theme_minimal()+
-      RColorConesa::scale_fill_conesa(palette = "complete")+
+      theme_minimal()+scale_x_discrete(labels = paste(unique(df$omic),'\n',total_reg_omic,'regulations')) +
+      scale_fill_conesa(palette = "complete")+  
       labs(x="Omic", y = "% significant regulations") +
-      theme(legend.text = element_text(size = 12)) 
+      theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",size = 0.5,linetype = 1)) 
     
   }
   
