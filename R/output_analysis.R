@@ -137,7 +137,7 @@ RegulationPerCondition = function(output){
       
       # Anyado las columnas de las condiciones experimentales. Pongo "Group" porque al hacer model.matrix() siempre coloca "Group" y lo que se almacena en el objeto Group
       index = unique(Group)
-      names.groups = paste("Group", index, sep = "")
+      names.groups = paste("Group", index, sep = "_")
       conditions = matrix(0, nrow(myresults), length(names.groups))
       colnames(conditions) = names.groups
       rownames(conditions) = rownames(myresults)
@@ -1347,6 +1347,7 @@ summary.MORE <-function(object, plot.more=FALSE){
     #globally
     
     s_rel_reg<-apply(relevant_regulators, 1, sum)
+    
     cat('These are the top 10 hub genes and the number of relevant regulators for each:\n')
     print(s_rel_reg[rev(tail(order(s_rel_reg),10))])
     
@@ -1369,7 +1370,6 @@ summary.MORE <-function(object, plot.more=FALSE){
         plotGLM(object, gene = NULL, regulator = names(msig)[i], plotPerOmic = FALSE ,order = FALSE, gene.col = 'skyblue', regu.col = 'tan1', verbose = FALSE)
       }
     }
-    
   }
   else{
     cat('Genes presented a mean of ',mean(object$GlobalSummary$GoodnessOfFit[,'sigReg']),'significant regulators.','\n')
@@ -1380,7 +1380,7 @@ summary.MORE <-function(object, plot.more=FALSE){
     
     s_sig_reg<-apply(significant_regulators, 1, sum)
     cat('These are the top 10 hub genes and the number of significant regulators for each:\n')
-    print(s_sig_reg[tail(order(s_sig_reg),10)])
+    print(s_rel_reg[tail(order(s_sig_reg),10)])
     
     #Global regulators
     
@@ -1541,7 +1541,7 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
     RCy3::setEdgeColorBypass(network = cy_network, edge.names = RCy3::getAllEdges(cy_network), edge_colors)
     
     if(diff){
-      edge_lines<-ifelse(df[order_index,5] == 0, 'SOLID', 'DOT')
+      edge_lines<-ifelse(df[order_index,5] == 0, 'SOLID', ifelse(df[order_index,5] == 1,'DOT','ZIGZAG'))
       RCy3::setEdgeLineStyleBypass(network= cy_network, edge.names = RCy3::getAllEdges(cy_network),  edge_lines)
     }
     #Set node color and generate a color palette
@@ -1550,7 +1550,7 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
     color_palette <- colorConesa(num_unique, palette = 'main')
     node_colors <- color_palette[as.integer(omic_c)]
     
-    nshaps <-setdiff(RCy3::getNodeShapes(), c("TRIANGLE", "DIAMOND"))[1:num_unique]
+    nshaps <-setdiff(RCy3::getNodeShapes(), c("TRIANGLE", "DIAMOND","RECTANGLE"))[1:num_unique]
     node_shapes <- nshaps[as.integer(omic_c)]
     if('TF'%in% omic_c){
       i=grep('TF', omic_c)
@@ -1559,6 +1559,10 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
     if('miRNA'%in% omic_c){
       i=grep('miRNA', omic_c)
       node_shapes[i]<-'DIAMOND'
+    }
+    if('gene'%in% omic_c){
+      i=grep('gene', omic_c)
+      node_shapes[i]<-'RECTANGLE'
     }
     RCy3::setNodeColorBypass(network = cy_network, node.names = RCy3::getAllNodes(cy_network), node_colors)
     RCy3::setNodeShapeBypass(network = cy_network, node.names = RCy3::getAllNodes(cy_network), node_shapes)
@@ -1584,14 +1588,14 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
       
       if (length(gr1) != 1 || length(gr2) != 1 || gr1 == gr2){stop("ERROR: group1 and group2 should be different names of groups to compare")}
       #Create the differential coefficient and the indicator of sign change
-      df <- output_regpcond[, c(1,2,3,gr1,gr2)]
+      df <- output_regpcond[, c(1,2,3,gr2,gr1)]
       df[, 6] = df[, 4] - df[, 5]
-      df[, 7] = ifelse(sign(df[, 6]) == sign(df[, 4]), 0, 1)
+      df[, 7] = ifelse(df[,4]==0 | df[,5]==0,2, ifelse(sign(df[, 6]) == sign(df[, 5]), 0, 1))
       df <- df[, -c(4, 5)]
       names(df)[5] = 'line'
       
       my_graph <- create_graph(df)
-      create_network(my_graph$mygraph,my_graph$df,my_graph$odf, 'mynet', paste0(group1,'-', group2),diff = TRUE)
+      create_network(my_graph$mygraph,my_graph$df,my_graph$odf, 'mynet', paste0(group2,'-', group1),diff = TRUE)
     }
     
   } else {
@@ -1621,9 +1625,9 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
       
       if (length(gr1) != 1 || length(gr2) != 1 || gr1 == gr2){stop("ERROR: group1 and group2 should be different names of groups to compare")}
       #Create the differential coefficient and the indicator of sign change
-      df <- output_regpcond[, c(1,2,3,gr1,gr2)]
+      df <- output_regpcond[, c(1,2,3,gr2,gr1)]
       df[, 6] = df[, 4] - df[, 5]
-      df[, 7] = ifelse(sign(df[, 6]) == sign(df[, 4]), 0, 1)
+      df[, 7] = ifelse(df[,4]==0 | df[,5]==0, 2, ifelse(sign(df[, 6]) == sign(df[, 5]), 0, 1))
       df <- df[, -c(4, 5)]
       names(df)[5] = 'line'
       
@@ -1638,7 +1642,7 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
            edge.color = ifelse(E(my_graph$mygraph)$sign > 0, "blue", "red"), 
            edge.lty = ifelse(E(my_graph$mygraph)$line == 0, "solid", "dashed"))
       
-      igraph::write.graph(my_graph$mygraph, format = 'gml', file = paste0('mynet', group1, '-', group2, '.gml'))
+      igraph::write.graph(my_graph$mygraph, format = 'gml', file = paste0('mynet', group2, '-', group1, '.gml'))
     }
   }
 }
