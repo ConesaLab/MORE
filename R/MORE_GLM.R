@@ -306,6 +306,8 @@ GetGLM = function(GeneExpression,
     Group = apply(edesign, 1, paste, collapse = "_")
     des.mat = model.matrix(~Group)[, -1, drop = FALSE]
     rownames(des.mat) = colnames(GeneExpression)
+    #Change the name to avoid conflicts with RegulationPerCondition
+    colnames(des.mat) = sub('Group','Group_',colnames(des.mat))
   }
 
   ## Remove regulators with NA
@@ -331,17 +333,6 @@ GetGLM = function(GeneExpression,
   rm("tmp"); gc()
   
   if(all(sapply(data.omics, function(x)nrow(x)==0))) stop("ERROR: No regulators left after LowVariation filter. Consider being less restrictive.")
-  
-  ##Create dummy variables associated to factors clinical variables
-  
-  if(!is.null(clinic)){
-    
-    catvar <- which(clinic.type == 1)
-    dummy_vars <- model.matrix(~ . , data = as.data.frame(t(data.omics$clinic[catvar, ,drop=FALSE])))[,-1,drop=FALSE]
-    data.omics$clinic <- data.omics$clinic[-catvar, ,drop=FALSE]
-    data.omics$clinic <- rbind(data.omics$clinic, t(dummy_vars))
-    
-  }
 
   ### Results objects
 
@@ -541,7 +532,7 @@ GetGLM = function(GeneExpression,
           
           #Use them jointly
           des.mat2EN = data.frame(des.mat2EN[,1,drop=FALSE], scale(des.mat,scale=scale,center=center), res$RegulatorMatrix,check.names = FALSE)
-          
+          rm(regupero);gc()
         }
         
         ###  Variable selection --> Elasticnet
