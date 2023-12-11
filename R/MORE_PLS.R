@@ -646,9 +646,9 @@ GetPLS = function(GeneExpression,
       
       #Use them jointly
       des.mat2 = data.frame(des.mat2[,setdiff(colnames(des.mat2),colnames(res$RegulatorMatrix)),drop=FALSE], res$RegulatorMatrix,check.names = FALSE)
-      
+      rm(regupero);rm(res); gc()
     } 
-    rm(regupero);rm(res); gc()
+    
     # Removing predictors with constant values
     sdNo0 = apply(des.mat2, 2, sd)
     sdNo0 = names(sdNo0)[sdNo0 > 0]
