@@ -553,23 +553,68 @@ plot.y2 <- function(x, yright, yleft, yrightlim = range(yright, na.rm = TRUE),
 #'
 
 
-plotmore = function(output, gene, regulator = NULL, reguValues = NULL, plotPerOmic = FALSE,
+plotmore = function(output, gene, regulator = NULL, simplify = FALSE, reguValues = NULL, plotPerOmic = FALSE,
                     gene.col = 1, regu.col = NULL, order = TRUE,
                     xlab = "", cont.var = NULL, cond2plot = NULL,...) {
   
-  if(output$arguments$method=='glm'){
+  if(simplify){
+    # from which omic is the regulator?
+    SigniReguGene = GetPairsGeneRegulator(genes = gene, output = output)
+    omic = SigniReguGene[SigniReguGene[,"regulator"] == regulator,'omic']
     
-    return(plotGLM(output, gene, regulator = regulator, reguValues = reguValues, plotPerOmic = plotPerOmic,
-                   gene.col = gene.col, regu.col = regu.col, order = order,
-                   xlab = xlab, cont.var = cont.var, cond2plot = cond2plot,...))
+    if (output$arguments$omic.type[omic]==0){
+      df <- data.frame(
+        gen = unlist(output$arguments$GeneExpression[gene,,drop=TRUE]),
+        regulador = unlist(output$arguments$dataOmics[[omic]][regulator,,drop=TRUE]),
+        group = output$arguments$groups)
+      
+      output_regpcond = RegulationPerCondition(output)
+      output_regpcond = output_regpcond[output_regpcond$gene==gene & output_regpcond$regulator==regulator,]
+      coefs<-data.frame(group=unique(output$arguments$groups), intercept =rep(output$ResultsPerGene[[gene]]$coefficients[[1]][1],length(unique(output$arguments$groups))),slope = unlist(output_regpcond[,6:ncol(output_regpcond)] ))
+      # Create a scatterplot
+      ggplot2::ggplot(df, aes(x = gen, y = regulador, color = group)) +
+        geom_point() + RColorConesa::scale_color_conesa(palette = 'complete')+
+        theme_minimal()+
+        #geom_abline(intercept = c(coefs[1,2],coefs[2,2],coefs[3,2]),slope = c(coefs[1,3],coefs[2,3],coefs[3,3]),color=c('#15918A','#74CDF0','#EE446F'),linetype=c('solid','solid',"dashed"))+
+        #geom_abline(intercept = 0,slope = coefs[2,2],color='#74CDF0')+
+        #geom_abline(intercept = 0,slope = coefs[3,2],color='#EE446F',linetype="dashed")+
+        labs(title = "Scatterplot Gen-Regulator values", x = "Gene Expression", y = "Regulator")
+      #geom_smooth(method = "lm", se = FALSE, aes(group = group)) 
+      #+geom_abline(intercept = intercept, slope = slope, color="red",  
+      #linetype="dashed", size=1.5)+ 
+      
+    } else {
+      
+      df <- data.frame(
+        gen = unlist(output$arguments$GeneExpression[gene,,drop=TRUE]),
+        regulador = unlist(output$arguments$dataOmics[[omic]][regulator,,drop=TRUE]),
+        group = output$arguments$groups)
+      df$regulador<-factor(df$regulador)
+      
+      # Create a scatterplot
+      ggplot2::ggplot(df, aes(x = regulador, y = gen,fill=group)) + theme_minimal()+
+        geom_boxplot() + RColorConesa::scale_fill_conesa(palette = 'complete')+  RColorConesa::scale_color_conesa(palette = 'complete')+
+        scale_x_discrete(labels = c('0','1')) + stat_summary(aes(color = group),fun='median',geom = 'point', position = position_dodge(width = 0.75))+
+      labs(title = "Boxplot Gen-Regulator values", x = "Regulator value", y = "Gene Expression")
+      
+    }
+  } else{
+    if(output$arguments$method=='glm'){
+      
+      return(plotGLM(output, gene, regulator = regulator, reguValues = reguValues, plotPerOmic = plotPerOmic,
+                     gene.col = gene.col, regu.col = regu.col, order = order,
+                     xlab = xlab, cont.var = cont.var, cond2plot = cond2plot,...))
+    }
+    
+    if(output$arguments$method=='pls1'||output$arguments$method=='pls2'){
+      
+      return(plotPLS(output, gene, regulator = regulator, reguValues = reguValues, plotPerOmic = plotPerOmic,
+                     gene.col = gene.col, regu.col = regu.col, order = order,
+                     xlab = xlab, cont.var = cont.var, cond2plot = cond2plot,...))
+    }
   }
   
-  if(output$arguments$method=='pls1'||output$arguments$method=='pls2'){
-    
-    return(plotPLS(output, gene, regulator = regulator, reguValues = reguValues, plotPerOmic = plotPerOmic,
-                   gene.col = gene.col, regu.col = regu.col, order = order,
-                   xlab = xlab, cont.var = cont.var, cond2plot = cond2plot,...))
-  }
+ 
 }
 
 # order: Should the experimental groups be ordered for the plot? If TRUE, omic values are also ordered accordingly.
