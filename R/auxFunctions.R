@@ -363,14 +363,13 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, GeneEx
   if (is.null(des.mat)) {
     des.mat2 = data.frame(reguValues, check.names = FALSE)
     des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
-    colnames(des.mat2)[1] = "response"
   } else {
     des.mat2 = data.frame(des.mat, reguValues, check.names = FALSE)
     ### WITH INTERACTIONS with regulators
     if (interactions.reg > 0) {
       expcond = colnames(des.mat)
       
-      if (interactions.reg == 1) {  # Max order of interaction = 2 not allowed
+      if (interactions.reg == 1) {  # Max order of interaction = 2 & Interactions with cont.var not allowed
         if (length(grep(":", expcond, fixed = TRUE)))  expcond = expcond[-grep(":", expcond, fixed = TRUE)]
       }
       
@@ -378,40 +377,68 @@ RegulatorsInteractions = function (interactions.reg, reguValues, des.mat, GeneEx
         if (length(grep(":", expcond, fixed = TRUE)))  expcond = expcond[-grep(":", expcond, fixed = TRUE)]
       }
       
-      fff = paste0("~ ",
-                   paste(sapply(colnames(reguValues),
-                                function (x) paste(expcond, sprintf("`%s`", x), sep = ":")),
-                         collapse = "+"))
-      
-      fff = as.formula(fff)
-      inter.var = model.matrix(fff, des.mat2)[,-1, drop = FALSE]
-      colnames(inter.var) = strsplit(as.character(fff),"\\s*\\+\\s*")[-1][[1]]
-      des.mat2 = cbind(des.mat2, inter.var)
-      
-      des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
-      colnames(des.mat2)[1] = "response"
-      
-      colnames(des.mat2) = gsub("\`", "", colnames(des.mat2))
-      
+      if(ncol(reguValues)<=5000){
+        
+        fff = paste0("~ ",
+                     paste(sapply(colnames(reguValues),
+                                  function (x) paste(expcond, sprintf("`%s`", x), sep = ":")),
+                           collapse = "+"))
+        
+        fff = as.formula(fff)
+        inter.var = model.matrix(fff, des.mat2)[,-1, drop = FALSE]
+        colnames(inter.var) = strsplit(as.character(fff),"\\s*\\+\\s*")[-1][[1]]
+        des.mat2 = cbind(des.mat2, inter.var)
+        
+        des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
+        colnames(des.mat2)[1] = "response"
+        
+        colnames(des.mat2) = gsub("\`", "", colnames(des.mat2))
+        
+      } else{
+        j = ceiling(ncol(reguValues)/250)
+        res.mat = des.mat2
+        
+        for (k in 1:j){
+          
+          cols_start = (250 * (k - 1)) + 1
+          cols_end = min(250 * k, ncol(reguValues))
+          
+          fff = paste0("~ ",
+                       paste(sapply(colnames(reguValues[, cols_start:cols_end, drop = FALSE]),
+                                    function(x) paste(expcond, sprintf("`%s`", x), sep = ":")),
+                             collapse = "+"))
+          
+          fff = as.formula(fff)
+          inter.var = model.matrix(fff, des.mat2)[,-1, drop = FALSE]
+          colnames(inter.var) = strsplit(as.character(fff), "\\s*\\+\\s*")[-1][[1]]
+          res.mat = cbind(res.mat, inter.var)
+        }
+        
+        des.mat2 = res.mat
+        
+        des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
+        colnames(des.mat2)[1] = "response"
+        
+        colnames(des.mat2) = gsub("\`", "", colnames(des.mat2))
+        
+      }
       
       ## PUEDE OCURRIR QUE AL METER LAS INTERACCIONES TODA LA COLUMNA SEA 0. HAGO UN FILTRO PREVIO
-      sd.regulators = apply(des.mat2[,-1, drop = FALSE], 2, sd, na.rm=TRUE)
+      sd.regulators = apply(des.mat2, 2, sd, na.rm=TRUE)
       regulators0 = names(sd.regulators[sd.regulators==0])
       if (length(regulators0)>0) des.mat2 = des.mat2[, setdiff(colnames(des.mat2), regulators0), drop=FALSE]
       
-      
-    } else  {    ### WITHOUT INTERACTIONS
+    } else{
       
       des.mat2 = cbind(t(GeneExpression[gene,]), des.mat2)
       colnames(des.mat2)[1] = "response"
       
     }
+    
   }
-  
   return(des.mat2)
   
 }
-
 
 # ElasticNet variable selection -------------------------------------------
 
