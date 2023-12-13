@@ -69,7 +69,8 @@ GetPairsGeneRegulator = function (genes = NULL, output) {
 RegulationPerCondition = function(output){
   # output: results of the getGLM/getPLS function.
   method = output$arguments$method
-  
+  #Add a progressbar
+  pb <- txtProgressBar(min = 0, max = length(rownames(output$GlobalSummary$ReguPerGene)), style = 3)
   if(method =='glm'){
     design = output$arguments$finaldesign
     Group = output$arguments$groups
@@ -89,7 +90,7 @@ RegulationPerCondition = function(output){
       myresults[grep("_N", myresults[, "representative"]), "coefficients"] = -1  # Para cambiar el signo si pertenece al grupo de correlacionados negativamente
       
       for(k in unique(myresults[,"gene"])){
-        
+        setTxtProgressBar(pb, value = which(names(output$ResultsPerGene)==k))
         # Posicion y reguladores que son representantes.
         counts = grep("_R", myresults[myresults[,"gene"] == k, "representative"]) # positions of representatives of mc
         representatives = myresults[myresults[,"gene"] == k, "regulator"][counts]      # Devuelve el nombre real de los reguladores representantes
@@ -144,6 +145,7 @@ RegulationPerCondition = function(output){
       myresults = cbind(myresults, conditions)
       
       for(k in unique(myresults[,"gene"])){
+        setTxtProgressBar(pb, value = which(names(output$ResultsPerGene)==k))
         significant.regulators = output$ResultsPerGene[[k]]$relevantRegulators                    # Reguladores significativos.
         model.variables = gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients))[-1]       # Reguladores e interacciones en el modelo.
         
@@ -269,7 +271,7 @@ RegulationPerCondition = function(output){
       myresults[grep("_N", myresults[, "representative"]), "coefficients"] = -1  # Para cambiar el signo si pertenece al grupo de correlacionados negativamente
       
       for(k in unique(myresults[,"gene"])){
-        
+        setTxtProgressBar(pb, value = which(names(output$ResultsPerGene)==k))
         # Posicion y reguladores que son representantes.
         counts = grep("_R", myresults[myresults[,"gene"] == k, "representative"]) # positions of representatives of mc
         representatives = myresults[myresults[,"gene"] == k, "regulator"][counts]      # Devuelve el nombre real de los reguladores representantes
@@ -324,6 +326,9 @@ RegulationPerCondition = function(output){
       myresults = cbind(myresults, conditions)
       
       for(k in unique(myresults[,"gene"])){
+        
+        setTxtProgressBar(pb, value = which(names(output$ResultsPerGene)==k))
+
         significant.regulators = output$ResultsPerGene[[k]]$significantRegulators                    # Reguladores significativos.
         model.variables = gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients))           # Reguladores e interacciones en el modelo.
         
@@ -348,7 +353,7 @@ RegulationPerCondition = function(output){
         for(j in 1:nrow(output$ResultsPerGene[[k]]$coefficients)){
           regul = unlist(strsplit(gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients)[j]), ":"))
           
-          groups = regul[grepl(paste(names(table(Group)),collapse='|'), regul)]
+          groups = regul[grepl(paste(paste0('Group_',names(table(Group))),collapse='|'), regul)]
           regula = setdiff(regul,groups)
           # Evaluo en que conjunto se encuentra el regulador correspondiente y segun eso asigno el coeficiente o sumo el nuevo coeficiente a lo que ya habia en esa posicion.
           if(any(regul %in% variables.only)){
@@ -379,7 +384,7 @@ RegulationPerCondition = function(output){
     myresults = myresults[,-5,drop=FALSE]
     
   }
-  
+  close(pb)
   return(myresults)
 }
 
