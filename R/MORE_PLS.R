@@ -366,14 +366,13 @@ GetPLS = function(GeneExpression,
   ## Specific results for each gene
   ResultsPerGene=vector("list", length=length(Allgenes))
   names(ResultsPerGene) = Allgenes
-  
-  ### Computing model for each gene
-  cat("Checking multicollinearity, selecting predictors and fitting model for ...\n")
-  
-  pap = c(1, 1:round(nGenes/100) * 100, nGenes)
-  
  
   if(method=='pls1'){
+    ### Computing model for each gene
+    cat("Selecting predictors and fitting model for ...\n")
+    
+    pap = c(1, 1:round(nGenes/100) * 100, nGenes)
+    
     for (i in 1:nGenes) {
       
       gene=Allgenes[i]
@@ -607,6 +606,9 @@ GetPLS = function(GeneExpression,
     }  ## At this point the loop for all genes is finished
     
   } else{
+    
+    cat("Fitting model ...\n")
+    
     #When associations = NULL all genes have the same potential regulators
     gene = Allgenes[1]
     RetRegul = GetAllReg(gene=gene, associations=associations, data.omics = data.omics)

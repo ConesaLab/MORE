@@ -804,8 +804,9 @@ p.valuejack.pls2<-function(pls, datospls, Y,alfa){
   coefmod=pls@coefficientMN
   a=NULL
   pvalores = data.frame()
+  pb <- txtProgressBar(min = 0, max = nrow(datospls), style = 3)
   for (i in 1: nrow(datospls)) {
-    
+    setTxtProgressBar(pb, value = i)
     pls.opls=suppressWarnings(ropls::opls(datospls[-i, , drop =FALSE], Y[-i,], scaleC='none', predI=k,
                                    info.txtC='none', fig.pdfC='none', crossvalI=1, permI = 0))
     
@@ -821,7 +822,7 @@ p.valuejack.pls2<-function(pls, datospls, Y,alfa){
     rm(pls.opls);gc()
     a=cbind(a,plscoefficientMN)
   }
-  
+  close(pb)
   for (i in 1:ncol(pls@coefficientMN)) {
     
     b = a[, seq(i, ncol(pls@coefficientMN)*nrow(datospls), ncol(pls@coefficientMN))]
