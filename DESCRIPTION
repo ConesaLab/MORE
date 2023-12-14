@@ -8,6 +8,6 @@ License: GPL-2
 Encoding: UTF-8
 LazyData: true
 biocViews: Software
-Imports: igraph, MASS, glmnet, car, psych, ltm, stringr, ropls, RColorConesa, ggplot2
+Imports: igraph, MASS, glmnet, car, psych, ltm, stringr, ropls, RColorConesa, ggplot2, RCy3
 Remotes: cytoscape/RCy3
 Maintainer: Sonia Tarazona <starazona@cipf.es>
