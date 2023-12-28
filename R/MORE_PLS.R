@@ -354,9 +354,9 @@ GetPLS = function(GeneExpression,
     GlobalSummary$GenesNoregulators = data.frame("gene" = genesNOreg, "problem" = rep("Gene had no initial regulators", length(genesNOreg)))
   }
   
-  GlobalSummary$GoodnessOfFit = matrix(NA, ncol = 5, nrow = nGenes)
+  GlobalSummary$GoodnessOfFit = matrix(NA, ncol = 6, nrow = nGenes)
   rownames(GlobalSummary$GoodnessOfFit) = Allgenes
-  colnames(GlobalSummary$GoodnessOfFit) = c( "RsquaredY", "Qsquared","RMSE","CV(RMSE)","sigReg")
+  colnames(GlobalSummary$GoodnessOfFit) = c( "RsquaredY", "Qsquared","RMSE","CV(RMSE)","ncomp","sigReg")
   
   GlobalSummary$ReguPerGene = matrix(0, ncol = 3*length(data.omics), nrow = nGenes)
   rownames(GlobalSummary$ReguPerGene) = Allgenes
@@ -597,6 +597,7 @@ GetPLS = function(GeneExpression,
                                                  myPLS@modelDF[,'Q2(cum)'][myPLS@summaryDF[,'pre']],
                                                  myPLS@summaryDF[,'RMSEE'],
                                                  round(abs(myPLS@summaryDF[,'RMSEE']/mean(myPLS@suppLs$y)),6),
+                                                 myPLS@summaryDF[,'pre'],
                                                  as.integer(length(ResultsPerGene[[i]]$significantRegulators)))
           
           
@@ -640,7 +641,7 @@ GetPLS = function(GeneExpression,
       regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
       names(regupero) = unique(res$SummaryPerGene[,'omic'])
       #It does not work in case of really huge amount of data
-      regu = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2[,grep(paste(x, collapse = "|"), colnames(des.mat2))]))),silent = TRUE)
+      regu = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2[,grep(paste(x, collapse = "|"), colnames(des.mat2)),drop=FALSE]))),silent = TRUE)
       if(class(regu)=='try-error'){
         #Add the ones related to the interactions
         regupero = filter_columns_by_regexp(regupero, des.mat2,res)
@@ -769,6 +770,7 @@ GetPLS = function(GeneExpression,
                                                myPLS@modelDF[,'Q2(cum)'][myPLS@summaryDF[,'pre']],
                                                myPLS@summaryDF[,'RMSEE'],
                                                round(abs(myPLS@summaryDF[,'RMSEE']/mean(myPLS@suppLs$y)),6),
+                                               myPLS@summaryDF[,'pre'],
                                                as.integer(length(ResultsPerGene[[i]]$significantRegulators)))
       }
       
@@ -777,7 +779,7 @@ GetPLS = function(GeneExpression,
     
   } 
 
-  genesNosig = names(which(GlobalSummary$GoodnessOfFit[,5]==0))
+  genesNosig = names(which(GlobalSummary$GoodnessOfFit[,6]==0))
   genessig = setdiff(rownames(GlobalSummary$GoodnessOfFit), genesNosig)
   GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,]
   
