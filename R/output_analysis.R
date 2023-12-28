@@ -1598,7 +1598,7 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
     RCy3::setEdgeColorBypass(network = cy_network, edge.names = RCy3::getAllEdges(cy_network), edge_colors)
     
     if(diff){
-      edge_lines<-ifelse(df[order_index,5] == 0, 'SOLID', ifelse(df[order_index,5] == 1,'DOT','ZIGZAG'))
+      edge_lines<-ifelse(df[order_index,5] == 0, 'SOLID', ifelse(df[order_index,5] == 1,'ZIGZAG','DOT'))
       RCy3::setEdgeLineStyleBypass(network= cy_network, edge.names = RCy3::getAllEdges(cy_network),  edge_lines)
     }
     #Set node color and generate a color palette
