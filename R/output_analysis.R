@@ -579,7 +579,7 @@ plotmore = function(output, gene, regulator = NULL, simplify = FALSE, reguValues
       # Create a scatterplot
       
       num_unique <- length(unique(df$group))+1
-      color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
+      color_palette <- rev(RColorConesa::colorConesa(num_unique, palette = 'complete'))
       custom_colors <- setNames(color_palette[-1], unique(df$group))
       ggplot2::ggplot(df, aes(x = regulador, y = gen, color = group)) +
         geom_point() + scale_color_manual(values = custom_colors)+
@@ -601,7 +601,7 @@ plotmore = function(output, gene, regulator = NULL, simplify = FALSE, reguValues
       df$regulador<-factor(df$regulador)
       
       num_unique <- length(unique(df$group))+1
-      color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
+      color_palette <- rev(RColorConesa::colorConesa(num_unique, palette = 'complete'))
       custom_colors <- setNames(color_palette[-1], unique(df$group))
       # Create a scatterplot
       ggplot2::ggplot(df, aes(x = regulador, y = gen,fill=group)) + theme_minimal()+
@@ -1509,7 +1509,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
                      genes=as.vector(cts))
     
     num_unique <- ngroups+1
-    color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
+    color_palette <- rev(RColorConesa::colorConesa(num_unique, palette = 'complete'))
     custom_colors <- setNames(color_palette, unique(df$Group))
     ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
@@ -1550,7 +1550,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
                      genes=as.vector(cts))
     
     num_unique <- ngroups+1
-    color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
+    color_palette <- rev(RColorConesa::colorConesa(num_unique, palette = 'complete'))
     custom_colors <- setNames(color_palette[-1], unique(df$Group))
     ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
