@@ -95,6 +95,7 @@ GetPLS = function(GeneExpression,
   data.omics = lapply(data.omics, as.data.frame)
 
   #Consider binary variables as k-1 dummy which represent presence
+  omic.type1 = omic.type
   omic.type = 0
   
   ##Omic types
@@ -807,7 +808,7 @@ GetPLS = function(GeneExpression,
                      center = center, scale = scale, clinic.type = clinic.type,
                      min.variation = min.variation, associations = associations,
                      epsilon = epsilon, vip = vip,
-                     GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type,
+                     GeneExpression = GeneExpression, dataOmics = data.omics, omic.type = omic.type1,
                      clinic = clinic, clinic.type = clinic.type, scaletype =scaletype, p.method=p.method, method =method)
 
   # Create the results for the scale filter check
