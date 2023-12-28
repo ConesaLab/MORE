@@ -577,8 +577,12 @@ plotmore = function(output, gene, regulator = NULL, simplify = FALSE, reguValues
       output_regpcond = output_regpcond[output_regpcond$gene==gene & output_regpcond$regulator==regulator,]
       #coefs<-data.frame(group=unique(output$arguments$groups), intercept =rep(output$ResultsPerGene[[gene]]$coefficients[[1]][1],length(unique(output$arguments$groups))),slope = unlist(output_regpcond[,6:ncol(output_regpcond)] ))
       # Create a scatterplot
+      
+      num_unique <- length(unique(df$group))+1
+      color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
+      custom_colors <- setNames(color_palette[-1], unique(df$group))
       ggplot2::ggplot(df, aes(x = regulador, y = gen, color = group)) +
-        geom_point() + RColorConesa::scale_color_conesa(palette = 'complete')+
+        geom_point() + scale_color_manual(values = custom_colors)+
         theme_minimal()+
         #geom_abline(intercept = c(coefs[1,2],coefs[2,2],coefs[3,2]),slope = c(coefs[1,3],coefs[2,3],coefs[3,3]),color=c('#15918A','#74CDF0','#EE446F'),linetype=c('solid','solid',"dashed"))+
         #geom_abline(intercept = 0,slope = coefs[2,2],color='#74CDF0')+
@@ -596,9 +600,12 @@ plotmore = function(output, gene, regulator = NULL, simplify = FALSE, reguValues
         group = output$arguments$groups)
       df$regulador<-factor(df$regulador)
       
+      num_unique <- length(unique(df$group))+1
+      color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
+      custom_colors <- setNames(color_palette[-1], unique(df$group))
       # Create a scatterplot
       ggplot2::ggplot(df, aes(x = regulador, y = gen,fill=group)) + theme_minimal()+
-        geom_boxplot() + RColorConesa::scale_fill_conesa(palette = 'complete')+  RColorConesa::scale_color_conesa(palette = 'complete')+
+        geom_boxplot() + scale_fill_manual(values = custom_colors)+  scale_color_manual(values = custom_colors)+
         scale_x_discrete(labels = c('0','1')) + stat_summary(aes(color = group),fun='median',geom = 'point', position = position_dodge(width = 0.75))+
       labs( x = paste("Regulator \n",regulator), y = paste("Gene Expression\n",gene))
       
@@ -1470,6 +1477,8 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     ngroups = length(unique(output$arguments$groups))
     omics = names(output$arguments$dataOmics)
     totalgenes = length(output$ResultsPerGene)+ifelse(is.null(output$GlobalSummary$GenesNoregulators),0,length(output$GlobalSummary$GenesNoregulators))+ifelse(is.null(output$GlobalSummary$GenesNomodel),0,length(output$GlobalSummary$GenesNomodel))
+    
+    pos = grep('Group',colnames(output_regpcond))[1]
     #Create all the counts needed globally and per groups
     
     cts = matrix(NA, nrow=(ngroups)+1,ncol=length(omics)+1)
@@ -1482,9 +1491,9 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
         }else if(i==1){
           cts[i,j]= length(unique(output_regpcond[output_regpcond$omic==omics[j-1],]$gene))
         }else if(j==1){
-          cts[i,j] = length(unique(output_regpcond[output_regpcond[,5+(i-1)]!=0,]$gene))
+          cts[i,j] = length(unique(output_regpcond[output_regpcond[,pos+(i-2)]!=0,]$gene))
         }else{
-          cts[i,j] = length(unique(output_regpcond[intersect(which(output_regpcond[,5+(i-1)]!=0),which(output_regpcond$omic==omics[j-1])),]$gene))
+          cts[i,j] = length(unique(output_regpcond[intersect(which(output_regpcond[,pos+(i-2)]!=0),which(output_regpcond$omic==omics[j-1])),]$gene))
         }
         
       }
@@ -1492,18 +1501,20 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     
     #Convert to percentage
     
-    cts<-cts/totalgenes
+    cts<-cts/totalgenes*100
     
     #Create a df with the percentage of genes with significant regulators by omic and condition
     df <- data.frame(Group=rep(c('Global',unique(output$arguments$groups)), times=length(omics) +1),
                      omic=rep(c('Any',names(output$arguments$dataOmics)),each = ngroups+1),
                      genes=as.vector(cts))
     
-    
+    num_unique <- ngroups+1
+    color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
+    custom_colors <- setNames(color_palette, unique(df$Group))
     ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
       theme_minimal()+
-      scale_fill_conesa(palette = "complete")+ 
+      scale_fill_manual(values = custom_colors)+ 
       labs(x="Omic", y = "% genes with significant regulators") +
       theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",size = 0.5,linetype = 1)) 
     
@@ -1512,7 +1523,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     
     ngroups = length(unique(output$arguments$groups))
     omics = names(output$arguments$dataOmics)
-    
+    pos = grep('Group',colnames(output_regpcond))[1]
     #Create all the counts needed globally and per groups
     
     cts = matrix(NA, nrow=(ngroups),ncol=length(omics))
@@ -1527,7 +1538,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
       #Create the global values
       for (j in 1:length(omics)){
         
-        cts[i,j] = length(output_regpcond[intersect(which(output_regpcond[,5+i]!=0),which(output_regpcond$omic==omics[j])),]$regulator)/ total_reg_omic[j]
+        cts[i,j] = length(output_regpcond[intersect(which(output_regpcond[,pos+i-1]!=0),which(output_regpcond$omic==omics[j])),]$regulator)/ total_reg_omic[j]*100
         
       }
     }
@@ -1538,11 +1549,13 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
                      omic=rep(names(output$arguments$dataOmics),each = ngroups),
                      genes=as.vector(cts))
     
-    
+    num_unique <- ngroups+1
+    color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
+    custom_colors <- setNames(color_palette[-1], unique(df$Group))
     ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
       theme_minimal()+scale_x_discrete(labels = paste(unique(df$omic),'\n',total_reg_omic,'regulations')) +
-      scale_fill_conesa(palette = "complete")+  
+      scale_fill_manual(values = custom_colors)+  
       labs(x="Omic", y = "% significant regulations") +
       theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",size = 0.5,linetype = 1)) 
     
@@ -1604,7 +1617,7 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
     #Set node color and generate a color palette
     omic_c <- factor(odf[RCy3::getAllNodes(cy_network), ]$omic)
     num_unique <- length(unique(omic_c))
-    color_palette <- colorConesa(num_unique, palette = 'main')
+    color_palette <- RColorConesa::colorConesa(num_unique, palette = 'complete')
     node_colors <- color_palette[as.integer(omic_c)]
     
     nshaps <-setdiff(RCy3::getNodeShapes(), c("TRIANGLE", "DIAMOND","RECTANGLE"))[1:num_unique]
