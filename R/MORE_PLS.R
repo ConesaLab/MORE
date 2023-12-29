@@ -476,11 +476,11 @@ GetPLS = function(GeneExpression,
             regupero = lapply(unique(res$SummaryPerGene[,'omic']), function(x) rownames(res$SummaryPerGene)[res$SummaryPerGene[,'omic'] == x & res$SummaryPerGene[,'filter'] == "Model"])
             names(regupero) = unique(res$SummaryPerGene[,'omic'])
             #It does not work in case of really huge amount of data
-            regupero = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2[,grep(paste(x, collapse = "|"), colnames(des.mat2)),drop=FALSE]))),silent = TRUE)
-            if(class(regupero)=='try-error'){
+            regupero1 = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2[,grep(paste(x, collapse = "|"), colnames(des.mat2)),drop=FALSE]))),silent = TRUE)
+            if(class(regupero1)=='try-error'){
               #Add the ones related to the interactions
               regupero = filter_columns_by_regexp(regupero, des.mat2,res)
-            }
+            }else{regupero = regupero1}
             res$RegulatorMatrix = Scaling.type(des.mat2[,-1,drop=FALSE], regupero, scaletype)
             
             #Use them jointly
