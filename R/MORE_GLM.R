@@ -521,11 +521,11 @@ GetGLM = function(GeneExpression,
             #Remove empty omics
             regupero = regupero[sapply(regupero, function(x) length(x) > 0)]
             #It does not work in case of really huge amount of data
-            regupero = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2EN[,grep(paste(x, collapse = "|"), colnames(des.mat2EN)),drop=FALSE]))),silent = TRUE)
-            if(class(regupero)=='try-error'){
+            regupero1 = try(suppressWarnings( lapply(regupero, function(x) colnames(des.mat2EN[,grep(paste(x, collapse = "|"), colnames(des.mat2EN)),drop=FALSE]))),silent = TRUE)
+            if(class(regupero1)=='try-error'){
               #Add the ones related to the interactions
               regupero = filter_columns_by_regexp(regupero, des.mat2EN,res)
-            }
+            }else{regupero = regupero1}
             res$RegulatorMatrix = Scaling.type(des.mat2EN[,-1,drop=FALSE], regupero, scaletype)
             
             #Use them jointly
