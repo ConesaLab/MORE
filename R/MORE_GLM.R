@@ -491,10 +491,10 @@ GetGLM = function(GeneExpression,
         }
         
         if(is.null(res)){
-          des.mat2EN = cbind(t(GeneExpression[gene,]), des.mat)
-          colnames(des.mat2EN)[1] = "response"
+          des.mat2 = cbind(t(GeneExpression[gene,]), des.mat)
+          colnames(des.mat2)[1] = "response"
           
-          colnames(des.mat2EN) = gsub("\`", "", colnames(des.mat2EN))
+          colnames(des.mat2) = gsub("\`", "", colnames(des.mat2))
           
           GlobalSummary$GenesNOmodel = rbind(GlobalSummary$GenesNOmodel,
                                              data.frame("gene" = gene,
