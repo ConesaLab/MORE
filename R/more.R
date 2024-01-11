@@ -130,6 +130,8 @@ more <-function(GeneExpression,
                 elasticnet.glm = NULL,
                 col.filter.glm = 'cor',
                 correlation.glm = 0.7,
+                thres.isgl = 0.7,
+                gr.method.isgl = 'cor',
                 alfa.pls = 0.05,
                 p.method.pls = 'jack',
                 vip.pls = 0.8,
@@ -174,6 +176,22 @@ more <-function(GeneExpression,
                   col.filter = col.filter.glm,
                   correlation = correlation.glm,
                   scaletype = scaletype))
+    
+  }
+  
+  if(method=='isgl'){
+    
+    return(GetISGL(GeneExpression=GeneExpression,
+                  data.omics=data.omics,
+                  associations=associations,
+                  omic.type = omic.type,
+                  edesign = edesign,
+                  clinic = clinic,
+                  clinic.type = clinic.type,
+                  center = center, scale = scale,
+                  interactions.reg = interactions.reg,
+                  min.variation = min.variation,
+                  gr.method = gr.method.isgl,thres = thres.isgl))
     
   }
   
