@@ -269,8 +269,8 @@ GetAllReg=function(gene, associations, data.omics){
         
         Reg.matrix.temp=cbind(gene,myregulators,ov,"")  ## Lo tengo que dejar igual que las otras omicas
         NrReg.temp=ov.nr
-        colnames(Reg.matrix.temp)=c("gene","regulator","omic","area")
         Reg.matrix.temp = t(apply(Reg.matrix.temp,1, as.character))  ## adding this here to avoid factors
+        colnames(Reg.matrix.temp)=c("gene","regulator","omic","area")
         Reg.matrix=rbind(Reg.matrix,Reg.matrix.temp)
         colnames(Reg.matrix)=c("gene","regulator","omic","area")
         NrReg=c(NrReg, NrReg.temp)
