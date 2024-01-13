@@ -1716,3 +1716,37 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
     }
   }
 }
+
+## Downstream analysis -------
+
+library(clusterProfiler)
+
+#' GSEA_more
+#'
+#' \code{GSEA_more} Function to be applied to globalreg_hubgene_percond function output.
+#' 
+#' @param output_globregpcond Output object of running globalreg_hubgene_percond function
+#' @param annotation Annotation matrix with genes in the first column, GO terms in the second 
+#' @param alpha The adjusted pvalue cutoff to consider
+#' @param p.adjust.method One of holm, hochberg, hommel, bonferroni, BH, BY, fdr or none
+#' 
+#' @return Plot of the network induced from more.
+#'
+
+GSEA_more<-function(output_globregpcond, annotation, alpha = 0.05,
+                    p.adjust.method = "fdr"){
+  
+  term2gene_bp<-annotation[,c(2,1)]
+  #Store the genes in decreasing order
+  genes<-output_globregpcond$Hubgenes
+  geneList<-table(output_globregpcond$RegulationInCondition$gene)[genes]
+  geneList = sort(geneList, decreasing = TRUE)
+  
+  selected_genes <- names(geneList)
+  counts <- as.numeric(geneList)
+  geneList <- setNames(counts, selected_genes)
+  
+  y <- GSEA(geneList = geneList, TERM2GENE = term2gene_bp, pvalueCutoff = alpha, pAdjustMethod = p.adjust.method)
+  
+  return(y)
+}
