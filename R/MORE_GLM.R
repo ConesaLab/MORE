@@ -227,14 +227,14 @@ GetGLM = function(GeneExpression,
           cat(names(data.omics)[i], "and", names(data.omics)[j], "omics have shared identifiers in regulators:", repeated, "\n")
           #Change the name in the association matrix only if is not NULL
           if(!is.null(associations[[i]])){
-            associations[[i]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[i],'-', repeated, sep='')
+            associations[[i]][[2]][associations[[i]][[2]]%in%repeated] =  paste(names(data.omics)[i],'-', repeated, sep='')
           }
           if(!is.null(associations[[j]])){
-            associations[[j]][[2]][which(associations[[i]][[2]]==repeated)] =  paste(names(data.omics)[j],'-', repeated, sep='')
+            associations[[j]][[2]][associations[[i]][[2]]%in%repeated] =  paste(names(data.omics)[j],'-', repeated, sep='')
           }
           #Change the name in data.omics
-          rownames(data.omics[[i]])[which(rownames(data.omics[[i]])==repeated)] =  paste(names(data.omics)[i],'-', repeated,sep='')
-          rownames(data.omics[[j]])[which(rownames(data.omics[[j]])==repeated)] =  paste(names(data.omics)[j],'-', repeated,sep = '')
+          rownames(data.omics[[i]])[rownames(data.omics[[i]])%in%repeated] =  paste(names(data.omics)[i],'-', repeated,sep='')
+          rownames(data.omics[[j]])[rownames(data.omics[[j]])%in%repeated] =  paste(names(data.omics)[j],'-', repeated,sep = '')
           
         }
       }
