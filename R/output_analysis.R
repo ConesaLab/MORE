@@ -71,7 +71,7 @@ RegulationPerCondition = function(output){
   method = output$arguments$method
   #Add a progressbar
   pb <- txtProgressBar(min = 0, max = length(rownames(output$GlobalSummary$ReguPerGene)), style = 3)
-  if(method =='glm'){
+  if(method =='glm'|| method=='isgl'){
     design = output$arguments$finaldesign
     Group = output$arguments$groups
     
@@ -611,7 +611,7 @@ plotmore = function(output, gene, regulator = NULL, simplify = FALSE, reguValues
       
     }
   } else{
-    if(output$arguments$method=='glm'){
+    if(output$arguments$method=='glm'||output$arguments$method=='pls2'){
       
       return(plotGLM(output, gene, regulator = regulator, reguValues = reguValues, plotPerOmic = plotPerOmic,
                      gene.col = gene.col, regu.col = regu.col, order = order,
@@ -1395,7 +1395,7 @@ summary.MORE <-function(object, plot.more=FALSE){
   cat('A model was computed for',length(object$ResultsPerGene), 'genes.' ,'\n')
   cat(ifelse(is.null(object$GlobalSummary$GenesNoregulators),0,nrow(object$GlobalSummary$GenesNoregulators)), 'genes had no intial regulators.' ,'\n')
   
-  if(object$arguments$method == 'glm'){
+  if(object$arguments$method == 'glm'||object$arguments$method=='isgl'){
     cat('For', ifelse(is.null(object$GlobalSummary$GenesNOmodel),0,object$GlobalSummary$GenesNOmodel), 'genes, the final GLM model could not be obtained.','\n')
     cat('Genes presented a mean of ',mean(object$GlobalSummary$GoodnessOfFit[,'relReg']),'relevant regulators.','\n')
     
