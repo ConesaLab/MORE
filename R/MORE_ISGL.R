@@ -328,9 +328,9 @@ GetISGL = function(GeneExpression,
     GlobalSummary$GenesNoregulators = data.frame("gene" = genesNOreg, "problem" = rep("Gene had no initial regulators", length(genesNOreg)))
   }
   
-  GlobalSummary$GoodnessOfFit = matrix(NA, ncol = 1, nrow = nGenes)
+  GlobalSummary$GoodnessOfFit = matrix(NA, ncol = 4, nrow = nGenes)
   rownames(GlobalSummary$GoodnessOfFit) = Allgenes
-  colnames(GlobalSummary$GoodnessOfFit) = c("relReg")
+  colnames(GlobalSummary$GoodnessOfFit) = c("Rsquared", "RMSE","CV(RMSE)", "relReg")
   
   GlobalSummary$ReguPerGene = matrix(0, ncol = 3*length(data.omics), nrow = nGenes)
   rownames(GlobalSummary$ReguPerGene) = Allgenes
@@ -528,12 +528,17 @@ GetISGL = function(GeneExpression,
         
         
       } else {
-        ResultsPerGene[[i]]$Y = GeneExpression[i,]
-        
+        y.fitted = des.mat2%*%coefs
+        ResultsPerGene[[i]]$Y = data.frame("y" = y, "fitted.y" = y.fitted, "residuals" = y - des.mat2%*%coefs, check.names = FALSE)
+        colnames(ResultsPerGene[[i]]$Y) <- c("y", "fitted.y", "residuals")
         rownames(regulatorcoef) = regulatorcoef[,1]
         ResultsPerGene[[i]]$coefficients = regulatorcoef[mycoef,2, drop = FALSE]
+        
+        R.squared = round(1-(sum( y - y.fitted)/sum((y-mean(y[,1]))^2)),6)
+        RMSE = round(sqrt(sum((y-y.fitted)^2)/nrow(y)),6)
+        cvRMSE = abs(round(sqrt(sum((y-y.fitted)^2)/nrow(y))/mean(y[,1]),6))
 
-        GlobalSummary$GoodnessOfFit[gene,] = c(length(ResultsPerGene[[gene]]$relevantRegulators))
+        GlobalSummary$GoodnessOfFit[gene,] = c(R.squared, RMSE, cvRMSE,length(ResultsPerGene[[gene]]$relevantRegulators))
         
       }
     
