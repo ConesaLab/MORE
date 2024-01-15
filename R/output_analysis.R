@@ -1682,6 +1682,80 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
   
 }
 
+globalreg_plot<-function(output_regincond, by_network=FALSE){
+  
+  #output: Output object of applying RegulationPerCondition to a MORE object
+  #by_network: By faulta, FALSE. If TRUE plots the results in a network
+
+  regulators<-output_regincond$GlobalRegulators
+  if (by_network){
+    
+    #Take group column in RegulationPerCondition
+    df<-output_regincond$RegulationInCondition[grepl(paste(regulators, collapse = "|"), output_regincond$RegulationInCondition$regulator),]
+    
+    #Create the graph
+    mygraph = graph.data.frame(df, directed=F)
+    
+    odf<-df[,c(2,3)]
+    odf<-rbind(odf, data.frame('regulator'=unique(df$gene),'omic'=rep('gene',length(unique(df$gene)))))
+    odf<-unique(odf)
+    rownames(odf)<-odf$regulator
+    
+    mygraph<-igraph::set.vertex.attribute(mygraph,'omic', index = igraph::V(mygraph), value = odf[V(mygraph)$name,]$omic)
+    mygraph<-igraph::set.edge.attribute(mygraph, 'sign', index = igraph::E(mygraph), value = df[,4])
+    E(mygraph)$sign<-df[,4]
+    
+    plot(mygraph,vertex.label.cex= 0.4, vertex.size = 4,vertex.color=as.factor(V(mygraph)$omic),edge.color = ifelse(E(mygraph)$sign >0, "blue", "red"), main='Gen - Global regulators network')
+    legend("topright", legend = unique(V(mygraph)$omic), col = categorical_pal(length(unique(as.factor(V(mygraph)$omic)))), pch = 16, cex = 1.5, bty = "n")
+    
+    
+  }else{
+    
+    # Identify the genes they regulate
+    genes<-unique(output_regincond$RegulationInCondition[grepl(paste(regulators, collapse = "|"), output_regincond$RegulationInCondition$regulator),1])
+    
+    #Create the matrix 
+    gen_reg<-matrix(0, nrow= length(genes),ncol=length(regulators))
+    colnames(gen_reg)=regulators
+    rownames(gen_reg)=genes
+    
+    for ( i in 1:nrow(gen_reg)){
+      #Get all the potential regulators of the gene
+      potential_regulator <- unlist(sapply(output$arguments$associations, function(x) getallreg(x,genes[i])),use.names = FALSE)
+      
+      #Use NA for any potential regulator
+      gen_reg[i,intersect(potential_regulator,regulators)]<-NA
+      for ( j in 1:ncol(gen_reg)){
+        if ( length(intersect(which(output_regincond$RegulationInCondition$gene==genes[i]),which(output_regincond$RegulationInCondition$regulator==regulators[j])) )!=0){
+          gen_reg[i,j] = output_regincond$RegulationInCondition[intersect(which(output_regincond$RegulationInCondition$gene==genes[i]),which(output_regincond$RegulationInCondition$regulator==regulators[j])),4]
+        }
+      }
+    }
+    
+    df<-data.frame(genes=rep(rownames(gen_reg), times=ncol(gen_reg)),
+                   regulators=rep(colnames(gen_reg),each = nrow(gen_reg)),
+                   value=as.vector(gen_reg),
+                   color= ifelse(as.vector(gen_reg)>0, '#5577FF',ifelse(as.vector(gen_reg)<0, '#FF7755','#FFFFFF')))
+    df$color[is.na(df$color)] <- '#aaaaaa'
+    
+    ggplot(data = df, aes(x = regulators, y = genes, fill = color)) +
+      geom_tile(color = "black",lwd = 0.5,  linetype = 1) +
+      scale_fill_manual(values = c("#5577FF", "#aaaaaa", "#FF7755",  "#FFFFFF"), 
+                        name = "Legend",
+                        labels = c('Activator','Potential','Repressor','Not potential')) +
+      labs(title = paste0("Gene - Global Regulators \n correlation plot in ",colnames(output_regincond$RegulationInCondition)[4]," condition  \n"), 
+           x = "Global regulators", y = "Genes") +
+      theme(plot.title = element_text(hjust = 0.5, colour = "black"), 
+            axis.title.x = element_text(face="bold", colour="black", size = 8),
+            axis.title.y = element_text(face="bold", colour="black", size = 8),
+            axis.text.x = element_text(size = 6, angle = 45, hjust = 1),  # Adjust size for x-axis text
+            axis.text.y = element_text(size = 6),
+            legend.title = element_text(face="bold", colour="black", size = 10),legend.position = 'right') 
+    
+  }
+  
+}
+
 ## Network creation -------
 
 library(RCy3)
