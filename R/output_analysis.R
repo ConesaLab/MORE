@@ -389,6 +389,37 @@ RegulationPerCondition = function(output){
 }
 
 
+RegulationInCondition <- function (output_regpcond, cond){
+  
+  #Take group column in RegulationPerCondition
+  group_col<-grep(cond,colnames(output_regpcond))
+  #Use only the group in which we are interested and remove genes that do not affect that group
+  output_regpcond = output_regpcond[c(output_regpcond[,group_col]!=0),c(1,2,3,group_col)]
+  
+  #Calculate the global regulators
+  myreg<-table(output_regpcond[,2])
+  #Calculate third quantile
+  q3<-quantile(myreg,0.75)
+  if(length(myreg[myreg>q3])<10){
+    GlobalRegulators = intersect(names(myreg[rev(tail(order(myreg),10))]), names(myreg[myreg>10]) )
+  } else{
+    GlobalRegulators = intersect(names(myreg[myreg>q3]), names(myreg[myreg>10]) ) 
+  }
+  
+  #Calculate the hub genes
+  myhub<-table(output_regpcond[,1])
+  #Calculate third quantile
+  q3<-quantile(myhub,0.75)
+  if(length(myhub[myhub>q3])<10){
+    HubGenes = names(myhub[rev(tail(order(myhub),10))])
+  } else{
+    HubGenes = names(myhub[myhub>q3])
+  }
+  
+  return(list('GlobalRegulators'=GlobalRegulators, 'Hubgenes'=HubGenes, 'RegulationInCondition'=output_regpcond))
+  
+}
+
 
 # Plot GLM results --------------------------------------------------------
 
