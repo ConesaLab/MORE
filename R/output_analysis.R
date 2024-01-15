@@ -1417,6 +1417,94 @@ plotPLS = function (PLSoutput, gene, regulator = NULL, reguValues = NULL, plotPe
   
 }
 
+## Plots PLS ----------
+
+plotweight<-function(output, gene,axe1=1,axe2=2){
+  
+  if(output$GlobalSummary$GoodnessOfFit[gene,'ncomp']==1) {
+    warning('The original component extracted a unique component. The visuallization would be hard')
+    if (ncol(output$arguments$GeneExpression)<7){cross = output$arguments$GeneExpression -2}else{cross =7}
+    pls = ropls::opls(output$ResultsPerGene[[gene]]$X[,output$ResultsPerGene[[gene]]$significantRegulators,drop=FALSE], output$ResultsPerGene[[gene]]$Y$y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=output$GlobalSummary$GoodnessOfFit[gene,'ncomp'])
+    
+    plot(pls@weightStarMN[,1], rep(0,length(output$ResultsPerGene[[gene]]$significantRegulators)),
+         main = "Weights",
+         xlab = paste('w*c', axe1), ylab = paste('w*c', axe2),
+         pch = 18, col = "blue", xlim=c(-1,1) ,ylim=c(-1,1))
+    
+    points(pls@cMN[,1], 0, pch = 18, col = "red")
+    # Asignamos las etiquetas
+    text(pls@weightStarMN[,1], rep(0,length(output$ResultsPerGene[[gene]]$significantRegulators)),
+         labels = row.names(pls@weightStarMN),
+         cex = 0.6, srt = 60, pos = 2, col = "black")
+    text(pls@cMN[,1], 0, labels = gene, cex =
+           0.6, srt = 60, pos = 4, col = 'black')
+    abline(h=0)
+    legend("topleft", legend = c("X", gene),cex = 0.5,
+           pch = 18, col = c("blue", "red"))
+  } else{
+    if(axe1> output$GlobalSummary$GoodnessOfFit[gene,'ncomp'] | axe2>output$GlobalSummary$GoodnessOfFit[gene,'ncomp']) stop('Error: The model did not extracted originally that many components')
+    if (ncol(output$arguments$GeneExpression)<7){cross = output$arguments$GeneExpression -2}else{cross =7}
+    #Create the PLS model only with the variables that resulted significant in the model
+    pls = ropls::opls(output$ResultsPerGene[[gene]]$X[,output$ResultsPerGene[[gene]]$significantRegulators,drop=FALSE], output$ResultsPerGene[[gene]]$Y$y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=output$GlobalSummary$GoodnessOfFit[gene,'ncomp'])
+    #Create the weighting plots
+    plot(pls@weightStarMN[,axe1], pls@weightStarMN[,axe2],
+         main = "Weights",
+         xlab = paste('w*c', axe1), ylab = paste('w*c', axe2),
+         pch = 18, col = "blue", xlim=c(-1,1) ,ylim=c(-1,1))
+    
+    points(pls@cMN[,axe1], pls@cMN[,axe2], pch = 18, col = "red")
+    # Asignamos las etiquetas
+    text(pls@weightStarMN[,axe1], pls@weightStarMN[,axe2],
+         labels = row.names(pls@weightStarMN),
+         cex = 0.6, pos = 4, col = "black")
+    text(pls@cMN[,axe1], pls@cMN[,axe2], labels = gene, cex =
+           0.6, pos = 4, col = 'black')
+    abline(h=0, v=0)
+    legend("topleft", legend = c("X", gene),cex = 0.5,
+           pch = 18, col = c("blue", "red"))
+  }
+  
+}
+
+
+plotscores<-function(output, gene,axe1=1,axe2=2){
+  
+  if(output$GlobalSummary$GoodnessOfFit[gene,'ncomp']==1) {
+    warning('The original component extracted a unique component. The visuallization would be hard')
+    if (ncol(output$arguments$GeneExpression)<7){cross = output$arguments$GeneExpression -2}else{cross =7}
+    pls = ropls::opls(output$ResultsPerGene[[gene]]$X[,output$ResultsPerGene[[gene]]$significantRegulators,drop=FALSE], output$ResultsPerGene[[gene]]$Y$y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=output$GlobalSummary$GoodnessOfFit[gene,'ncomp'])
+    
+    plot(pls@scoreMN[,1], rep(0,length(output$arguments$groups)),
+         main = "Scores",
+         xlab = paste('t', axe1), ylab = paste('t', axe2),
+         pch = 18, col = output$arguments$groups)
+    
+    # Asignamos las etiquetas
+    text(pls@scoreMN[,1], rep(0,length(output$arguments$groups)),
+         labels = row.names(pls@scoreMN),
+         cex = 0.6, srt = 60, pos = 2, col = 'black')
+    abline(h=0)
+  } else{
+    if(axe1> output$GlobalSummary$GoodnessOfFit[gene,'ncomp'] | axe2>output$GlobalSummary$GoodnessOfFit[gene,'ncomp']) stop('Error: The model did not extracted originally that many components')
+    if (ncol(output$arguments$GeneExpression)<7){cross = output$arguments$GeneExpression -2}else{cross =7}
+    #Create the PLS model only with the variables that resulted significant in the model
+    pls = ropls::opls(output$ResultsPerGene[[gene]]$X[,output$ResultsPerGene[[gene]]$significantRegulators,drop=FALSE], output$ResultsPerGene[[gene]]$Y$y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=output$GlobalSummary$GoodnessOfFit[gene,'ncomp'])
+    #Create the weighting plots
+    plot(pls@scoreMN[,axe1], pls@scoreMN[,axe2],
+         main = "Scores",
+         xlab = paste('t', axe1), ylab = paste('t', axe2),
+         pch = 18, col = output$arguments$groups)
+    
+    # Asignamos las etiquetas
+    text(pls@scoreMN[,axe1], pls@scoreMN[,axe2],
+         labels = row.names(pls@scoreMN),
+         cex = 0.6, pos = 4, col = "black")
+    abline(h=0, v=0)
+  }
+  
+}
+
+
 ## Summary ------------
 
 library(ggplot2)
