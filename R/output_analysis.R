@@ -1750,13 +1750,12 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
 
 ## Downstream analysis -------
 
-library(clusterProfiler)
-
-#' GSEA_more
+#' ORA_more
 #'
-#' \code{GSEA_more} Function to be applied to globalreg_hubgene_percond function output.
+#' \code{ORA_more} Function to be applied to RegulationInCondition function output.
 #' 
-#' @param output_globregpcond Output object of running globalreg_hubgene_percond function
+#' @param output Output object of running more
+#' @param output_globregincond Output object of running RegulationInCondition function
 #' @param annotation Annotation matrix with genes in the first column, GO terms in the second 
 #' @param alpha The adjusted pvalue cutoff to consider
 #' @param p.adjust.method One of holm, hochberg, hommel, bonferroni, BH, BY, fdr or none
@@ -1764,18 +1763,99 @@ library(clusterProfiler)
 #' @return Plot of the network induced from more.
 #'
 
-GSEA_more<-function(output_globregpcond, annotation, alpha = 0.05,
+ORA_more = function(output, output_globregincond, annotation, alpha = 0.05,
+                    p.adjust.method = "fdr") {
+  
+  # output: Output object of running more function 
+  # output_globregincond: Output object of running RegulationInCondition function
+  # annotation: Annotation matrix with genes in the first column, GO terms in the second and a description in the third
+  
+  #Take the GlobalRegulators to which we want to apply the object and against which we test it
+  regulators = output_globregincond$GlobalRegulators
+  reference = rownames(output$arguments$GeneExpression)
+  
+  #Take only the ones that were DE
+  annotation = annotation[annotation[,1] %in% reference,]
+  annotDescr = unique(annotation[,2:3])
+  rownames(annotDescr) = annotDescr[,1]
+  myresults = vector("list", length = length(regulators))
+  names(myresults) = regulators
+  for (rrr in regulators) {
+    print(rrr)
+    test = unique(as.character(output_globregincond$RegulationInCondition[which(output_globregincond$RegulationInCondition[,"regulator"] == rrr),"gene"]))
+    notTest = setdiff(reference, test)
+    resuRegu = ReguEnrich1regu(test, notTest, annotation, p.adjust.method = p.adjust.method)
+    resuRegu = resuRegu[which(resuRegu$adjPval < alpha),]
+    if (nrow(resuRegu) > 0) {
+      resuRegu = data.frame("regulator" = rrr, "termDescr" = annotDescr[resuRegu[,1],2],
+                            resuRegu, stringsAsFactors = FALSE)
+    } else {
+      
+      resuRegu = NULL
+    }
+    myresults[[rrr]] = resuRegu
+    rm(resuRegu); gc()
+  }
+  return(myresults)
+}
+
+library(clusterProfiler)
+
+#' GSEA_more
+#'
+#' \code{GSEA_more} Function to be applied to RegulationInCondition function output.
+#' 
+#' @param output_globregincond Output object of running RegulationInCondition function
+#' @param output_globregincond2 Output object of running RegulationInCondition function for other group different to the previous. By default, NULL.
+#' @param annotation Annotation matrix with genes in the first column, GO terms in the second 
+#' @param alpha The adjusted pvalue cutoff to consider
+#' @param p.adjust.method One of holm, hochberg, hommel, bonferroni, BH, BY, fdr or none
+#' 
+#' @return Plot of the network induced from more.
+#'
+
+GSEA_more<-function(output_globregincond, output_globregincond2 = NULL, annotation, alpha = 0.05,
                     p.adjust.method = "fdr"){
   
+  #output_globregincond: Output object of running RegulationInCondition
+  #output_globregincond2: Output object of running RegulationInCondition for other group to which compare the reference. By default, NULL.
+  #annotation: Annotation matrix with genes in the first column, GO terms in the second 
+  #alpha: The adjusted pvalue cutoff to consider
+  #p.adjust.method: One of holm, hochberg, hommel, bonferroni, BH, BY, fdr or none
   term2gene_bp<-annotation[,c(2,1)]
-  #Store the genes in decreasing order
-  genes<-output_globregpcond$Hubgenes
-  geneList<-table(output_globregpcond$RegulationInCondition$gene)[genes]
-  geneList = sort(geneList, decreasing = TRUE)
-  
-  selected_genes <- names(geneList)
-  counts <- as.numeric(geneList)
-  geneList <- setNames(counts, selected_genes)
+  if(is.null(output_globregincond2)){
+    #Store the genes in decreasing order
+    genes<-output_globregincond$Hubgenes
+    geneList<-table(output_globregincond$RegulationInCondition$gene)[genes]
+    geneList = sort(geneList, decreasing = TRUE)
+    
+    selected_genes <- names(geneList)
+    counts <- as.numeric(geneList)
+    geneList <- setNames(counts, selected_genes)
+    
+  } else{
+    
+    genes<-output_globregincond$Hubgenes
+    geneList<-as.data.frame(table(output_globregincond$RegulationInCondition$gene)[genes])
+    
+    genes2<-output_globregincond2$Hubgenes
+    geneList2<-as.data.frame(table(output_globregincond2$RegulationInCondition$gene)[genes2])
+    
+    #Create a data frame 
+    all_genes <- union(geneList[,1], geneList2[,1])
+    merged_df <- data.frame(Gene = all_genes, Count1 = 0, Count2 = 0, stringsAsFactors = FALSE)
+    merged_df$Count1[merged_df$Gene %in% geneList[,1]] <- geneList[, 2]
+    merged_df$Count2[merged_df$Gene %in% geneList2[,1]] <- geneList2[, 2]
+    rownames(merged_df)<-merged_df[,1]
+    merged_df<-merged_df[,-1]
+    #Add one to all values to avoid problems when creating the ratio
+    merged_df<-merged_df+1
+    merged_df[,3]<-log2(merged_df[,2]/merged_df[,1])
+    
+    geneList <- setNames(merged_df[,3], rownames(merged_df))
+    geneList <- sort(geneList, decreasing = TRUE)
+    
+  }
   
   y <- GSEA(geneList = geneList, TERM2GENE = term2gene_bp, pvalueCutoff = alpha, pAdjustMethod = p.adjust.method)
   
