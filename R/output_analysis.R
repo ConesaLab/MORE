@@ -1429,7 +1429,7 @@ plotweight<-function(output, gene,axe1=1,axe2=2){
     plot(pls@weightStarMN[,1], rep(0,length(output$ResultsPerGene[[gene]]$significantRegulators)),
          main = "Weights*",
          xlab = paste('w*c', axe1), ylab = paste('w*c', axe2),
-         pch = 18, col = "blue", asp=1)
+         pch = 18, col = "blue", xlim = c(-1,1))
     
     points(pls@cMN[,1], 0, pch = 18, col = "red")
     # Asignamos las etiquetas
