@@ -1682,6 +1682,12 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
   
 }
 
+getallreg <- function(x, gene) {
+  reg <- x[x[, 1] == gene, 2]
+  return(as.character(reg))
+}
+
+
 globalreg_plot<-function(output_regincond, by_network=FALSE){
   
   #output_globregincond: Output object of running RegulationInCondition function
