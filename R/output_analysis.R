@@ -1684,7 +1684,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
 
 globalreg_plot<-function(output_regincond, by_network=FALSE){
   
-  #output: Output object of applying RegulationPerCondition to a MORE object
+  #output_globregincond: Output object of running RegulationInCondition function
   #by_network: By faulta, FALSE. If TRUE plots the results in a network
 
   regulators<-output_regincond$GlobalRegulators
