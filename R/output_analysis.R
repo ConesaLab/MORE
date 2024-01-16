@@ -1427,9 +1427,9 @@ plotweight<-function(output, gene,axe1=1,axe2=2){
     pls = ropls::opls(output$ResultsPerGene[[gene]]$X[,output$ResultsPerGene[[gene]]$significantRegulators,drop=FALSE], output$ResultsPerGene[[gene]]$Y$y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=output$GlobalSummary$GoodnessOfFit[gene,'ncomp'])
     
     plot(pls@weightStarMN[,1], rep(0,length(output$ResultsPerGene[[gene]]$significantRegulators)),
-         main = "Weights",
+         main = "Weights*",
          xlab = paste('w*c', axe1), ylab = paste('w*c', axe2),
-         pch = 18, col = "blue", xlim=c(-1,1) ,ylim=c(-1,1))
+         pch = 18, col = "blue", asp=1)
     
     points(pls@cMN[,1], 0, pch = 18, col = "red")
     # Asignamos las etiquetas
@@ -1446,11 +1446,12 @@ plotweight<-function(output, gene,axe1=1,axe2=2){
     if (ncol(output$arguments$GeneExpression)<7){cross = output$arguments$GeneExpression -2}else{cross =7}
     #Create the PLS model only with the variables that resulted significant in the model
     pls = ropls::opls(output$ResultsPerGene[[gene]]$X[,output$ResultsPerGene[[gene]]$significantRegulators,drop=FALSE], output$ResultsPerGene[[gene]]$Y$y, info.txtC = 'none', fig.pdfC='none', scaleC = 'none', crossvalI = cross, permI=0, predI=output$GlobalSummary$GoodnessOfFit[gene,'ncomp'])
+
     #Create the weighting plots
     plot(pls@weightStarMN[,axe1], pls@weightStarMN[,axe2],
-         main = "Weights",
+         main = "Weights*",
          xlab = paste('w*c', axe1), ylab = paste('w*c', axe2),
-         pch = 18, col = "blue", xlim=c(-1,1) ,ylim=c(-1,1))
+         pch = 18, col = "blue", asp=1)
     
     points(pls@cMN[,axe1], pls@cMN[,axe2], pch = 18, col = "red")
     # Asignamos las etiquetas
