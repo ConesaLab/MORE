@@ -1623,8 +1623,9 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     
     cts<-cts/totalgenes*100
     
+    group_levels <- c('Global', unique(output$arguments$groups))
     #Create a df with the percentage of genes with significant regulators by omic and condition
-    df <- data.frame(Group=rep(c('Global',unique(output$arguments$groups)), times=length(omics) +1),
+    df <- data.frame(Group=factor(rep(group_levels, times = length(omics) + 1), levels = group_levels),
                      omic=rep(c('Any',names(output$arguments$dataOmics)),each = ngroups+1),
                      genes=as.vector(cts))
     
@@ -1651,7 +1652,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     total_reg_omic <- if (is.null(output$arguments$associations)) {
       sapply(output$arguments$dataOmics, nrow)
     } else {
-      sapply(omics, function(x) nrow(output$arguments$associations[[x]][output$arguments$associations[[x]]$ID %in% rownames(output$arguments$dataOmics[[x]]),]))
+      sapply(omics, function(x) nrow(output$arguments$associations[[x]][output$arguments$associations[[x]][,2] %in% rownames(output$arguments$dataOmics[[x]]),]))
     }
     
     for (i in 1:ngroups){
@@ -1662,8 +1663,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
         
       }
     }
-    
-    
+
     #Create a df with the percentage of genes with significant regulators by omic and condition
     df <- data.frame(Group=rep(unique(output$arguments$groups), times=length(omics)),
                      omic=rep(names(output$arguments$dataOmics),each = ngroups),
@@ -1675,7 +1675,8 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
     ggplot2::ggplot(data=df, aes(x=omic, y=genes, fill=Group)) +
       geom_bar(stat="identity", position=position_dodge()) +
       theme_minimal()+scale_x_discrete(labels = paste(unique(df$omic),'\n',total_reg_omic,'regulations')) +
-      scale_fill_manual(values = custom_colors)+  
+      scale_fill_manual(values = custom_colors)+
+      scale_y_continuous(limits = c(0, max(df$genes) + 1)) +
       labs(x="Omic", y = "% significant regulations") +
       theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",size = 0.5,linetype = 1)) 
     
