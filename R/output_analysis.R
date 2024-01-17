@@ -1517,7 +1517,7 @@ summary.MORE <-function(object, plot.more=FALSE){
   
   if(object$arguments$method == 'glm'||object$arguments$method=='isgl'){
     cat('For', ifelse(is.null(object$GlobalSummary$GenesNOmodel),0,object$GlobalSummary$GenesNOmodel), 'genes, the final GLM model could not be obtained.','\n')
-    cat('Genes presented a mean of ',mean(object$GlobalSummary$GoodnessOfFit[,'relReg']),'relevant regulators.','\n')
+    cat('Genes presented a mean of ',mean(na.omit(object$GlobalSummary$GoodnessOfFit[,'relReg'])),'relevant regulators.','\n')
     
     #Top hub genes
     relevant_regulators<-object$GlobalSummary$ReguPerGene[,c(grep('-Rel$',colnames(object$GlobalSummary$ReguPerGene)))]
@@ -1549,7 +1549,7 @@ summary.MORE <-function(object, plot.more=FALSE){
     }
   }
   else{
-    cat('Genes presented a mean of ',mean(object$GlobalSummary$GoodnessOfFit[,'sigReg']),'significant regulators.','\n')
+    cat('Genes presented a mean of ',mean(na.omit(object$GlobalSummary$GoodnessOfFit[,'sigReg'])),'significant regulators.','\n')
     
     #Top hub genes
     significant_regulators<-object$GlobalSummary$ReguPerGene[,c(grep('-Sig$',colnames(object$GlobalSummary$ReguPerGene)))]
