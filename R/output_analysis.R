@@ -1557,7 +1557,7 @@ summary.MORE <-function(object, plot.more=FALSE){
     
     s_sig_reg<-apply(significant_regulators, 1, sum)
     cat('These are the top 10 hub genes and the number of significant regulators for each:\n')
-    print(s_rel_reg[tail(order(s_sig_reg),10)])
+    print(s_sig_reg[tail(order(s_sig_reg),10)])
     
     #Global regulators
     
