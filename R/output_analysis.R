@@ -1920,6 +1920,32 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
 
 ## Downstream analysis -------
 
+
+ReguEnrich1regu1function = function(term, test, notTest, annotation) {
+  annotTest = length(intersect(test, annotation[annotation[,2] == term,1]))
+  if ((annotTest) > 0) {
+    annotNOTtest = length(intersect(notTest, annotation[annotation[,2] == term,1]))
+    mytest = matrix(c(annotTest, length(test)-annotTest, annotNOTtest, length(notTest)-annotNOTtest), ncol = 2)
+    resultat = c(term, annotTest, length(test), annotNOTtest, length(notTest),
+                 fisher.test(mytest, alternative = "greater")$p.value)
+    names(resultat) = c("term", "annotTest", "test", "annotNotTest", "notTest", "pval")
+  } else {
+    resultat = c(term, 0, 0, 0, 0, 100)
+    names(resultat) = c("term", "annotTest", "test", "annotNotTest", "notTest", "pval")
+  }
+  return(resultat)
+}
+
+ReguEnrich1regu = function(test, notTest, annotation, p.adjust.method = "fdr") {
+  annot2test = unique(annotation[,2])
+  resultat = t(sapply(annot2test, ReguEnrich1regu1function, test = test, notTest = notTest, annotation = annotation))
+  resultat = resultat[-which(as.numeric(resultat[,"annotTest"]) == 0),]
+  return(data.frame(resultat,
+                    "adjPval" = p.adjust(as.numeric(resultat[,"pval"]), method = p.adjust.method),
+                    stringsAsFactors = F))
+}
+
+
 #' ORA_more
 #'
 #' \code{ORA_more} Function to be applied to RegulationInCondition function output.
