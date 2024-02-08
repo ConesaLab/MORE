@@ -1692,7 +1692,7 @@ getallreg <- function(x, gene) {
 
 globalreg_plot<-function(output_regincond, by_network=FALSE){
   
-  #output_globregincond: Output object of running RegulationInCondition function
+  #output_regincond: Output object of running RegulationInCondition function
   #by_network: By faulta, FALSE. If TRUE plots the results in a network
 
   regulators<-output_regincond$GlobalRegulators
@@ -1729,7 +1729,7 @@ globalreg_plot<-function(output_regincond, by_network=FALSE){
     
     for ( i in 1:nrow(gen_reg)){
       #Get all the potential regulators of the gene
-      potential_regulator <- unlist(sapply(output$arguments$associations, function(x) getallreg(x,genes[i])),use.names = FALSE)
+      potential_regulator <- unlist(sapply(output_regincond$arguments$associations, function(x) getallreg(x,genes[i])),use.names = FALSE)
       
       #Use NA for any potential regulator
       gen_reg[i,intersect(potential_regulator,regulators)]<-NA
