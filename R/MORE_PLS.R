@@ -587,7 +587,7 @@ GetPLS = function(GeneExpression,
         } else {
           ResultsPerGene[[i]]$Y = data.frame("y" = myPLS@suppLs$y, "fitted.y" = myPLS@suppLs$yPreMN,
                                              "residuals" = ropls::residuals(myPLS))
-          
+          colnames( ResultsPerGene[[i]]$Y) = c('y','fitted.y','residuals')
           
           GlobalSummary$GoodnessOfFit[gene,] = c(myPLS@modelDF[,'R2Y(cum)'][myPLS@summaryDF[,'pre']],
                                                  myPLS@modelDF[,'Q2(cum)'][myPLS@summaryDF[,'pre']],
@@ -760,6 +760,7 @@ GetPLS = function(GeneExpression,
         
         ResultsPerGene[[i]]$Y = data.frame("y" = myPLS@suppLs$y[,i,drop=FALSE], "fitted.y" = myPLS@suppLs$yPreMN[,i,drop=FALSE],
                                            "residuals" = ropls::residuals(myPLS))
+        colnames( ResultsPerGene[[i]]$Y) = c('y','fitted.y','residuals')
         
         
         GlobalSummary$GoodnessOfFit[gene,] = c(myPLS@modelDF[,'R2Y(cum)'][myPLS@summaryDF[,'pre']],
