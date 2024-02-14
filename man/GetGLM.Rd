@@ -80,9 +80,9 @@ or use 'NA' when they want to apply a minimum variation filter but are uncertain
 
 \item{scaletype}{Type of scaling to be applied. Three options:
 - auto : Applies the autoscaling. 
-- pareto : Applies the pareto scaling. \[ \frac{X_k}{s_k \sqrt[4]{m_b}} \]
-- block : Applies the block scaling. \[ \frac{X_k}{s_k \sqrt{m_b}} \]
-considering \(m_b\) the number of variables of the block. By default, auto.}
+- pareto : Applies the pareto scaling.\deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
+- block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+considering m_b the number of variables of the block. By default, auto.}
 
 \item{alfa}{Significance level for variable selection in pls1and pls2 \code{\link{method}}. By default, 0.05.}
 

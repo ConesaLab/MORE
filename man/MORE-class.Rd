@@ -36,9 +36,9 @@ By default is set to NULL. In this case, the data type will be predicted automat
 
 \item{scaletype}{Type of scaling to be applied. Three options:
 - auto : Applies the autoscaling. 
-- pareto : Applies the pareto scaling. \[ \frac{X_k}{s_k \sqrt[4]{m_b}} \]
-- block : Applies the block scaling. \[ \frac{X_k}{s_k \sqrt{m_b}} \]
-considering \(m_b\) the number of variables of the block. By default, auto.}
+- pareto : Applies the pareto scaling. \deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
+- block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+considering m_b the number of variables of the block. By default, auto.}
 
 \item{epsilon}{Convergence threshold for coordinate descent algorithm in elasticnet. Default value, 1e-5.}
 
