@@ -43,10 +43,12 @@ library(ltm)
 #' @param alfa Significance level for variable selection in pls1and pls2 \code{\link{method}}. By default, 0.05.
 #' @param family Error distribution and link function to be used in the model when \code{\link{method}} glm. By default, gaussian().
 #' @param elasticnet ElasticNet mixing parameter. There are three options:
-#' - NULL : The parameter is selected from a grid of values ranging from 0 to 1 with 0.1 increments. The chosen value optimizes the mean cross-validated error when optimizing the lambda values.
-#' - A number between 0 and 1 : ElasticNet is applied with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso penalty). 
-#' - A vector with the mixing parameters to try. The one that optimizes the mean cross-validated error when optimizing the lambda values will be used.
-#' By default, NULL.
+#' \itemize{
+#' \item NULL : The parameter is selected from a grid of values ranging from 0 to 1 with 0.1 increments. The chosen value optimizes the mean cross-validated error when optimizing the lambda values.
+#' \item A number between 0 and 1 : ElasticNet is applied with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso penalty). 
+#' \item A vector with the mixing parameters to try. The one that optimizes the mean cross-validated error when optimizing the lambda values will be used.
+#' }
+#' #' By default, NULL.
 #' @param interactions.reg If TRUE, the model includes interactions between regulators and experimental variables. By default, TRUE.
 #' @param min.variation  For numerical regulators, it specifies the minimum change required across conditions to retain the regulator in 
 #' the regression models. In the case of binary regulators, if the proportion of the most common value is equal to or inferior this value, 
@@ -54,30 +56,25 @@ library(ltm)
 #' value to apply the same filter to all omics, provide a vector of the same length as omics if they want to specify different levels for each omics, 
 #' or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.
 #' @param col.filter Type of correlation coefficients to use when applying the multicollinearity filter when glm \code{\link{method}} is used. 
-#' - cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
-#' - pcor : Computes the partial correlation.
+#' \itemize{
+#' \item cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
+#' \item pcor : Computes the partial correlation.
+#' }
 #' @param correlation  Value to determine the presence of collinearity between two regulators when using the glm \code{\link{method}}. By default, 0.7.
 #' @param scaletype Type of scaling to be applied. Three options:
-#' - auto : Applies the autoscaling. 
-#' - pareto : Applies the pareto scaling.\deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
-#' - block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+#' \itemize{
+#' \item auto : Applies the autoscaling. 
+#' \item pareto : Applies the pareto scaling. \deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
+#' \item block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+#' }
 #' considering m_b the number of variables of the block. By default, auto.
-#' @param method Model to be fitted. Two options:
-#' - glm : Applies a Generalized Linear Model (GLM) with ElasticNet regularization.
-#' - pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.
-#' - pls2 : Applies a PLS model to all genes at the same time, only possible when \code{\link{associations}}= NULL.
-#' By default, glm.
 #' @return List containing the following elements:
-#' - ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
-#'                    detailed information about all regulators, and regulators identified as relevant.
-#' - GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
-#' - Arguments : List containing all the arguments used to generate the models.
-#'
-#' @examples
-#' 
-#' more(GeneExpression, associations, data.omics, center = TRUE, scale = TRUE, epsilon = 0.00001, family = gaussian(), elasticnet = NULL, interactions.reg = TRUE,
-#'  min.variation = 0, col.filter = 'cor', correlation = 0.7, method  ='glm')
-#' 
+#' \itemize{
+#' \item ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
+#'                    detailed information about all regulators, and regulators identified as relevant (in glm scenario) or significant (in pls scenarios).
+#' \item GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
+#' \item Arguments : List containing all the arguments used to generate the models.                
+#' }
 #' @export
 
 GetGLM = function(GeneExpression,

@@ -18,6 +18,30 @@ library(car)
 library(stringr)
 library(RColorConesa)
 
+setClass("MORE")
+
+isBin <-function(x){
+  if(length(unique(x[!is.na(x[, 1]), 1]))==2 && length(unique(x[1,!is.na(x[1,]),drop=TRUE]))==2){
+    return(1)
+  }
+  else{
+    return(0)
+  }
+}
+
+isBinclinic <-function(x){
+  
+  if(class(x)=='character'){
+    return(1)
+  }
+  else if(length(unique(x))==2){
+    return(1)
+  }
+  else{
+    return(0)
+  }
+}
+
 #' more: Multi-Omics Regulation
 #'
 #' \code{more} fits a GLM regression model (when the selected method is GLM) or a PLS model (when the selected method is PLS) for all genes in the dataset to identify
@@ -45,9 +69,11 @@ library(RColorConesa)
 #' @param center By default TRUE. It determines whether centering is applied to \code{\link{data.omics}}.
 #' @param scale By default TRUE. It determines whether scaling is applied to \code{\link{data.omics}}.
 #' @param scaletype Type of scaling to be applied. Three options:
-#' - auto : Applies the autoscaling. 
-#' - pareto : Applies the pareto scaling. \deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
-#' - block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+#' \itemize{
+#' \item auto : Applies the autoscaling. 
+#' \item pareto : Applies the pareto scaling. \deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
+#' \item block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+#' }
 #' considering m_b the number of variables of the block. By default, auto.
 #' @param epsilon Convergence threshold for coordinate descent algorithm in elasticnet. Default value, 1e-5.
 #' @param min.variation  For numerical regulators, it specifies the minimum change required across conditions to retain the regulator in 
@@ -58,33 +84,43 @@ library(RColorConesa)
 #' @param interactions.reg If TRUE, the model includes interactions between regulators and experimental variables. By default, TRUE.
 #' @param family.glm Error distribution and link function to be used in the model when \code{\link{method}} glm. By default, gaussian().
 #' @param elasticnet.glm ElasticNet mixing parameter. There are three options:
-#' - NULL : The parameter is selected from a grid of values ranging from 0 to 1 with 0.1 increments. The chosen value optimizes the mean cross-validated error when optimizing the lambda values.
-#' - A number between 0 and 1 : ElasticNet is applied with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso penalty). 
-#' - A vector with the mixing parameters to try. The one that optimizes the mean cross-validated error when optimizing the lambda values will be used.
+#' \itemize{
+#' \item NULL : The parameter is selected from a grid of values ranging from 0 to 1 with 0.1 increments. The chosen value optimizes the mean cross-validated error when optimizing the lambda values.
+#' \item A number between 0 and 1 : ElasticNet is applied with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso penalty). 
+#' \item A vector with the mixing parameters to try. The one that optimizes the mean cross-validated error when optimizing the lambda values will be used.
+#' }
 #' By default, NULL.
 #' @param col.filter.glm Type of correlation coefficients to use when applying the multicollinearity filter when glm \code{\link{method}} is used. 
-#' - cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
-#' - pcor : Computes the partial correlation.
+#' \itemize{
+#' \item cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
+#' \item pcor : Computes the partial correlation.
+#' }
 #' @param correlation.glm  Value to determine the presence of collinearity between two regulators when using the glm \code{\link{method}}. By default, 0.7.
 #' @param gr.method.isgl Grouping approach to create groups of variables in ISGL penalization. There are two options: 'cor' to cluster variables using correlations and 'pca' to use Principal Component Analysis approach. By default, 'cor'.
 #' @param thres.isgl Threshold for the correlation when gr.method.isgl is 'cor' or threshold for the percentage of variability to explain when 'pca'. By default, 0.7.
 #' @param alfa.pls Significance level for variable selection in pls1and pls2 \code{\link{method}}. By default, 0.05.
 #' @param p.method.pls Type of resampling method to apply for the p-value calculation when pls1 or pls2 \code{\link{method}}. Two options:
-#' - jack : Applies Jack-Knife resampling technique.
-#' - perm : Applies a resampling technique in which the response variable is permuted 100 times to obtain the distribution of the coefficients and compute then their associated p-value.
+#' \itemize{
+#' \item jack : Applies Jack-Knife resampling technique.
+#' \item perm : Applies a resampling technique in which the response variable is permuted 100 times to obtain the distribution of the coefficients and compute then their associated p-value.
+#' }
 #' By default, jack.
 #' @param vip.pls Value of VIP above which a variable can be considered significant in addition to the computed p-value in \code{\link{p.method}}. By default, 0.8.
-#' @param method Model to be fitted. Two options:
-#' - glm : Applies a Generalized Linear Model (GLM) with ElasticNet regularization.
-#' - pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.
-#' - pls2 : Applies a PLS model to all genes at the same time, only possible when \code{\link{associations}}= NULL.
-#' - isgl : Applies a Generalized Linear Model (GLM) with Iterative Sparse Group Lasso (ISGL) regularization.
+#' @param method Model to be fitted. Four options:
+#' \itemize{
+#' \item glm : Applies a Generalized Linear Model (GLM) with ElasticNet regularization.
+#' \item pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.
+#' \item pls2 : Applies a PLS model to all genes at the same time, only possible when \code{\link{associations}}= NULL.
+#' \item isgl : Applies a Generalized Linear Model (GLM) with Iterative Sparse Group Lasso (ISGL) regularization.
+#' }
 #' By default, glm.
 #' @return List containing the following elements:
-#' - ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
+#' \itemize{
+#' \item ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
 #'                    detailed information about all regulators, and regulators identified as relevant (in glm scenario) or significant (in pls scenarios).
-#' - GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
-#' - Arguments : List containing all the arguments used to generate the models.
+#' \item GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
+#' \item Arguments : List containing all the arguments used to generate the models.                
+#' }
 #'
 #' @examples
 #' 
@@ -105,30 +141,6 @@ library(RColorConesa)
 #'               correlation.glm = 0.7, method  ='glm')
 #' 
 #' @export
-
-setClass("MORE")
-
-isBin <-function(x){
-  if(length(unique(x[!is.na(x[, 1]), 1]))==2 && length(unique(x[1,!is.na(x[1,]),drop=TRUE]))==2){
-    return(1)
-  }
-  else{
-    return(0)
-  }
-}
-
-isBinclinic <-function(x){
-  
-  if(class(x)=='character'){
-    return(1)
-  }
-  else if(length(unique(x))==2){
-    return(1)
-  }
-  else{
-    return(0)
-  }
-}
 
 more <-function(GeneExpression,
                 data.omics,
