@@ -466,8 +466,8 @@ ElasticNet = function (family2, des.mat2, epsilon, elasticnet) {
       
       if (length(myS) == 1) {
         x = des.mat2[,-1]
-        sel = colnames(x)[which(coef(cvEN, s = myS)[-1,1] != 0)] # selected coefficients without intercept
-        selcoef = as.data.frame(as.matrix(coef(cvEN, s = myS)[which(coef(cvEN, s = myS)[,1] != 0),,drop=FALSE]))
+        sel = colnames(x)[which(glmnet::coef.glmnet(cvEN, s = myS)[-1,1] != 0)] # selected coefficients without intercept
+        selcoef = as.data.frame(as.matrix(glmnet::coef.glmnet(cvEN, s = myS)[which(glmnet::coef.glmnet(cvEN, s = myS)[,1] != 0),,drop=FALSE]))
         mycoef = c(colnames(des.mat2)[1], sel)
         
         removedCoefs = setdiff(colnames(des.mat2), mycoef)
