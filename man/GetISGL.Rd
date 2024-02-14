@@ -63,29 +63,18 @@ or use 'NA' when they want to apply a minimum variation filter but are uncertain
 \item{gr.method}{Methodology to apply to create the gorups. By default, cor.}
 
 \item{thres}{Threshold for the correlation when using gr.method ='cor' or threshold for the percentage of variability to explain when gr.method ='pca'. By default, 0.7.}
-
-\item{method}{Model to be fitted. Two options:
-- glm : Applies a Generalized Linear Model (GLM) with ElasticNet regularization.
-- pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.
-- pls2 : Applies a PLS model to all genes at the same time, only possible when \code{\link{associations}}= NULL.
-- isgl : Applies a Generalized Linear Model (GLM) with Iterative Sparse Group Lasso regularization.
-By default, glm.}
 }
 \value{
 List containing the following elements:
-- ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
-                   detailed information about all regulators, and regulators identified as significant.
-- GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
-- Arguments : List containing all the arguments used to generate the models.
+\itemize{
+\item ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
+                   detailed information about all regulators, and regulators identified as relevant (in glm scenario) or significant (in pls scenarios).
+\item GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
+\item Arguments : List containing all the arguments used to generate the models.                
+}
 }
 \description{
 \code{GetISGL} fits a GLM model with Iterative Sparse Group Lasso (ISGL) penalization
 for all the genes in the data set to identify the experimental variables and potential
 regulators that show a relevant effect on the expression of each gene.
-}
-\examples{
-
-more(GeneExpression, associations, data.omics, center = TRUE, scale = TRUE,  interactions.reg = TRUE,
- min.variation = 0, scaletype = 'auto', p.method = 'jack', vip = 0.8, method  ='pls1')
-
 }

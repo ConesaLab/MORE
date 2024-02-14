@@ -69,39 +69,40 @@ value to apply the same filter to all omics, provide a vector of the same length
 or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.}
 
 \item{scaletype}{Type of scaling to be applied. Three options:
-- auto : Applies the autoscaling. 
-- pareto : Applies the pareto scaling. \deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
-- block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+\itemize{
+\item auto : Applies the autoscaling. 
+\item pareto : Applies the pareto scaling. \deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
+\item block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+}
 considering m_b the number of variables of the block. By default, auto.}
 
 \item{p.method}{Type of resampling method to apply for the p-value calculation when pls1 or pls2 \code{\link{method}}. Two options:
-- jack : Applies Jack-Knife resampling technique.
-- pval : Applies a resampling technique in which the response variable is permuted 100 times to obtain the distribution of the coefficients and compute then their associated p-value.
-By default, jack.}
+\itemize{
+\item jack : Applies Jack-Knife resampling technique.
+\item perm : Applies a resampling technique in which the response variable is permuted 100 times to obtain the distribution of the coefficients and compute then their associated p-value.
+}
+#' By default, jack.}
 
 \item{vip}{Value of VIP above which a variable can be considered significant in addition to the computed p-value in \code{\link{p.method}}. By default, 0.8.}
 
 \item{method}{Model to be fitted. Two options:
-- glm : Applies a Generalized Linear Model (GLM) with ElasticNet regularization.
-- pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.
-- pls2 : Applies a PLS model to all genes at the same time, only possible when \code{\link{associations}}= NULL.
-By default, glm.}
+\itemize{
+\item pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.
+\item pls2 : Applies a PLS model to all genes at the same time, only possible when \code{\link{associations}}= NULL.
+}
+#' By default, pls1.}
 }
 \value{
 List containing the following elements:
-- ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
-                   detailed information about all regulators, and regulators identified as significant.
-- GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
-- Arguments : List containing all the arguments used to generate the models.
+\itemize{
+\item ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
+                   detailed information about all regulators, and regulators identified as relevant (in glm scenario) or significant (in pls scenarios).
+\item GlobalSummary : List with information about the fitted models, including model metrics, information about regulators, genes without models, regulators, master regulators and hub genes.
+\item Arguments : List containing all the arguments used to generate the models.                
+}
 }
 \description{
 \code{GetPLS} fits a PLS model for all the genes in the data set to identify
 the experimental variables and potential regulators that show a significant effect on
 the expression of each gene.
-}
-\examples{
-
-more(GeneExpression, associations, data.omics, center = TRUE, scale = TRUE, epsilon = 0.00001, interactions.reg = TRUE,
- min.variation = 0, scaletype = 'auto', p.method = 'jack', vip = 0.8, method  ='pls1')
-
 }
