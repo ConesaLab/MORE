@@ -59,9 +59,9 @@ library(ltm)
 #' @param correlation  Value to determine the presence of collinearity between two regulators when using the glm \code{\link{method}}. By default, 0.7.
 #' @param scaletype Type of scaling to be applied. Three options:
 #' - auto : Applies the autoscaling. 
-#' - pareto : Applies the pareto scaling. \[ \frac{X_k}{s_k \sqrt[4]{m_b}} \]
-#' - block : Applies the block scaling. \[ \frac{X_k}{s_k \sqrt{m_b}} \]
-#' considering \(m_b\) the number of variables of the block. By default, auto.
+#' - pareto : Applies the pareto scaling.\deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
+#' - block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+#' considering m_b the number of variables of the block. By default, auto.
 #' @param method Model to be fitted. Two options:
 #' - glm : Applies a Generalized Linear Model (GLM) with ElasticNet regularization.
 #' - pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.

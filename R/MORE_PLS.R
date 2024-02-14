@@ -48,9 +48,9 @@ library(ropls)
 #' or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.
 #' @param scaletype Type of scaling to be applied. Three options:
 #' - auto : Applies the autoscaling. 
-#' - pareto : Applies the pareto scaling. \[ \frac{X_k}{s_k \sqrt[4]{m_b}} \]
-#' - block : Applies the block scaling. \[ \frac{X_k}{s_k \sqrt{m_b}} \]
-#' considering \(m_b\) the number of variables of the block. By default, auto.
+#' - pareto : Applies the pareto scaling. \deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
+#' - block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+#' considering m_b the number of variables of the block. By default, auto.
 #' @param p.method Type of resampling method to apply for the p-value calculation when pls1 or pls2 \code{\link{method}}. Two options:
 #' - jack : Applies Jack-Knife resampling technique.
 #' - pval : Applies a resampling technique in which the response variable is permuted 100 times to obtain the distribution of the coefficients and compute then their associated p-value.

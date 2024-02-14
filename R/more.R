@@ -46,9 +46,9 @@ library(RColorConesa)
 #' @param scale By default TRUE. It determines whether scaling is applied to \code{\link{data.omics}}.
 #' @param scaletype Type of scaling to be applied. Three options:
 #' - auto : Applies the autoscaling. 
-#' - pareto : Applies the pareto scaling. \[ \frac{X_k}{s_k \sqrt[4]{m_b}} \]
-#' - block : Applies the block scaling. \[ \frac{X_k}{s_k \sqrt{m_b}} \]
-#' considering \(m_b\) the number of variables of the block. By default, auto.
+#' - pareto : Applies the pareto scaling. \deqn{\frac{X_k}{s_k \sqrt[4]{m_b}} }
+#' - block : Applies the block scaling. \deqn{ \frac{X_k}{s_k \sqrt{m_b}} }
+#' considering m_b the number of variables of the block. By default, auto.
 #' @param epsilon Convergence threshold for coordinate descent algorithm in elasticnet. Default value, 1e-5.
 #' @param min.variation  For numerical regulators, it specifies the minimum change required across conditions to retain the regulator in 
 #' the regression models. In the case of binary regulators, if the proportion of the most common value is equal to or inferior this value, 
