@@ -44,38 +44,41 @@ library(RColorConesa)
 #' By default is set to NULL. In this case, the data type will be predicted automatically. However, the user must verify the prediction and manually input the vector if incorrect.
 #' @param center By default TRUE. It determines whether centering is applied to \code{\link{data.omics}}.
 #' @param scale By default TRUE. It determines whether scaling is applied to \code{\link{data.omics}}.
-#' @param epsilon Convergence threshold for coordinate descent algorithm in elasticnet. Default value, 1e-5.
-#' @param alfa Significance level for variable selection in pls1and pls2 \code{\link{method}}. By default, 0.05.
-#' @param family Error distribution and link function to be used in the model when \code{\link{method}} glm. By default, gaussian().
-#' @param elasticnet ElasticNet mixing parameter. There are three options:
-#' - NULL : The parameter is selected from a grid of values ranging from 0 to 1 with 0.1 increments. The chosen value optimizes the mean cross-validated error when optimizing the lambda values.
-#' - A number between 0 and 1 : ElasticNet is applied with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso penalty). 
-#' - A vector with the mixing parameters to try. The one that optimizes the mean cross-validated error when optimizing the lambda values will be used.
-#' By default, NULL.
-#' @param interactions.reg If TRUE, the model includes interactions between regulators and experimental variables. By default, TRUE.
-#' @param min.variation  For numerical regulators, it specifies the minimum change required across conditions to retain the regulator in 
-#' the regression models. In the case of binary regulators, if the proportion of the most common value is equal to or inferior this value, 
-#' the regulator is considered to have low variation and will be excluded from the regression models. The user has the option to set a single 
-#' value to apply the same filter to all omics, provide a vector of the same length as omics if they want to specify different levels for each omics, 
-#' or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.
-#' @param col.filter Type of correlation coefficients to use when applying the multicollinearity filter when glm \code{\link{method}} is used. 
-#' - cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
-#' - pcor : Computes the partial correlation.
-#' @param correlation  Value to determine the presence of collinearity between two regulators when using the glm \code{\link{method}}. By default, 0.7.
 #' @param scaletype Type of scaling to be applied. Three options:
 #' - auto : Applies the autoscaling. 
 #' - pareto : Applies the pareto scaling. \[ \frac{X_k}{s_k \sqrt[4]{m_b}} \]
 #' - block : Applies the block scaling. \[ \frac{X_k}{s_k \sqrt{m_b}} \]
 #' considering \(m_b\) the number of variables of the block. By default, auto.
-#' @param p.method Type of resampling method to apply for the p-value calculation when pls1 or pls2 \code{\link{method}}. Two options:
+#' @param epsilon Convergence threshold for coordinate descent algorithm in elasticnet. Default value, 1e-5.
+#' @param min.variation  For numerical regulators, it specifies the minimum change required across conditions to retain the regulator in 
+#' the regression models. In the case of binary regulators, if the proportion of the most common value is equal to or inferior this value, 
+#' the regulator is considered to have low variation and will be excluded from the regression models. The user has the option to set a single 
+#' value to apply the same filter to all omics, provide a vector of the same length as omics if they want to specify different levels for each omics, 
+#' or use 'NA' when they want to apply a minimum variation filter but are uncertain about the threshold. By default, 0.
+#' @param interactions.reg If TRUE, the model includes interactions between regulators and experimental variables. By default, TRUE.
+#' @param family.glm Error distribution and link function to be used in the model when \code{\link{method}} glm. By default, gaussian().
+#' @param elasticnet.glm ElasticNet mixing parameter. There are three options:
+#' - NULL : The parameter is selected from a grid of values ranging from 0 to 1 with 0.1 increments. The chosen value optimizes the mean cross-validated error when optimizing the lambda values.
+#' - A number between 0 and 1 : ElasticNet is applied with this number being the combination between Ridge and Lasso penalization (elasticnet=0 is the ridge penalty, elasticnet=1 is the lasso penalty). 
+#' - A vector with the mixing parameters to try. The one that optimizes the mean cross-validated error when optimizing the lambda values will be used.
+#' By default, NULL.
+#' @param col.filter.glm Type of correlation coefficients to use when applying the multicollinearity filter when glm \code{\link{method}} is used. 
+#' - cor: Computes the correlation between omics. Pearson correlation between numeric variables, phi coefficient between numeric and binary and biserial correlation between binary variables. 
+#' - pcor : Computes the partial correlation.
+#' @param correlation.glm  Value to determine the presence of collinearity between two regulators when using the glm \code{\link{method}}. By default, 0.7.
+#' @param gr.method.isgl Grouping approach to create groups of variables in ISGL penalization. There are two options: 'cor' to cluster variables using correlations and 'pca' to use Principal Component Analysis approach. By default, 'cor'.
+#' @param thres.isgl Threshold for the correlation when gr.method.isgl is 'cor' or threshold for the percentage of variability to explain when 'pca'. By default, 0.7.
+#' @param alfa.pls Significance level for variable selection in pls1and pls2 \code{\link{method}}. By default, 0.05.
+#' @param p.method.pls Type of resampling method to apply for the p-value calculation when pls1 or pls2 \code{\link{method}}. Two options:
 #' - jack : Applies Jack-Knife resampling technique.
 #' - perm : Applies a resampling technique in which the response variable is permuted 100 times to obtain the distribution of the coefficients and compute then their associated p-value.
 #' By default, jack.
-#' @param vip Value of VIP above which a variable can be considered significant in addition to the computed p-value in \code{\link{p.method}}. By default, 0.8.
+#' @param vip.pls Value of VIP above which a variable can be considered significant in addition to the computed p-value in \code{\link{p.method}}. By default, 0.8.
 #' @param method Model to be fitted. Two options:
 #' - glm : Applies a Generalized Linear Model (GLM) with ElasticNet regularization.
 #' - pls1 : Applies a Partial Least Squares (PLS) model, one for each of the genes at \code{\link{GeneExpression}}.
 #' - pls2 : Applies a PLS model to all genes at the same time, only possible when \code{\link{associations}}= NULL.
+#' - isgl : Applies a Generalized Linear Model (GLM) with Iterative Sparse Group Lasso (ISGL) regularization.
 #' By default, glm.
 #' @return List containing the following elements:
 #' - ResultsPerGene : List with as many elements as genes in \code{\link{GeneExpression}}. For each gene, it includes information about gene values, considered variables, estimated coefficients,
@@ -85,8 +88,21 @@ library(RColorConesa)
 #'
 #' @examples
 #' 
-#' more(GeneExpression, associations, data.omics, center = TRUE, scale = TRUE, epsilon = 0.00001, family = gaussian(), elasticnet = NULL, interactions.reg = TRUE,
-#'  min.variation = 0,  col.filter = 'cor', correlation = 0.7, method  ='glm')
+#' data(TestData)
+#' 
+#' #Omic type
+#' omic.type = c(1,0,0)
+#' names(omic.type) = names(TestData$data.omics)
+#' SimGLM = more(GeneExpression = TestData$GeneExpressionDE,
+#'               associations = TestData$associations, 
+#'               data.omics = TestData$data.omics,
+#'               omic.type = omic.type,
+#'               edesign = TestData$edesign,
+#'               center = TRUE, scale = TRUE, 
+#'               scaltype = 'auto',
+#'               epsilon = 0.00001, family.glm = gaussian(), elasticnet = NULL,
+#'               interactions.reg = TRUE,min.variation = 0,  col.filter.glm = 'cor',
+#'               correlation.glm = 0.7, method  ='glm')
 #' 
 #' @export
 
