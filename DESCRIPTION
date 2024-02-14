@@ -11,3 +11,4 @@ biocViews: Software
 Imports: igraph, MASS, glmnet, car, psych, ltm, stringr, ropls, RColorConesa, ggplot2, RCy3, clusterProfiler, sglfast
 Remotes: cytoscape/RCy3, jlaria/sglfast
 Maintainer: Sonia Tarazona <starazona@cipf.es>
+RoxygenNote: 7.3.1
