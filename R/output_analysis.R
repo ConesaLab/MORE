@@ -1766,19 +1766,19 @@ globalreg_plot<-function(output_regincond, by_network=FALSE){
     df<-output_regincond$RegulationInCondition[grepl(paste(regulators, collapse = "|"), output_regincond$RegulationInCondition$regulator),]
     
     #Create the graph
-    mygraph = graph.data.frame(df, directed=F)
+    mygraph = igraph::graph_from_data_frame(df, directed=F)
     
     odf<-df[,c(2,3)]
     odf<-rbind(odf, data.frame('regulator'=unique(df$gene),'omic'=rep('gene',length(unique(df$gene)))))
     odf<-unique(odf)
     rownames(odf)<-odf$regulator
     
-    mygraph<-igraph::set.vertex.attribute(mygraph,'omic', index = igraph::V(mygraph), value = odf[V(mygraph)$name,]$omic)
+    mygraph<-igraph::set.vertex.attribute(mygraph,'omic', index = igraph::V(mygraph), value = odf[igraph::V(mygraph)$name,]$omic)
     mygraph<-igraph::set.edge.attribute(mygraph, 'sign', index = igraph::E(mygraph), value = df[,4])
-    E(mygraph)$sign<-df[,4]
+    igraph::E(mygraph)$sign<-df[,4]
     
-    plot(mygraph,vertex.label.cex= 0.4, vertex.size = 4,vertex.color=as.factor(V(mygraph)$omic),edge.color = ifelse(E(mygraph)$sign >0, "blue", "red"), main='Gen - Global regulators network')
-    legend("topright", legend = unique(V(mygraph)$omic), col = categorical_pal(length(unique(as.factor(V(mygraph)$omic)))), pch = 16, cex = 1.5, bty = "n")
+    plot(mygraph,vertex.label.cex= 0.4, vertex.size = 4,vertex.color=as.factor(igraph::V(mygraph)$omic),edge.color = ifelse(igraph::E(mygraph)$sign >0, "blue", "red"), main='Gen - Global regulators network')
+    legend("topright", legend = unique(igraph::V(mygraph)$omic), col = categorical_pal(length(unique(as.factor(igraph::V(mygraph)$omic)))), pch = 16, cex = 1.5, bty = "n")
     
     
   }else{
@@ -1849,15 +1849,15 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
   create_graph <- function(df) {
     #Remove rows with 0 coef
     df <- df[df[,4] != 0, ]
-    mygraph <- igraph::graph.data.frame(df, directed = FALSE)
+    mygraph <- igraph::graph_from_data_frame(df, directed = FALSE)
     mygraph <- igraph::simplify(mygraph)
     #Add atributtes to the edge and create df with the omic
     odf <- unique(df[, c(2, 3)])
     odf <- rbind(odf, data.frame('regulator' = unique(df$gene), 'omic' = rep('gene', length(unique(df$gene)))))
     rownames(odf) <- odf$regulator
     
-    mygraph <- igraph::set.vertex.attribute(mygraph, 'omic', index = V(mygraph), value = odf[V(mygraph)$name,]$omic)
-    mygraph <- igraph::set.edge.attribute(mygraph, 'sign', index = E(mygraph), value = df[, 4])
+    mygraph <- igraph::set_vertex_attr(mygraph, 'omic', index = igraph::V(mygraph), value = odf[igraph::V(mygraph)$name,]$omic)
+    mygraph <- igraph::set_edge_attr(mygraph, 'sign', index = igraph::E(mygraph), value = df[, 4])
     
     return(list('mygraph'=mygraph,'df'=df,'odf'=odf))
   }
@@ -1942,13 +1942,13 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
         df <- output_regpcond[, c(1, 2, 3, ngroups[i])]
         my_graph <- create_graph(df)
         
-        E(my_graph$mygraph)$sign<-my_graph$df[,4]
+        igraph::E(my_graph$mygraph)$sign<-my_graph$df[,4]
         
         igraph::plot(my_graph$mygraph, vertex.label.cex = 0.3, vertex.size = 3, 
-             vertex.color = as.factor(V(my_graph$mygraph)$omic), 
-             edge.color = ifelse(E(my_graph$mygraph)$sign > 0, "blue", "red"))
+             vertex.color = as.factor(igraph::V(my_graph$mygraph)$omic), 
+             edge.color = ifelse(igraph::E(my_graph$mygraph)$sign > 0, "blue", "red"))
         
-        igraph::write.graph(my_graph$mygraph, format = 'gml', file = paste0('mynet', colnames(output_regpcond)[ngroups[i]], '.gml'))
+        igraph::write_graph(my_graph$mygraph, format = 'gml', file = paste0('mynet', colnames(output_regpcond)[ngroups[i]], '.gml'))
       }
       
     } else {
@@ -1966,16 +1966,16 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
       
       my_graph <- create_graph(df)
       
-      E(my_graph$mygraph)$sign<-my_graph$df[,4]
+      igraph::E(my_graph$mygraph)$sign<-my_graph$df[,4]
       my_graph$mygraph<-igraph::set.edge.attribute(my_graph$mygraph, 'line', index = igraph::E(my_graph$mygraph), value = my_graph$df[,5])
-      E(my_graph$mygraph)$line<-my_graph$df[,5]
+      igraph::E(my_graph$mygraph)$line<-my_graph$df[,5]
       
       igraph::plot(my_graph$mygraph, vertex.label.cex = 0.3, vertex.size = 3, 
-           vertex.color = as.factor(V(my_graph$mygraph)$omic), 
-           edge.color = ifelse(E(my_graph$mygraph)$sign > 0, "blue", "red"), 
-           edge.lty = ifelse(E(my_graph$mygraph)$line == 0, "solid", "dashed"))
+           vertex.color = as.factor(igraph::V(my_graph$mygraph)$omic), 
+           edge.color = ifelse(igraph::E(my_graph$mygraph)$sign > 0, "blue", "red"), 
+           edge.lty = ifelse(igraph::E(my_graph$mygraph)$line == 0, "solid", "dashed"))
       
-      igraph::write.graph(my_graph$mygraph, format = 'gml', file = paste0('mynet', group2, '-', group1, '.gml'))
+      igraph::write_graph(my_graph$mygraph, format = 'gml', file = paste0('mynet', group2, '-', group1, '.gml'))
     }
   }
 }
