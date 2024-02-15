@@ -295,7 +295,7 @@ GetISGL = function(GeneExpression,
   
   ## Global summary for all genes
   GlobalSummary = vector("list", length = 6)
-  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators", "GlobalRegulators", "Hubgenes")
+  names(GlobalSummary) = c("GoodnessOfFit", "ReguPerGene", "GenesNOmodel", "GenesNOregulators", "GlobalRegulators", "HubGenes")
   
   GlobalSummary$GenesNOmodel = NULL
   if (length(genesNA) > 0) {
@@ -535,13 +535,11 @@ GetISGL = function(GeneExpression,
     
   }  ## At this point the loop for all genes is finished
 
-  ## Mirar que lo este haciendo bien es decir fuera del for o si necesita estar dentro
-  
   # Remove from GoodnessOfFit genes with no relevant regulators
 
   genesNosig = names(which(GlobalSummary$GoodnessOfFit[,1]==0))
   genessig = setdiff(rownames(GlobalSummary$GoodnessOfFit), genesNosig)
-  GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,]
+  GlobalSummary$GoodnessOfFit = GlobalSummary$GoodnessOfFit[genessig,, drop=FALSE]
   
   #Calculate GlobalRegulators
   m_rel_reg<-lapply(ResultsPerGene, function(x) x$relevantRegulators)
@@ -659,8 +657,8 @@ Creategroups = function(data, reg.table, method = 'cor' ,correlation =0.8, omic.
     mycor = mycorrelations[abs(mycorrelations[,3]) >= correlation,]
     
     #create the graphs for the connected regulators
-    mygraph = igraph::graph.data.frame(mycor, directed=F)
-    mycomponents = igraph::clusters(mygraph)
+    mygraph = igraph::graph_from_data_frame(mycor, directed=F)
+    mycomponents = igraph::components(mygraph)
     membership<-mycomponents$membership ##save membership information
     groups = NULL
     

@@ -758,8 +758,8 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type,sca
   
   if (nrow(mycor) >= 2) {   ### more than 2 regulators might be correlated in this omic
     
-    mygraph = igraph::graph.data.frame(mycor, directed=F)
-    mycomponents = igraph::clusters(mygraph)
+    mygraph = igraph::graph_from_data_frame(mycor, directed=F)
+    mycomponents = igraph::components(mygraph)
     mygraph$community<-mycomponents$membership ##save membership information
     
     for (i in 1:mycomponents$no) {
@@ -885,7 +885,7 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type,sca
             }
           }
           mysubgraph<-igraph::delete.vertices(mysubgraph,correlacionados)
-          mycomponents2 = igraph::clusters(mysubgraph)
+          mycomponents2 = igraph::components(mysubgraph)
           j=j+1
           
         }
@@ -996,7 +996,7 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
   
   if (nrow(mycor) >= 2) {   ### more than 2 regulators might be correlated in this omic
     
-    mygraph = igraph::graph.data.frame(mycor, directed=F)
+    mygraph = igraph::graph_from_data_frame(mycor, directed=F)
     mycomponents = igraph::clusters(mygraph)
     mygraph$community<-mycomponents$membership ##save membership information
     
