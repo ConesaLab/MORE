@@ -765,7 +765,7 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type,sca
     for (i in 1:mycomponents$no) {
       
       #create the subgraphs of the clusters
-      mysubgraph = igraph::subgraph(mygraph,as.numeric(V(mygraph)[which(mygraph$community==i)]))
+      mysubgraph = igraph::subgraph(mygraph,as.numeric(igraph::V(mygraph)[which(mygraph$community==i)]))
       
       nedges = igraph::ecount(mysubgraph)
       
@@ -1003,7 +1003,7 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
     for (i in 1:mycomponents$no) {
       
       #create the subgraphs of the clusters
-      mysubgraph = igraph::subgraph(mygraph,as.numeric(V(mygraph)[which(mygraph$community==i)]))
+      mysubgraph = igraph::subgraph(mygraph,as.numeric(igraph::V(mygraph)[which(mygraph$community==i)]))
       
       nedges = igraph::ecount(mysubgraph)
       
