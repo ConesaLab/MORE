@@ -12,3 +12,5 @@ Imports: igraph, MASS, glmnet, car, psych, ltm, stringr, ropls, RColorConesa, gg
 Remotes: cytoscape/RCy3, jlaria/sglfast
 Maintainer: Sonia Tarazona <starazona@cipf.es>
 RoxygenNote: 7.3.1
+Depends: 
+    R (>= 2.10)
