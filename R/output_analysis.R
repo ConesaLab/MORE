@@ -11,7 +11,7 @@
 # For only 1 gene
 GetPairs1GeneAllReg = function (gene, output) {
   
-  if(output$arguments$method=='glm'){
+  if(output$arguments$method=='glm'|| output$arguments$method=='isgl'){
     
     reguSignif = output$ResultsPerGene[[gene]]$relevantRegulators
     
@@ -148,7 +148,13 @@ RegulationPerCondition = function(output){
       for(k in unique(myresults[,"gene"])){
         setTxtProgressBar(pb, value = which(names(output$ResultsPerGene)==k))
         significant.regulators = output$ResultsPerGene[[k]]$relevantRegulators                    # Reguladores significativos.
-        model.variables = gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients))[-1]       # Reguladores e interacciones en el modelo.
+        if(method =='glm'){
+          model.variables = gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients))[-1]       # Reguladores e interacciones en el modelo.
+          kc = 2
+        } else{
+          model.variables = gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients))       # Reguladores e interacciones en el modelo.
+          kc = 1
+        }
         
         # Cojo las interacciones y creo objetos que contengan los reguladores que aparecen con interaccion, solas o ambas.
         interactions.model = gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients)[grep(":", rownames(output$ResultsPerGene[[k]]$coefficients))])
@@ -168,7 +174,7 @@ RegulationPerCondition = function(output){
         variables.inter.only = intersect(inter.variables, model.variables)                                  # Reguladores con interaccion y solas.
         variables.inter = setdiff(inter.variables, model.variables)                                         # Reguladores con solo interaccion (no aparecen solas en el modelo).
         
-        for(j in 2:nrow(output$ResultsPerGene[[k]]$coefficients)){
+        for(j in kc:nrow(output$ResultsPerGene[[k]]$coefficients)){
           regul = unlist(strsplit(gsub("`", "", rownames(output$ResultsPerGene[[k]]$coefficients)[j]), ":"))
           
           # Evaluo en que conjunto se encuentra el regulador correspondiente y segun eso asigno el coeficiente o sumo el nuevo coeficiente a lo que ya habia en esa posicion.
