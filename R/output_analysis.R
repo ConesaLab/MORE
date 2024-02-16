@@ -1566,7 +1566,7 @@ summary.MORE <-function(object, plot.more=FALSE){
   cat(ifelse(is.null(object$GlobalSummary$GenesNoregulators),0,nrow(object$GlobalSummary$GenesNoregulators)), 'genes had no intial regulators.' ,'\n')
   
   if(object$arguments$method == 'glm'||object$arguments$method=='isgl'){
-    cat('For', ifelse(is.null(object$GlobalSummary$GenesNOmodel),0,object$GlobalSummary$GenesNOmodel), 'genes, the final GLM model could not be obtained.','\n')
+    cat('For', ifelse(is.null(object$GlobalSummary$GenesNOmodel),0,length(object$GlobalSummary$GenesNOmodel)), 'genes, the final GLM model could not be obtained.','\n')
     cat('Genes presented a mean of ',mean(na.omit(object$GlobalSummary$GoodnessOfFit[,'relReg'])),'relevant regulators.','\n')
     
     #Top hub genes
@@ -1587,8 +1587,13 @@ summary.MORE <-function(object, plot.more=FALSE){
     mrel_vector <- table(m_rel_reg)
     #Ask to regulate at least 10 genes
     mrel_vector<-mrel_vector[mrel_vector>10]
-    cat('These are the top 10 global regulators and the number of genes that they regulate:\n')
-    print(mrel_vector[rev(tail(order(mrel_vector),10))])
+    if(length(mrel_vector!=0)){
+      cat('These are the top 10 global regulators and the number of genes that they regulate:\n')
+      print(mrel_vector[rev(tail(order(mrel_vector),10))])
+    } else{
+      cat('There were not global regulators (regulators that regulate more than 10 genes).')
+    }
+    
     
     if(plot.more){
       mreg<-mrel_vector[rev(tail(order(mrel_vector),10))]
