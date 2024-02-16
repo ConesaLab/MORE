@@ -1698,7 +1698,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
       theme_minimal()+
       scale_fill_manual(values = custom_colors)+ 
       labs(x="Omic", y = "% genes with significant regulators") +
-      theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",size = 0.5,linetype = 1)) 
+      theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",linewidth = 0.5,linetype = 1)) 
     
   } else{
     #Calculate the vector with % of significant regulations by condition in each omic
@@ -1739,7 +1739,7 @@ summary_plot<-function(output, output_regpcond, by_genes =TRUE){
       scale_fill_manual(values = custom_colors)+
       scale_y_continuous(limits = c(0, max(df$genes) + 1)) +
       labs(x="Omic", y = "% significant regulations") +
-      theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",size = 0.5,linetype = 1)) 
+      theme(legend.text = element_text(size = 12),panel.grid = element_line(color = "black",linewidth = 0.5,linetype = 1)) 
     
   }
   
