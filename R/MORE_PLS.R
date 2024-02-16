@@ -800,9 +800,9 @@ GetPLS = function(GeneExpression,
   #Calculate third quantile
   q3<-quantile(s_sig_reg,0.75)
   if(length(s_sig_reg[s_sig_reg>q3])<10){
-    GlobalSummary$HubGenes = names(s_sig_reg[rev(tail(order(s_sig_reg),10))])
+    GlobalSummary$HubGenes = intersect(names(s_sig_reg[rev(tail(order(s_sig_reg),10))]), names(s_sig_reg[s_sig_reg>10]) )
   } else{
-    GlobalSummary$HubGenes = names(s_sig_reg[s_sig_reg>q3])
+    GlobalSummary$HubGenes = intersect(names(s_sig_reg[s_sig_reg>q3]), names(s_sig_reg[s_sig_reg>10]))
   }
   
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, alfa = alfa, 

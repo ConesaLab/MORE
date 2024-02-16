@@ -666,9 +666,9 @@ GetGLM = function(GeneExpression,
   #Calculate third quantile
   q3<-quantile(s_rel_reg,0.75)
   if(length(s_rel_reg[s_rel_reg>q3])<10){
-    GlobalSummary$HubGenes = names(s_rel_reg[rev(tail(order(s_rel_reg),10))])
+    GlobalSummary$HubGenes = intersect(names(s_rel_reg[rev(tail(order(s_rel_reg),10))]), names(s_rel_reg[s_rel_reg>10]) )
   } else{
-    GlobalSummary$HubGenes = names(s_rel_reg[s_rel_reg>q3])
+    GlobalSummary$HubGenes = intersect(names(s_rel_reg[s_rel_reg>q3]), names(s_rel_reg[s_rel_reg>10]))
   }
   
   myarguments = list(edesign = edesign, finaldesign = des.mat, groups = Group, family = family,
