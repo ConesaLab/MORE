@@ -774,9 +774,14 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type,sca
         correlacionados = names(mycomponents$membership[mycomponents$membership == i])
         regulators = colnames(data)
         
-        ## Escoge un regulador al azar como representante de cada componente conexa. Para cada componente conexa elimina aquellos reguladores
-        ## que no han sido escogidos como representante.
-        keep = sample(correlacionados, 1)  # mantiene uno al azar
+        ## Take as representator the one with highest correlations, it case of tie, select it randomly
+        sums = sapply(correlacionados, function(x) sum(abs(mycor[which(apply(mycor[,c(1,2)]==c(x),1,any)),3])))
+        if(length(which(sums==max(sums)))>1){
+          keep = sample(names(which(sums==max(sums))),1)
+        } else {
+          keep = names(which(sums==max(sums)))
+        }
+        
         reg.remove = setdiff(correlacionados, keep) # correlated regulator to remove
         regulators = setdiff(regulators, reg.remove)  # all regulators to keep
         data = as.matrix(data[ ,regulators])
