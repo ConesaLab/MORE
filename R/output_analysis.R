@@ -1788,7 +1788,7 @@ globalreg_plot<-function(output_regincond, by_network=FALSE){
     mygraph<-igraph::set.edge.attribute(mygraph, 'sign', index = igraph::E(mygraph), value = df[,4])
     igraph::E(mygraph)$sign<-df[,4]
     
-    plot(mygraph,vertex.label.cex= 0.4, vertex.size = 4,vertex.color=as.factor(igraph::V(mygraph)$omic),edge.color = ifelse(igraph::E(mygraph)$sign >0, "blue", "red"), main='Gen - Global regulators network')
+    igraph::plot.igraph(mygraph,vertex.label.cex= 0.4, vertex.size = 4,vertex.color=as.factor(igraph::V(mygraph)$omic),edge.color = ifelse(igraph::E(mygraph)$sign >0, "blue", "red"), main='Gen - Global regulators network')
     legend("topright", legend = unique(igraph::V(mygraph)$omic), col = categorical_pal(length(unique(as.factor(igraph::V(mygraph)$omic)))), pch = 16, cex = 1.5, bty = "n")
     
     
@@ -1821,7 +1821,7 @@ globalreg_plot<-function(output_regincond, by_network=FALSE){
                    color= ifelse(as.vector(gen_reg)>0, '#5577FF',ifelse(as.vector(gen_reg)<0, '#FF7755','#FFFFFF')))
     df$color[is.na(df$color)] <- '#aaaaaa'
     
-    ggplot(data = df, aes(x = regulators, y = genes, fill = color)) +
+    ggplot2::ggplot(data = df, aes(x = regulators, y = genes, fill = color)) +
       geom_tile(color = "black",lwd = 0.5,  linetype = 1) +
       scale_fill_manual(values = c("#5577FF", "#aaaaaa", "#FF7755",  "#FFFFFF"), 
                         name = "Legend",
@@ -1955,7 +1955,7 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
         
         igraph::E(my_graph$mygraph)$sign<-my_graph$df[,4]
         
-        igraph::plot(my_graph$mygraph, vertex.label.cex = 0.3, vertex.size = 3, 
+        igraph::plot.igraph(my_graph$mygraph, vertex.label.cex = 0.3, vertex.size = 3, 
              vertex.color = as.factor(igraph::V(my_graph$mygraph)$omic), 
              edge.color = ifelse(igraph::E(my_graph$mygraph)$sign > 0, "blue", "red"))
         
@@ -1981,7 +1981,7 @@ network_more <- function(output_regpcond, cytoscape = TRUE, group1 = NULL, group
       my_graph$mygraph<-igraph::set.edge.attribute(my_graph$mygraph, 'line', index = igraph::E(my_graph$mygraph), value = my_graph$df[,5])
       igraph::E(my_graph$mygraph)$line<-my_graph$df[,5]
       
-      igraph::plot(my_graph$mygraph, vertex.label.cex = 0.3, vertex.size = 3, 
+      igraph::plot.igraph(my_graph$mygraph, vertex.label.cex = 0.3, vertex.size = 3, 
            vertex.color = as.factor(igraph::V(my_graph$mygraph)$omic), 
            edge.color = ifelse(igraph::E(my_graph$mygraph)$sign > 0, "blue", "red"), 
            edge.lty = ifelse(igraph::E(my_graph$mygraph)$line == 0, "solid", "dashed"))
