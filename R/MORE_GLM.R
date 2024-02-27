@@ -884,7 +884,7 @@ CollinearityFilter1 = function(data, reg.table, correlation = 0.8, omic.type,sca
               reg.table[index, "filter"] = paste(reg.table[repre, 'omic'], paste("mc", i, sep = ""),j, "N", sep = "_")
             }
           }
-          mysubgraph<-igraph::delete.vertices(mysubgraph,correlacionados)
+          mysubgraph<-igraph::delete_vertices(mysubgraph,correlacionados)
           mycomponents2 = igraph::components(mysubgraph)
           j=j+1
           
@@ -1123,7 +1123,7 @@ CollinearityFilter2 = function(data, reg.table, correlation = 0.8, omic.type,eps
               reg.table[index, "filter"] = paste(reg.table[repre, 'omic'], paste("mc", i, sep = ""),j, "N", sep = "_")
             }
           }
-          mysubgraph<-igraph::delete.vertices(mysubgraph,correlacionados)
+          mysubgraph<-igraph::delete_vertices(mysubgraph,correlacionados)
           mycomponents2 = igraph::clusters(mysubgraph)
           j=j+1
           
