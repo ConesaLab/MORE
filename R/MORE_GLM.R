@@ -387,8 +387,8 @@ GetGLM = function(GeneExpression,
   ResultsPerGene <- furrr::future_map(1:nGenes,
                                  ~ResultsPerGene.i(Allgenes[.],GlobalSummary,data.omics,associations,GeneExpression,omic.type,
                                                    edesign, des.mat,myregLV,myregNA,col.filter,correlation,epsilon,
-                                                   scale,center,scaletype,interactions.reg,elasticnet,family2),
-                                 .progress = TRUE,.options = furrr_options(seed = TRUE) )
+                                                   scale,center,scaletype,interactions.reg,elasticnet, family2),
+                                 .progress = TRUE,.options = furrr_options(seed = TRUE),.env_globals = parent.frame() )
   names(ResultsPerGene)<-Allgenes
   
   
@@ -456,7 +456,7 @@ GetGLM = function(GeneExpression,
 
 ResultsPerGene.i<-function(gene,GlobalSummary,data.omics,associations,GeneExpression,omic.type,
                            edesign, des.mat,myregLV,myregNA,col.filter,correlation,epsilon,
-                           scale,center,scaletype,interactions.reg,elasticnet,family2){
+                           scale,center,scaletype,interactions.reg,elasticnet, family2){
   
   
   ResultsPerGene.i = vector("list", length = 8)
