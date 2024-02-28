@@ -454,7 +454,7 @@ GetGLM = function(GeneExpression,
 
 # MORE main function --------------------------
 
-ResultsPerGene.i<-function(gene, GlobalSummary,data.omics,associations,GeneExpression,omic.type,
+ResultsPerGene.i<-function(gene,GlobalSummary,data.omics,associations,GeneExpression,omic.type,
                            edesign, des.mat,myregLV,myregNA,col.filter,correlation,epsilon,
                            scale,center,scaletype,interactions.reg,elasticnet,family2){
   
