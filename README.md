@@ -1,3 +1,5 @@
+**This repository has been migrated to [BiostatOmics](https://github.com/BiostatOmics/MORE/). Please redirect to the new repository for the latest updates and contributions.**
+
 # MORE
 
 MORE (Multi-Omics REgulation) is an R package for the application of Generalized Linear Models (GLM) with Elastic Net 
